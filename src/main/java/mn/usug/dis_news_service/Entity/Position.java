@@ -1,9 +1,6 @@
 package mn.usug.dis_news_service.Entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import org.hibernate.annotations.ColumnDefault;
 import lombok.Data;
 
@@ -27,5 +24,8 @@ public class Position {
     @ColumnDefault("0")
     @Column(name = "employee_count")
     private Integer employeeCount;
+
+    @Transient
+    private String depName;
 
 }

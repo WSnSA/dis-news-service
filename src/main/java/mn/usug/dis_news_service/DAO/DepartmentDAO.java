@@ -11,4 +11,9 @@ public interface DepartmentDAO extends JpaRepository<Department,Integer> {
     @Query("select a from Department a")
     List<Department> findAll();
 
+    Department findByDepId(Integer id);
+
+    List<Department> findDepartmentsByDepNameContaining(String name);
+
+//    Integer findMaxId();
 }
