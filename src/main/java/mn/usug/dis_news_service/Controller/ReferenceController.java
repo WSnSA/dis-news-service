@@ -97,19 +97,17 @@ public class ReferenceController {
             @RequestParam("firstGenCount") Integer firstGenCount,
             @RequestParam("secondGenCount") Integer secondGenCount,
             @RequestParam("wellsNumber") Integer wellsNumber
-
     ) {
         User user = mainService.getUserById(chefId);
         if(user == null){
             return ResponseEntity.status(404).body("Chef not found");
         }
         Department department = mainService.getDepartmentById(depId);
+
         if(department == null){
             return ResponseEntity.status(404).body("Department not found");
         }
-
         Station station = new Station();
-        station.setName(name);
         station.setDepartmentId(depId);
         station.setIsWaterSupply(isWaterSupply);
         station.setPoolCount(poolCount);

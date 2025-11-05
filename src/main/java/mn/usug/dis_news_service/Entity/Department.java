@@ -21,4 +21,7 @@ public class Department {
     @Column(name = "chairman_id")
     private Integer chairmanId;
 
+    @Column(name = "short_name")
+    private String shortName;
+
 }

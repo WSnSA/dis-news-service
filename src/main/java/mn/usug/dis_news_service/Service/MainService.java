@@ -5,6 +5,7 @@ import mn.usug.dis_news_service.DAO.PositionDAO;
 import mn.usug.dis_news_service.DAO.StationDAO;
 import mn.usug.dis_news_service.DAO.UserDAO;
 import mn.usug.dis_news_service.Entity.*;
+import mn.usug.dis_news_service.Model.UserModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,12 @@ public class MainService {
     StationDAO stationDAO;
 
     public List<User> getAllUsers() {
-        return userDAO.findAll();
+        List<User> list = userDAO.findAll();
+        list.forEach(item -> {
+            item.setDepName(getDepartmentById(item.getDepartmentId()).getShortName());
+            item.setPosName(getPositionById(item.getPositionId()).getName());
+        });
+        return list;
     }
 
     public User getUserById(Integer id) {
@@ -163,5 +169,20 @@ public class MainService {
 
     public List<Position> getPositionsByName(Integer depId, String name) {
         return positionDAO.findByNameContaining(depId, name);
+    }
+
+    public User createUser(UserModel model) {
+        User user = new User();
+        user.setFirstName(model.getFirstName());
+        user.setLastName(model.getLastName());
+        user.setPin(model.getPin());
+        user.setUsername(model.getUsername());
+        user.setPassword(model.getPassword());
+        user.setActiveFlag(true);
+        user.setDepartmentId(model.getDepartmentId());
+        user.setPositionId(model.getPositionId());
+        user.setMailAddress(model.getMailAddress());
+        user.setPhoneNumber(model.getPhoneNumber());
+        return userDAO.save(user);
     }
 }

@@ -1,5 +1,6 @@
 package mn.usug.dis_news_service.Entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -11,6 +12,7 @@ import lombok.Data;
 @Table(name = "users")
 public class User {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
 
@@ -29,9 +31,9 @@ public class User {
     @Column(name = "password", length = 100)
     private String password;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
-    private Department department;
+//    @ManyToOne(fetch = FetchType.LAZY)
+    @Column(name = "department_id")
+    private Integer departmentId;
 
     @Column(name = "position_id")
     private Integer positionId;
@@ -42,8 +44,8 @@ public class User {
     @Column(name = "mail_address", length = 100)
     private String mailAddress;
 
-    @Column(name = "birth_date")
-    private LocalDate birthDate;
+//    @Column(name = "birth_date")
+//    private java.time.LocalDateTime birthDate;
 
     @Column(name = "active_flag")
     private Boolean activeFlag;
@@ -51,19 +53,25 @@ public class User {
     @Column(name = "status", length = 50)
     private String status;
 
-    @Column(name = "created_date")
-    private Instant createdDate;
+//    @Column(name = "created_date")
+//    private java.time.LocalDateTime createdDate;
 
     @Column(name = "created_by", length = 50)
     private String createdBy;
 
-    @Column(name = "updated_date")
-    private Instant updatedDate;
+//    @Column(name = "updated_date")
+//    private java.time.LocalDateTime updatedDate;
 
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 
     @Column(name = "station_id")
     private Integer stationId;
+
+    @Transient
+    private String depName;
+
+    @Transient
+    private String posName;
 
 }
