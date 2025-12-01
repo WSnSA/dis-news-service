@@ -5,6 +5,7 @@ import mn.usug.dis_news_service.Entity.User;
 import mn.usug.dis_news_service.Model.UserModel;
 import mn.usug.dis_news_service.Service.AESUtil;
 import mn.usug.dis_news_service.Service.MainService;
+import mn.usug.dis_news_service.Service.ReferenceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,11 +16,11 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     @Autowired
-    MainService mainService;
+    ReferenceService refService;
 
     @GetMapping("/login")
     public ResponseEntity<?> login(@RequestParam("username") String username,@RequestParam("password") String password) {
-        User user = mainService.getUserByUsername(username);
+        User user = refService.getUserByUsername(username);
 
         if(user == null){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
@@ -32,20 +33,20 @@ public class AuthController {
 
     @PostMapping("/deactive")
     public ResponseEntity<?> deactive(@RequestParam("username") String username,@RequestParam("password") String password) {
-        User user = mainService.getUserByUsername(username);
+        User user = refService.getUserByUsername(username);
         user.setActiveFlag(false);
-        mainService.saveUser(user);
+        refService.saveUser(user);
         return ResponseEntity.ok(user);
     }
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody UserModel model) {
-        User user = mainService.getUserByUsername(model.getUsername());
+        User user = refService.getUserByUsername(model.getUsername());
         if (user != null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("User already exists");
         }
         else {
-            return ResponseEntity.ok(mainService.createUser(model));
+            return ResponseEntity.ok(refService.createUser(model));
         }
     }
 

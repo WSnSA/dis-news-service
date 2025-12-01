@@ -1,188 +1,313 @@
 package mn.usug.dis_news_service.Service;
 
-import mn.usug.dis_news_service.DAO.DepartmentDAO;
-import mn.usug.dis_news_service.DAO.PositionDAO;
-import mn.usug.dis_news_service.DAO.StationDAO;
-import mn.usug.dis_news_service.DAO.UserDAO;
+import jakarta.persistence.Transient;
+import mn.usug.dis_news_service.DAO.*;
 import mn.usug.dis_news_service.Entity.*;
-import mn.usug.dis_news_service.Model.UserModel;
+import mn.usug.dis_news_service.Model.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.relational.core.sql.In;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.function.Function;
+import java.util.function.ToDoubleFunction;
+import java.util.function.ToIntFunction;
+import java.util.stream.Collectors;
 
 @Service
 public class MainService {
     @Autowired
-    DepartmentDAO departmentDAO;
+    HourlyWsStationDAO hourlyWsStationDAO;
+
     @Autowired
-    PositionDAO positionDAO;
-    @Autowired
-    UserDAO userDAO;
-    @Autowired
-    StationDAO stationDAO;
+    HourlyWsSecondDAO hourlyWsSecondDAO;
 
-    public List<User> getAllUsers() {
-        List<User> list = userDAO.findAll();
-        list.forEach(item -> {
-            item.setDepName(getDepartmentById(item.getDepartmentId()).getShortName());
-            item.setPosName(getPositionById(item.getPositionId()).getName());
-        });
-        return list;
-    }
+    @Transient
+    public ResponseEntity regHourly(HourlyReport report) {
 
-    public User getUserById(Integer id) {
-        return userDAO.findById(id).orElse(null);
-    }
+        // 1) Save Station
+        HourlyWsStation station = new HourlyWsStation();
 
-    public User getUserByUsername(String username) {
-        User user = userDAO.findUserByUsername(username);
-        return user;
-    }
+        station.setMenuId(report.getMenuId());
+        station.setDate(report.getDate());
+        station.setHour(report.getHour());
 
-    public void saveUser(User user) {
-        userDAO.save(user);
-    }
+        station.setFirstWorkingCount(report.getFirstWorkingCount());
+        station.setFirstPendingCount(report.getFirstPendingCount());
+        station.setFirstRepairingCount(report.getFirstRepairingCount());
 
-    public List<Position> getAllPositions() {
-        List<Position> list = positionDAO.findAll();
-        list.forEach(item -> {
-            item.setDepName(getDepartmentById(item.getDepId()).getDepName());
-        });
-        return list;
-    }
+        station.setFirstPool(report.getFirstPool());
+        station.setSecondPool(report.getSecondPool());
+        station.setThirdPool(report.getThirdPool());
+        station.setFourthPool(report.getFourthPool());
 
-    public Position getPositionById(Integer id) {
-        Position position = positionDAO.findById(id).orElse(null);
-        return position;
-    }
+        station.setPipeFm1(report.getPipeFm1());
+        station.setPipeFm7(report.getPipeFm7());
+        station.setPipeFm8(report.getPipeFm8());
 
-    public Position createPosition(Position position) {
-        positionDAO.save(position);
-        return position;
-    }
+        hourlyWsStationDAO.save(station);
 
-    public Position updatePosition(Position position) {
-        Position oldPosition = positionDAO.findById(position.getId()).orElse(null);
-        oldPosition.setDepId(position.getDepId());
-        oldPosition.setName(position.getName());
-        oldPosition.setEmployeeCount(position.getEmployeeCount());
-        if (oldPosition.getDepId() != null) {
-            oldPosition.setDepName(getDepartmentById(oldPosition.getDepId()).getDepName());
-        }
-        else {
-            oldPosition.setDepName(null);
-        }
-        positionDAO.save(oldPosition);
-        return oldPosition;
-    }
-
-    public List<Department> getAllDepartments() {
-        List<Department> list = departmentDAO.findAll();
-        return list;
-    }
-
-    public Department getDepartmentById(Integer id) {
-        return departmentDAO.findById(id).orElse(null);
-    }
-
-    public List<Position> getPositionsByDepId(Integer id) {
-        List<Position> list = positionDAO.findByDepId(id);
-        list.forEach(item -> {
-            item.setDepName(getDepartmentById(item.getDepId()).getDepName());
-        });
-        return list;
-    }
-
-    public List<Department> getDepartmentsByName(String name) {
-        return departmentDAO.findDepartmentsByDepNameContaining(name);
-    }
-
-    public ResponseEntity deleteDepartmentById(Integer id) {
-        Department department = departmentDAO.findById(id).orElse(null);
-        departmentDAO.delete(department);
-        return ResponseEntity.ok(department);
-    }
-
-    public Department addDepartment(String name, Integer employeeCount, Integer chairmanId) {
-        Department department = new Department();
-
-        User user = userDAO.findById(chairmanId).orElse(null);
-        if(user == null){
-            return null;
+        // 2) Save Seconds → from secondList
+        if (report.getSecondList() != null) {
+            report.getSecondList().forEach(item -> {
+                regHourlySecond(report.getMenuId(), report.getDate(), report.getHour(), item);
+            });
         }
 
-
-        department.setChairmanId(chairmanId);
-        department.setDepName(name);
-        department.setEmployeeCount(employeeCount);
-        departmentDAO.save(department);
-        return department;
+        return ResponseEntity.ok("OK");
     }
 
-    public Department editDepartment(Integer id, String name, Integer employeeCount, Integer chairmanId) {
-        Department department = departmentDAO.findById(id).orElse(null);
-        if (department == null) {
-            return null;
+
+    @Transient
+    public void regHourlySecond(Integer menuId, Date date, Integer hour, HourlySecondReport report) {
+        HourlyWsSecond station = new HourlyWsSecond();
+
+        station.setMenuId(menuId);
+        station.setDate(date);
+        station.setHour(hour);
+        station.setStatus(report.getStatus());
+
+        station.setGeneratorNo(report.getGeneratorNo());
+        station.setFrequency(report.getFrequency());
+        station.setECurrent(report.getECurrent());
+        station.setPressure(report.getPressure());
+        station.setPressure2(report.getPressure2());
+        station.setPressure3(report.getPressure3());
+        station.setPressure4(report.getPressure4());
+        station.setTemperature(report.getTemperature());
+        station.setTemperature2(report.getTemperature2());
+        station.setTemperature3(report.getTemperature3());
+        station.setTemperature4(report.getTemperature4());
+        station.setGauge(report.getGauge());
+        station.setCreation(report.getCreation());
+        station.setPumpedWater(report.getPumpedWater());
+        station.setPool(report.getPool());
+        station.setChlorine(report.getChlorine());
+
+        hourlyWsSecondDAO.save(station);
+    }
+
+    public ResponseEntity<ReportModelHourly> getHourlyHistory(Integer menuId, Date date, Integer hour) {
+        ReportModelHourly model = new ReportModelHourly();
+        HourlyWsStation station = hourlyWsStationDAO.findByMenuIdAndDateAndHour(menuId, date, hour);
+        model.setStation(station);
+        List<HourlyWsSecond> list = hourlyWsSecondDAO.findAllByMenuIdAndDateAndHour(menuId, date, hour);
+        model.setSecondList(list);
+
+        return ResponseEntity.ok(model);
+    }
+
+
+    public ResponseEntity<DailyReportListResponse> getDailyReportList(Integer menuId, Date date) {
+
+        DailyReportListResponse response = new DailyReportListResponse();
+        response.setMenuId(menuId);
+        response.setDate(date);
+
+        // 1) Уг өдрийн бүх станцын цагийн мэдээлэл
+        List<HourlyWsStation> stations = hourlyWsStationDAO.findByMenuIdAndDate(menuId, date);
+
+        // 2) Уг өдрийн бүх second мэдээлэл
+        List<HourlyWsSecond> seconds = hourlyWsSecondDAO.findAllByMenuIdAndDate(menuId, date);
+
+        // 3) seconds-ийг hour-аар бүлэглэх
+        Map<Integer, List<HourlyWsSecond>> secondsByHour = seconds.stream()
+                .collect(Collectors.groupingBy(HourlyWsSecond::getHour));
+
+        // 4) Эцсийн үр дүн
+        List<HourReport> hourReports = new ArrayList<>();
+
+        for (HourlyWsStation station : stations) {
+            HourReport h = new HourReport();
+            h.setHour(station.getHour());
+            h.setStation(station);
+
+            List<HourlyWsSecond> sec = secondsByHour.getOrDefault(station.getHour(), new ArrayList<>());
+            h.setSeconds(sec);
+
+            hourReports.add(h);
         }
-        department.setChairmanId(chairmanId);
-        department.setDepName(name);
-        department.setEmployeeCount(employeeCount);
-        departmentDAO.save(department);
-        return department;
+
+        response.setHours(hourReports);
+
+        return ResponseEntity.ok(response);
     }
 
-    public ResponseEntity deletePositionById(Integer id) {
-        Position position = positionDAO.findById(id).orElse(null);
-        positionDAO.delete(position);
-        return ResponseEntity.ok(position);
+
+
+    public ResponseEntity<HourlyReport> getDailyReport(Integer menuId, Date date) {
+        HourlyReport report = new HourlyReport();
+        report.setMenuId(menuId);
+        report.setDate(date);
+
+        List<HourlyWsStation> stations = hourlyWsStationDAO.findByMenuIdAndDate(menuId, date);
+
+        report.setFirstWorkingCountList(
+                stations.stream().map(HourlyWsStation::getFirstWorkingCount).toList()
+        );
+        report.setFirstPendingCountList(
+                stations.stream().map(HourlyWsStation::getFirstPendingCount).toList()
+        );
+        report.setFirstRepairingCountList(
+                stations.stream().map(HourlyWsStation::getFirstRepairingCount).toList()
+        );
+
+        report.setFirstPool(stations.stream().mapToInt(s -> n(s.getFirstPool())).sum());
+        report.setSecondPool(stations.stream().mapToInt(s -> n(s.getSecondPool())).sum());
+        report.setThirdPool(stations.stream().mapToInt(s -> n(s.getThirdPool())).sum());
+        report.setFourthPool(stations.stream().mapToInt(s -> n(s.getFourthPool())).sum());
+
+        report.setPipeFm1(stations.stream().mapToInt(s -> n(s.getPipeFm1())).sum());
+        report.setPipeFm7(stations.stream().mapToInt(s -> n(s.getPipeFm7())).sum());
+        report.setPipeFm8(stations.stream().mapToInt(s -> n(s.getPipeFm8())).sum());
+
+        List<HourlyWsSecond> seconds = hourlyWsSecondDAO.findAllByMenuIdAndDate(menuId, date);
+
+        Map<Integer, List<HourlyWsSecond>> grouped =
+                seconds.stream().collect(Collectors.groupingBy(HourlyWsSecond::getGeneratorNo));
+
+        List<HourlySecondReport> generatorReports = new ArrayList<>();
+
+        for (Map.Entry<Integer, List<HourlyWsSecond>> e : grouped.entrySet()) {
+
+            Integer genNo = e.getKey();
+            List<HourlyWsSecond> list = e.getValue();
+
+            HourlySecondReport r = new HourlySecondReport();
+            r.setGeneratorNo(genNo);
+
+            r.setStatusList(list.stream().map(HourlyWsSecond::getStatus).toList());
+
+            r.setFrequency(avg(list, HourlyWsSecond::getFrequency));
+            r.setPressure(avg(list, HourlyWsSecond::getPressure));
+            r.setPressure2(avg(list, HourlyWsSecond::getPressure2));
+            r.setPressure3(avg(list, HourlyWsSecond::getPressure3));
+            r.setPressure4(avg(list, HourlyWsSecond::getPressure4));
+
+            r.setTemperature(avg(list, HourlyWsSecond::getTemperature));
+            r.setTemperature2(avg(list, HourlyWsSecond::getTemperature2));
+            r.setTemperature3(avg(list, HourlyWsSecond::getTemperature3));
+            r.setTemperature4(avg(list, HourlyWsSecond::getTemperature4));
+
+            r.setChlorine(avg(list, HourlyWsSecond::getChlorine));
+            r.setECurrent(avg(list, HourlyWsSecond::getECurrent));
+
+            r.setGauge(sum(list, HourlyWsSecond::getGauge));
+            r.setCreation(sum(list, HourlyWsSecond::getCreation));
+            r.setPumpedWater(sum(list, HourlyWsSecond::getPumpedWater));
+            r.setPool(sum(list, HourlyWsSecond::getPool));
+
+            generatorReports.add(r);
+        }
+
+        report.setHourlyWsSecondList(generatorReports);
+
+        return ResponseEntity.ok(report);
     }
 
-    public ResponseEntity getAllStations(Integer depId) {
-        return ResponseEntity.ok(stationDAO.findByDepId());
+    public ResponseEntity<HourlyReport> getMonthlyReport(Integer menuId, int year, int month) {
+
+        LocalDate localStart = LocalDate.of(year, month, 1);
+        LocalDate localEnd = localStart.withDayOfMonth(localStart.lengthOfMonth());
+
+        Date start = java.sql.Date.valueOf(localStart);
+        Date end = java.sql.Date.valueOf(localEnd);
+
+        List<HourlyWsStation> stations =
+                hourlyWsStationDAO.findByMenuIdAndDateBetween(menuId, start, end);
+
+        List<HourlyWsSecond> seconds =
+                hourlyWsSecondDAO.findByMenuIdAndDateBetween(menuId, start, end);
+
+        HourlyReport report = new HourlyReport();
+        report.setMenuId(menuId);
+        report.setDate(start);
+
+
+        report.setFirstWorkingCountList(
+                stations.stream().map(HourlyWsStation::getFirstWorkingCount).toList()
+        );
+
+        report.setFirstPendingCountList(
+                stations.stream().map(HourlyWsStation::getFirstPendingCount).toList()
+        );
+
+        report.setFirstRepairingCountList(
+                stations.stream().map(HourlyWsStation::getFirstRepairingCount).toList()
+        );
+
+        report.setFirstPool(stations.stream().mapToInt(s -> n(s.getFirstPool())).sum());
+        report.setSecondPool(stations.stream().mapToInt(s -> n(s.getSecondPool())).sum());
+        report.setThirdPool(stations.stream().mapToInt(s -> n(s.getThirdPool())).sum());
+        report.setFourthPool(stations.stream().mapToInt(s -> n(s.getFourthPool())).sum());
+
+        report.setPipeFm1(stations.stream().mapToInt(s -> n(s.getPipeFm1())).sum());
+        report.setPipeFm7(stations.stream().mapToInt(s -> n(s.getPipeFm7())).sum());
+        report.setPipeFm8(stations.stream().mapToInt(s -> n(s.getPipeFm8())).sum());
+
+        Map<Integer, List<HourlyWsSecond>> grouped =
+                seconds.stream().collect(Collectors.groupingBy(HourlyWsSecond::getGeneratorNo));
+
+        List<HourlySecondReport> genReports = new ArrayList<>();
+
+        for (Map.Entry<Integer, List<HourlyWsSecond>> e : grouped.entrySet()) {
+            Integer genNo = e.getKey();
+            List<HourlyWsSecond> list = e.getValue();
+
+            HourlySecondReport r = new HourlySecondReport();
+            r.setGeneratorNo(genNo);
+
+            // LIST
+            r.setStatusList(list.stream().map(HourlyWsSecond::getStatus).toList());
+
+            // AVG
+            r.setFrequency(avg(list, HourlyWsSecond::getFrequency));
+            r.setPressure(avg(list, HourlyWsSecond::getPressure));
+            r.setPressure2(avg(list, HourlyWsSecond::getPressure2));
+            r.setPressure3(avg(list, HourlyWsSecond::getPressure3));
+            r.setPressure4(avg(list, HourlyWsSecond::getPressure4));
+
+            r.setTemperature(avg(list, HourlyWsSecond::getTemperature));
+            r.setTemperature2(avg(list, HourlyWsSecond::getTemperature2));
+            r.setTemperature3(avg(list, HourlyWsSecond::getTemperature3));
+            r.setTemperature4(avg(list, HourlyWsSecond::getTemperature4));
+
+            r.setChlorine(avg(list, HourlyWsSecond::getChlorine));
+            r.setECurrent(avg(list, HourlyWsSecond::getECurrent));
+
+            // SUM
+            r.setGauge(sum(list, HourlyWsSecond::getGauge));
+            r.setCreation(sum(list, HourlyWsSecond::getCreation));
+            r.setPumpedWater(sum(list, HourlyWsSecond::getPumpedWater));
+            r.setPool(sum(list, HourlyWsSecond::getPool));
+
+            genReports.add(r);
+        }
+
+        report.setHourlyWsSecondList(genReports);
+
+        return ResponseEntity.ok(report);
     }
 
-    public ResponseEntity getStationById(Integer id) {
-        return ResponseEntity.ok(stationDAO.findById(id).orElse(null));
+    private int n(Integer v) {
+        return v == null ? 0 : v;
+    }
+    private double avg(List<HourlyWsSecond> list, Function<HourlyWsSecond, Double> getter) {
+        return list.stream()
+                .map(getter)
+                .filter(Objects::nonNull)
+                .mapToDouble(Double::doubleValue)
+                .average()
+                .orElse(0);
     }
 
-    public ResponseEntity addStation(Station station) {
-        return ResponseEntity.ok(stationDAO.save(station));
-    }
-    public ResponseEntity updateStation(Station station) {
-        Station oldStation = stationDAO.findById(station.getId()).orElse(null);
-        oldStation.setChefId(station.getChefId());
-        oldStation.setDepartmentId(station.getDepartmentId());
-        oldStation.setIsWaterSupply(station.getIsWaterSupply());
-        oldStation.setName(station.getName());
-        oldStation.setPoolCount(station.getPoolCount());
-        oldStation.setFirstGeneratorCount(station.getFirstGeneratorCount());
-        oldStation.setSecondGeneratorCount(station.getSecondGeneratorCount());
-        oldStation.setWellsNumber(station.getWellsNumber());
-        return ResponseEntity.ok(stationDAO.save(oldStation));
-    }
-
-    public List<User> getAllUsersByFilter(Integer depId, Integer positionId) {
-        return userDAO.findUsersByFilter(depId,positionId);
-    }
-
-    public List<Position> getPositionsByName(Integer depId, String name) {
-        return positionDAO.findByNameContaining(depId, name);
-    }
-
-    public User createUser(UserModel model) {
-        User user = new User();
-        user.setFirstName(model.getFirstName());
-        user.setLastName(model.getLastName());
-        user.setPin(model.getPin());
-        user.setUsername(model.getUsername());
-        user.setPassword(model.getPassword());
-        user.setActiveFlag(true);
-        user.setDepartmentId(model.getDepartmentId());
-        user.setPositionId(model.getPositionId());
-        user.setMailAddress(model.getMailAddress());
-        user.setPhoneNumber(model.getPhoneNumber());
-        return userDAO.save(user);
+    private double sum(List<HourlyWsSecond> list, Function<HourlyWsSecond, Double> getter) {
+        return list.stream()
+                .map(getter)
+                .filter(Objects::nonNull)
+                .mapToDouble(Double::doubleValue)
+                .sum();
     }
 }

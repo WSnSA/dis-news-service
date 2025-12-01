@@ -11,17 +11,18 @@ import java.util.Date;
 @Table(name = "hourly_ws_station")
 public class HourlyWsStation {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
-
-    @Column(name = "station_code")
-    private Integer stationCode;
 
     @Column(name = "date")
     private Date date;
 
     @Column(name = "hour")
     private Integer hour;
+
+    @Column(name = "menu_id")
+    private Integer menuId;
 
     @Column(name = "first_working_count")
     private Integer firstWorkingCount;
@@ -44,6 +45,12 @@ public class HourlyWsStation {
     @Column(name = "fourth_pool")
     private Integer fourthPool;
 
-    @Column(name = "chlorine")
-    private Integer chlorine;
+    @Column(name = "pipe_fm_1")
+    private Integer pipeFm1;
+
+    @Column(name = "pipe_fm_7")
+    private Integer pipeFm7;
+
+    @Column(name = "pipe_fm_8")
+    private Integer pipeFm8;
 }
