@@ -2,16 +2,22 @@ package mn.usug.dis_news_service.Service;
 
 import mn.usug.dis_news_service.DAO.MenuDAO;
 import mn.usug.dis_news_service.Entity.Menu;
+import mn.usug.dis_news_service.Model.HourlyReport;
 import mn.usug.dis_news_service.Model.MenuModel;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class MenuService {
     @Autowired
     MenuDAO menuDAO;
+    @Autowired
+    private MainService mainService;
 
     public Iterable<Menu> getAllMenus() {
         return menuDAO.findAll();
@@ -52,4 +58,38 @@ public class MenuService {
         return menuDAO.save(menu);
     }
 
+    public ResponseEntity getMarkers() {
+        return ResponseEntity.ok().body(menuDAO.getMarkers());
+    }
+
+    public ResponseEntity getDailySummary(Integer type, Date date) {
+        List<HourlyReport> reportList = new ArrayList<>();
+        String typeStr = "";
+        if (type == 0){
+            typeStr = "";
+        }
+        else if (type == 1){
+            typeStr = "source";
+        }
+        else if (type == 2){
+            typeStr = "transmission";
+        }
+        else if (type == 3){
+            typeStr = "js";
+        }
+        else if (type == 4){
+            typeStr = "pool";
+        }
+
+        List<Menu> list = menuDAO.findByType(typeStr);
+
+        list.forEach(item -> {
+            HourlyReport report = mainService.getDailyReport(item.getId(), date);
+            report.setStationName(item.getName());
+            reportList.add(report);
+        });
+
+
+        return reportList.isEmpty() ? ResponseEntity.notFound().build() : ResponseEntity.ok().body(reportList);
+    }
 }

@@ -1,25 +1,27 @@
 package mn.usug.dis_news_service.Entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-
+import jakarta.persistence.*;
 import lombok.Data;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
 @Table(name = "work_order")
 public class WorkOrder {
+
     @Id
-    @Column(name = "id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "work_description")
-    private Integer workDescription;
+    /* ===== ШИНЭ СИСТЕМ ===== */
 
-    @Column(name = "work_location")
-    private Integer workLocation;
+    @Column(name = "work_description", columnDefinition = "TEXT")
+    private String workDescription;
+
+    @Column(name = "work_location", columnDefinition = "TEXT")
+    private String workLocation;
 
     @Column(name = "assigned_department_id")
     private Integer assignedDepartmentId;
@@ -27,31 +29,56 @@ public class WorkOrder {
     @Column(name = "assigned_employee_id")
     private Integer assignedEmployeeId;
 
-    @Column(name = "deadline_date")
-    private Integer deadlineDate;
-
     @Column(name = "department_id")
     private Integer departmentId;
 
-    @Column(name = "fulfillment")
-    private Integer fulfillment;
+    @Column(name = "deadline_date")
+    private LocalDate deadlineDate;
 
-    @Column(name = "active_flag")
-    private Integer activeFlag;
+    @Column(name = "fulfillment", columnDefinition = "TEXT")
+    private String fulfillment;
 
     @Column(name = "status")
     private Integer status;
 
+    @Column(name = "active_flag")
+    private Integer activeFlag;
+
     @Column(name = "created_date")
-    private Integer createdDate;
+    private LocalDateTime createdDate;
 
     @Column(name = "created_by")
     private Integer createdBy;
 
+    @Column(name = "updated_date")
+    private LocalDateTime updatedDate;
+
     @Column(name = "updated_by")
     private Integer updatedBy;
 
-    @Column(name = "updated_date")
-    private Integer updatedDate;
+    /* ===== ХУУЧИН СИСТЕМ ===== */
 
+    @Column(name = "old_mur_id")
+    private Long oldMurId;
+
+    @Column(name = "old_assigned_department", columnDefinition = "TEXT")
+    private String oldAssignedDepartment;
+
+    @Column(name = "old_assigned_employee", columnDefinition = "TEXT")
+    private String oldAssignedEmployee;
+
+    @Column(name = "old_work_description", columnDefinition = "TEXT")
+    private String oldWorkDescription;
+
+    @Column(name = "old_work_location", columnDefinition = "TEXT")
+    private String oldWorkLocation;
+
+    @Column(name = "old_deadline_date", columnDefinition = "TEXT")
+    private String oldDeadlineDate;
+
+    @Column(name = "old_fulfillment", columnDefinition = "TEXT")
+    private String oldFulfillment;
+
+    @Column(name = "old_created_date", columnDefinition = "TEXT")
+    private String oldCreatedDate;
 }

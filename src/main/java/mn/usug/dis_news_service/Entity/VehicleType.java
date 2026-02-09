@@ -6,16 +6,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
-@Data
-
 @Entity
 @Table(name = "vehicle_type")
+@Data
 public class VehicleType {
+
     @Id
-    @Column(name = "id", nullable = false)
     private Integer id;
 
-    @Column(name = "name", nullable = false, length = 200)
     private String name;
-
 }

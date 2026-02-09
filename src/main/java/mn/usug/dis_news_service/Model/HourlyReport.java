@@ -1,5 +1,6 @@
 package mn.usug.dis_news_service.Model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import mn.usug.dis_news_service.Entity.HourlyWsStation;
 
@@ -8,11 +9,11 @@ import java.util.List;
 
 @Data
 public class HourlyReport {
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-M-d")
     private Date date;
     private Integer hour;
     private Integer menuId;
 
-    // SUM fields from station
     private Integer firstWorkingCount;
     private Integer firstPendingCount;
     private Integer firstRepairingCount;
@@ -24,17 +25,15 @@ public class HourlyReport {
     private Integer pipeFm7;
     private Integer pipeFm8;
 
-    // List (aggregated) fields for Daily/Monthly
-    private List<Integer> firstWorkingCountList;
-    private List<Integer> firstPendingCountList;
-    private List<Integer> firstRepairingCountList;
-
-    // 🟢 NEW → stationList from POST JSON
     private List<HourlyWsStation> stationList;
 
-    // 🟢 NEW → secondList from POST JSON
     private List<HourlySecondReport> secondList;
 
-    // 🟢 Output aggregated second report
+    private Integer secondWorkingCount;
+    private Integer secondPendingCount;
+    private Integer secondRepairingCount;
+
     private List<HourlySecondReport> hourlyWsSecondList;
+
+    private String stationName;
 }

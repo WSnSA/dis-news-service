@@ -34,4 +34,10 @@ public class Menu {
 
     @Column(name = "updated_date")
     private Date updatedDate;
+
+    @Column(name = "longitude")
+    private String longitude;
+
+    @Column(name = "latitude")
+    private String latitude;
 }

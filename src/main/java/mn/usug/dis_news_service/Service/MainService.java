@@ -137,22 +137,12 @@ public class MainService {
 
 
 
-    public ResponseEntity<HourlyReport> getDailyReport(Integer menuId, Date date) {
+    public HourlyReport getDailyReport(Integer menuId, Date date) {
         HourlyReport report = new HourlyReport();
         report.setMenuId(menuId);
         report.setDate(date);
 
         List<HourlyWsStation> stations = hourlyWsStationDAO.findByMenuIdAndDate(menuId, date);
-
-        report.setFirstWorkingCountList(
-                stations.stream().map(HourlyWsStation::getFirstWorkingCount).toList()
-        );
-        report.setFirstPendingCountList(
-                stations.stream().map(HourlyWsStation::getFirstPendingCount).toList()
-        );
-        report.setFirstRepairingCountList(
-                stations.stream().map(HourlyWsStation::getFirstRepairingCount).toList()
-        );
 
         report.setFirstPool(stations.stream().mapToInt(s -> n(s.getFirstPool())).sum());
         report.setSecondPool(stations.stream().mapToInt(s -> n(s.getSecondPool())).sum());
@@ -167,6 +157,13 @@ public class MainService {
 
         Map<Integer, List<HourlyWsSecond>> grouped =
                 seconds.stream().collect(Collectors.groupingBy(HourlyWsSecond::getGeneratorNo));
+
+        Map<Integer, List<HourlyWsSecond>> stated =
+                seconds.stream().collect(Collectors.groupingBy(HourlyWsSecond::getStatus));
+
+        report.setSecondWorkingCount(stated.getOrDefault(1, new ArrayList<>()).size());
+        report.setSecondPendingCount(stated.getOrDefault(2, new ArrayList<>()).size());
+        report.setSecondRepairingCount(stated.getOrDefault(3, new ArrayList<>()).size());
 
         List<HourlySecondReport> generatorReports = new ArrayList<>();
 
@@ -204,7 +201,7 @@ public class MainService {
 
         report.setHourlyWsSecondList(generatorReports);
 
-        return ResponseEntity.ok(report);
+        return report;
     }
 
     public ResponseEntity<HourlyReport> getMonthlyReport(Integer menuId, int year, int month) {
@@ -226,17 +223,6 @@ public class MainService {
         report.setDate(start);
 
 
-        report.setFirstWorkingCountList(
-                stations.stream().map(HourlyWsStation::getFirstWorkingCount).toList()
-        );
-
-        report.setFirstPendingCountList(
-                stations.stream().map(HourlyWsStation::getFirstPendingCount).toList()
-        );
-
-        report.setFirstRepairingCountList(
-                stations.stream().map(HourlyWsStation::getFirstRepairingCount).toList()
-        );
 
         report.setFirstPool(stations.stream().mapToInt(s -> n(s.getFirstPool())).sum());
         report.setSecondPool(stations.stream().mapToInt(s -> n(s.getSecondPool())).sum());

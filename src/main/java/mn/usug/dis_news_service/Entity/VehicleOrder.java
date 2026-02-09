@@ -1,54 +1,33 @@
 package mn.usug.dis_news_service.Entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 
-@Data
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "vehicle_order")
+@Data
 public class VehicleOrder {
+
     @Id
-    @Column(name = "id")
-    private Integer id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(name = "work_description")
-    private Integer workDescription;
+    private String workDescription;
 
-    @Column(name = "assigned_department_id")
     private Integer assignedDepartmentId;
-
-    @Column(name = "assigned_employee_id")
     private Integer assignedEmployeeId;
 
-    @Column(name = "order_code")
-    private Integer orderCode;
+    private LocalDate orderDate;
 
-    @Column(name = "vehicle_type_id")
-    private Integer vehicleTypeId;
-
-    @Column(name = "count")
-    private Integer count;
-
-    @Column(name = "active_flag")
+    private Integer status;
     private Integer activeFlag;
 
-    @Column(name = "status")
-    private Integer status;
+    private LocalDateTime createdDate;
 
-    @Column(name = "created_by")
-    private Integer createdBy;
-
-    @Column(name = "created_date")
-    private Integer createdDate;
-
-    @Column(name = "updated_by")
-    private Integer updatedBy;
-
-    @Column(name = "updated_date")
-    private Integer updatedDate;
-
+    // хуучин систем
+    private Long oldMurId;
+    private String oldAssignedDepartment;
 }

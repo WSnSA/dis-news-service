@@ -1,17 +1,17 @@
 package mn.usug.dis_news_service.Entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 
-@Data
+import java.time.LocalDateTime;
 
+@Data
 @Entity
 @Table(name = "vehicles_to_out")
 public class VehiclesToOut {
+
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Integer id;
 
@@ -22,18 +22,18 @@ public class VehiclesToOut {
     private Integer orderCode;
 
     @Column(name = "driver_name")
-    private Integer driverName;
+    private String driverName;
 
-    @Column(name = "driver_phone_number")
-    private Integer driverPhoneNumber;
+    @Column(name = "driver_phone_number", length = 30)
+    private String driverPhoneNumber;
 
-    @Column(name = "vehicle_registration_number")
-    private Integer vehicleRegistrationNumber;
+    @Column(name = "vehicle_registration_number", length = 50)
+    private String vehicleRegistrationNumber;
 
     @Column(name = "vehicle_type_id")
     private Integer vehicleTypeId;
 
-    @Column(name = "count")
+    @Column(name = "`count`")
     private Integer count;
 
     @Column(name = "active_flag")
@@ -46,12 +46,14 @@ public class VehiclesToOut {
     private Integer createdBy;
 
     @Column(name = "created_date")
-    private Integer createdDate;
+    private LocalDateTime createdDate;
 
     @Column(name = "updated_date")
-    private Integer updatedDate;
+    private LocalDateTime updatedDate;
 
     @Column(name = "updated_by")
     private Integer updatedBy;
 
+    @Column(name = "legacy_data", columnDefinition = "json")
+    private String legacyData;
 }

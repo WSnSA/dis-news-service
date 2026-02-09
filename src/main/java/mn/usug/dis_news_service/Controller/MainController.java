@@ -1,19 +1,24 @@
 package mn.usug.dis_news_service.Controller;
 
 import mn.usug.dis_news_service.Model.HourlyReport;
+import mn.usug.dis_news_service.Model.HourlySecondReport;
 import mn.usug.dis_news_service.Service.MainService;
+import mn.usug.dis_news_service.Service.MenuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
+import java.util.List;
 
 @RestController
 @RequestMapping("/main")
 public class MainController {
     @Autowired
     MainService mainService;
+    @Autowired
+    private MenuService menuService;
 
     @PostMapping("/hourly")
     public ResponseEntity regHourly(@RequestBody HourlyReport report) {
@@ -36,7 +41,7 @@ public class MainController {
     @GetMapping("/getDailyReport")
     public ResponseEntity getDailyReport(@RequestParam("menuId") Integer menuId,
                                          @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") Date date) {
-        return mainService.getDailyReport(menuId, date);
+        return ResponseEntity.ok().body(mainService.getDailyReport(menuId, date));
     }
 
     @GetMapping("/getMonthlyReport")
@@ -46,6 +51,19 @@ public class MainController {
             @RequestParam("month") int month
     ) {
         return mainService.getMonthlyReport(menuId, year, month);
+    }
+
+    @GetMapping("/getMarkers")
+    public ResponseEntity getMarkers(){
+        return menuService.getMarkers();
+    }
+
+    @GetMapping("/getDailySummary")
+    public ResponseEntity getDailySummary(
+            @RequestParam("type") Integer type,
+            @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") Date date
+    ){
+        return menuService.getDailySummary(type, date);
     }
 
 }
