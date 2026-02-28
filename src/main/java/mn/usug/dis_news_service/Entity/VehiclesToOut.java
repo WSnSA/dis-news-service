@@ -33,7 +33,7 @@ public class VehiclesToOut {
     @Column(name = "vehicle_type_id")
     private Integer vehicleTypeId;
 
-    @Column(name = "`count`")
+    @Column(name = "qty")
     private Integer count;
 
     @Column(name = "active_flag")

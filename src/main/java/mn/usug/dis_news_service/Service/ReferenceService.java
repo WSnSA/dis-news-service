@@ -169,7 +169,14 @@ public class ReferenceService {
     }
 
     public List<User> getAllUsersByFilter(Integer depId, Integer positionId) {
-        return userDAO.findUsersByFilter(depId,positionId);
+        List<User> list = userDAO.findUsersByFilter(depId, positionId);
+        list.forEach(item -> {
+            Department dep = getDepartmentById(item.getDepartmentId());
+            Position pos = getPositionById(item.getPositionId());
+            item.setDepName(dep != null ? dep.getShortName() : null);
+            item.setPosName(pos != null ? pos.getName() : null);
+        });
+        return list;
     }
 
     public List<Position> getPositionsByName(Integer depId, String name) {

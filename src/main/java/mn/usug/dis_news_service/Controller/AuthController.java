@@ -4,6 +4,7 @@ import jakarta.persistence.Id;
 import mn.usug.dis_news_service.Entity.User;
 import mn.usug.dis_news_service.Model.UserModel;
 import mn.usug.dis_news_service.Service.AESUtil;
+import mn.usug.dis_news_service.Service.ForgotPasswordService;
 import mn.usug.dis_news_service.Service.MainService;
 import mn.usug.dis_news_service.Service.ReferenceService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,12 +12,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
     @Autowired
     ReferenceService refService;
+    @Autowired
+    ForgotPasswordService forgotPasswordService;
 
     @GetMapping("/login")
     public ResponseEntity<?> login(@RequestParam("username") String username,@RequestParam("password") String password) {
@@ -48,6 +53,25 @@ public class AuthController {
         else {
             return ResponseEntity.ok(refService.createUser(model));
         }
+    }
+
+
+
+
+    // POST /auth/forgot/request  { "email": "a@b.com" }
+    @PostMapping("/forgot/request")
+    public ResponseEntity<?> request(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        return forgotPasswordService.requestOtp(email);
+    }
+
+    // POST /auth/forgot/reset  { "email":"a@b.com", "code":"123456", "newPassword":"xxx" }
+    @PostMapping("/forgot/reset")
+    public ResponseEntity<?> reset(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String code = body.get("code");
+        String newPassword = body.get("newPassword");
+        return forgotPasswordService.resetPassword(email, code, newPassword);
     }
 
 }

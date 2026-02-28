@@ -1,10 +1,13 @@
 package mn.usug.dis_news_service.Controller;
 
-import mn.usug.dis_news_service.Entity.VehiclesToOut;
-import mn.usug.dis_news_service.Service.VehiclesToOutService;
 import lombok.RequiredArgsConstructor;
+import mn.usug.dis_news_service.Entity.VehiclesToOut;
+import mn.usug.dis_news_service.Model.VehiclesToOutRowDto;
+import mn.usug.dis_news_service.Service.Imp.VehiclesToOutServiceImpl;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -12,11 +15,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class VehiclesToOutController {
 
-    private final VehiclesToOutService service;
+    private final VehiclesToOutServiceImpl service;
 
+    // ✅ Front чинь яг ингэж дуудаж байгаа: /api/vehicles-to-out?date=2026-02-12
     @GetMapping
-    public List<VehiclesToOut> getAll() {
-        return service.findAll();
+    public List<VehiclesToOutRowDto> getByDate(
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        return service.findRowsByDate(date);
     }
 
     @GetMapping("/{id}")
@@ -30,10 +36,7 @@ public class VehiclesToOutController {
     }
 
     @PutMapping("/{id}")
-    public VehiclesToOut update(
-            @PathVariable Integer id,
-            @RequestBody VehiclesToOut vehiclesToOut
-    ) {
+    public VehiclesToOut update(@PathVariable Integer id, @RequestBody VehiclesToOut vehiclesToOut) {
         vehiclesToOut.setId(id);
         return service.save(vehiclesToOut);
     }
