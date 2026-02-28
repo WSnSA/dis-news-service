@@ -1,0 +1,54 @@
+name: Deploy Java backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, Windows, X64, prod]
+    if: contains(github.event.head_commit.message, '#deploy')
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+
+
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      - name: Login GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.CR_PAT }}
+
+      - name: Build Docker image
+        run: |
+            docker build  --no-cache -t ghcr.io/wsnsa/dis-news-service:latest .
+
+      - name: Push Docker image
+        run: docker push --disable-content-trust=true ghcr.io/wsnsa/dis-news-service:latest
+
+      - name: Pull Docker image
+        run: |
+          docker pull ghcr.io/wsnsa/dis-news-service:latest
+
+      - name: Stop and remove existing container
+        run: |
+          docker ps --quiet --filter "name=dis-backend" | ForEach-Object { docker rm -f $_ }
+
+      - name: Run Docker container
+        run: |
+          docker run -d -p 9091:9091  --restart always --name dis-backend ghcr.io/wsnsa/dis-news-service:latest
+
+      - name: Cleanup old Docker images
+        run: |
+          docker image prune -f
+
+
