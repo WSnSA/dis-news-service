@@ -3,7 +3,7 @@ name: Deploy Java backend
 on:
   push:
     branches:
-      - main
+      - master
 
 
 jobs:
