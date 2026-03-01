@@ -2,6 +2,7 @@ package mn.usug.dis_news_service.Controller;
 
 import jakarta.persistence.Id;
 import mn.usug.dis_news_service.Entity.User;
+import mn.usug.dis_news_service.Model.LoginRequest;
 import mn.usug.dis_news_service.Model.UserModel;
 import mn.usug.dis_news_service.Service.AESUtil;
 import mn.usug.dis_news_service.Service.ForgotPasswordService;
@@ -23,14 +24,14 @@ public class AuthController {
     @Autowired
     ForgotPasswordService forgotPasswordService;
 
-    @GetMapping("/login")
-    public ResponseEntity<?> login(@RequestParam("username") String username,@RequestParam("password") String password) {
-        User user = refService.getUserByUsername(username);
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+        User user = refService.getUserByUsername(req.getUsername());
 
         if(user == null){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         }
-        else if(!user.getPassword().equals(password)){
+        else if(!user.getPassword().equals(req.getPassword())){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Wrong password");
         }
         else return ResponseEntity.ok(AESUtil.encryptObject(user));
