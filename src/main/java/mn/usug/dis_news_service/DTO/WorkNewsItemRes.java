@@ -7,5 +7,8 @@ public record WorkNewsItemRes(
         String content,
         Integer sortOrder,
         String createdAt,
-        Long createdBy
+        Long createdBy,
+        String createdByName,
+        Long departmentId,
+        String departmentName
 ) {}

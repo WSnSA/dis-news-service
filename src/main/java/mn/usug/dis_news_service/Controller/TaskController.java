@@ -3,6 +3,8 @@ package mn.usug.dis_news_service.Controller;
 import lombok.RequiredArgsConstructor;
 import mn.usug.dis_news_service.DAO.TaskRepository;
 import mn.usug.dis_news_service.Entity.Task;
+import mn.usug.dis_news_service.Service.NotificationService;
+import mn.usug.dis_news_service.Service.UserContext;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -15,6 +17,7 @@ import java.util.List;
 public class TaskController {
 
     private final TaskRepository taskRepository;
+    private final NotificationService notificationService;
 
     /* =====================================
        1. БҮХ ҮҮРЭГ
@@ -41,7 +44,7 @@ public class TaskController {
             @RequestParam Integer positionId
     ) {
         if (depId == 0 && positionId == 0) {
-            return taskRepository.findAll();
+            return taskRepository.findActive();
         }
         return taskRepository.findByDepartmentIdAndPositionId(depId, positionId);
     }
@@ -57,12 +60,14 @@ public class TaskController {
         // =========================
         // CREATE
         // =========================
-        if (payload.getId() == null) {
+        boolean isNew = payload.getId() == null;
+        if (isNew) {
             task = new Task();
 
-            task.setCreatedDate(LocalDateTime.now()); // Үүрэг өгсөн огноо
-            task.setStatus(0);      // new
-            task.setActiveFlag(1);  // идэвхтэй
+            task.setCreatedDate(LocalDateTime.now());
+            task.setCreatedBy(UserContext.getUserId());
+            task.setStatus(0);
+            task.setActiveFlag(1);
         }
         // =========================
         // UPDATE
@@ -81,7 +86,15 @@ public class TaskController {
         task.setPositionId(payload.getPositionId());
         task.setDeadlineDate(payload.getDeadlineDate());
 
-        return taskRepository.save(task);
+        Task saved = taskRepository.save(task);
+        if (isNew) {
+            notificationService.notifyTask(
+                saved.getWorkDescription(),
+                saved.getDepartmentId(),
+                saved.getPositionId()
+            );
+        }
+        return saved;
     }
 
 

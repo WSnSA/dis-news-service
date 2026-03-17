@@ -28,7 +28,7 @@ public class PermissionService {
     }
 
     @Transactional
-    public ResponseEntity addPermission(List<PermissionModel> models) {
+    public ResponseEntity<?> addPermission(List<PermissionModel> models) {
         for (PermissionModel model : models) {
             Permission permission = new Permission();
             permission.setUserId(model.getUserId());
@@ -41,13 +41,18 @@ public class PermissionService {
     }
 
     @Transactional
-    public ResponseEntity editPermission(List<PermissionModel> models) {
+    public ResponseEntity<?> editPermission(List<PermissionModel> models) {
         for (PermissionModel model : models) {
             Permission permission = permissionDAO.findByUserIdAndMenuId(model.getUserId(), model.getMenuId());
-            permission.setUserId(model.getUserId());
-            permission.setMenuId(model.getMenuId());
+
+            if (permission == null) { // байхгүй бол шинээр үүсгэнэ
+                permission = new Permission();
+                permission.setUserId(model.getUserId());
+                permission.setMenuId(model.getMenuId());
+            }
             permission.setCanEdit(model.getEditRights());
             permission.setCanView(model.getViewRights());
+
             permissionDAO.save(permission);
         }
         return ResponseEntity.ok("");

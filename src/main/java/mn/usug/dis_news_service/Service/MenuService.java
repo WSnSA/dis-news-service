@@ -26,6 +26,7 @@ public class MenuService {
     public Menu addMenu(MenuModel model) {
         Menu menu = new Menu();
         menu.setName(model.getName());
+        menu.setIcon(model.getIcon());
         menu.setParentId(model.getParentId());
         menu.setPath(model.getPath());
         menu.setComponent(model.getComponent());
@@ -41,6 +42,8 @@ public class MenuService {
             return null;
         }
         menu.setName(model.getName());
+        menu.setIcon(model.getIcon());
+        menu.setParentId(model.getParentId());
         menu.setComponent(model.getComponent());
         menu.setPath(model.getPath());
         menu.setUpdatedDate(new Date());

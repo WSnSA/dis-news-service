@@ -12,6 +12,7 @@ import mn.usug.dis_news_service.DTO.VehicleOrderSaveDto;
 import mn.usug.dis_news_service.Entity.VehicleOrder;
 import mn.usug.dis_news_service.Entity.VehicleOrderItem;
 import mn.usug.dis_news_service.Entity.VehicleType;
+import mn.usug.dis_news_service.Service.NotificationService;
 import mn.usug.dis_news_service.Service.VehicleOrderService;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +26,7 @@ import java.util.List;
 public class VehicleOrderController {
 
     private final VehicleOrderService service;
+    private final NotificationService notificationService;
     private final VehicleOrderRepository orderRepo;
     private final VehicleOrderItemRepository itemRepo;
     private final VehicleTypeRepository vehicleTypeRepo;
@@ -50,6 +52,8 @@ public class VehicleOrderController {
 
         VehicleOrder savedOrder = orderRepo.save(order);
 
+        notificationService.notifyVehicleOrder(dto.getWorkDescription(), dto.getAssignedDepartmentId());
+
         /* ===== 2️⃣ Child ===== */
         if (dto.getVehicles() == null || dto.getVehicles().isEmpty()) {
             return;
@@ -62,7 +66,7 @@ public class VehicleOrderController {
             item.setCreatedDate(LocalDateTime.now());
 
             VehicleType type = vehicleTypeRepo
-                    .findById(Math.toIntExact(itemDto.getVehicleTypeId()))
+                    .findById(itemDto.getVehicleTypeId())
                     .orElseThrow(() ->
                             new RuntimeException("VehicleType not found: " + itemDto.getVehicleTypeId())
                     );

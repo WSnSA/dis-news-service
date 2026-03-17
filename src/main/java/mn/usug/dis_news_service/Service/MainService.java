@@ -1,11 +1,10 @@
 package mn.usug.dis_news_service.Service;
 
-import jakarta.persistence.Transient;
+import org.springframework.transaction.annotation.Transactional;
 import mn.usug.dis_news_service.DAO.*;
 import mn.usug.dis_news_service.Entity.*;
 import mn.usug.dis_news_service.Model.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.relational.core.sql.In;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +23,7 @@ public class MainService {
     @Autowired
     HourlyWsSecondDAO hourlyWsSecondDAO;
 
-    @Transient
+    @Transactional
     public ResponseEntity regHourly(HourlyReport report) {
 
         // 1) Save Station
@@ -60,7 +59,7 @@ public class MainService {
     }
 
 
-    @Transient
+    @Transactional
     public void regHourlySecond(Integer menuId, Date date, Integer hour, HourlySecondReport report) {
         HourlyWsSecond station = new HourlyWsSecond();
 

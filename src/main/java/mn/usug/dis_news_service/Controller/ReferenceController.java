@@ -81,7 +81,7 @@ public class ReferenceController {
     }
 
     @GetMapping("/station/getAll")
-    public ResponseEntity getAllStationsByDepId(@RequestParam("depId") Integer depId) {
+    public ResponseEntity getAllStationsByDepId(@RequestParam(value = "depId", defaultValue = "0") Integer depId) {
         return refService.getAllStations(depId);
     }
     @GetMapping("/station/findById")
@@ -94,6 +94,7 @@ public class ReferenceController {
             @RequestParam("name") String name,
             @RequestParam("chefId") Integer chefId,
             @RequestParam("isWaterSupply") Integer isWaterSupply,
+            @RequestParam("pumpCount") Integer pumpCount,
             @RequestParam("poolCount") Integer poolCount,
             @RequestParam("firstGenCount") Integer firstGenCount,
             @RequestParam("secondGenCount") Integer secondGenCount,
@@ -104,21 +105,21 @@ public class ReferenceController {
             return ResponseEntity.status(404).body("Chef not found");
         }
         Department department = refService.getDepartmentById(depId);
-
         if(department == null){
             return ResponseEntity.status(404).body("Department not found");
         }
         Station station = new Station();
         station.setDepartmentId(depId);
         station.setIsWaterSupply(isWaterSupply);
+        station.setPumpCount(pumpCount);
         station.setPoolCount(poolCount);
         station.setFirstGeneratorCount(firstGenCount);
         station.setSecondGeneratorCount(secondGenCount);
         station.setWellsNumber(wellsNumber);
         station.setChefId(chefId);
-
         return refService.addStation(station);
     }
+
     @PostMapping("/station/update")
     public ResponseEntity updateStaion(
             @RequestParam("id") Integer id,
@@ -126,10 +127,11 @@ public class ReferenceController {
             @RequestParam("name") String name,
             @RequestParam("chefId") Integer chefId,
             @RequestParam("isWaterSupply") Integer isWaterSupply,
+            @RequestParam("pumpCount") Integer pumpCount,
             @RequestParam("poolCount") Integer poolCount,
             @RequestParam("firstGenCount") Integer firstGenCount,
             @RequestParam("secondGenCount") Integer secondGenCount,
-            @RequestParam("wellsNumber") Integer wellsNumber){
+            @RequestParam("wellsNumber") Integer wellsNumber) {
         User user = refService.getUserById(chefId);
         if(user == null){
             return ResponseEntity.status(404).body("Chef not found");
@@ -138,17 +140,23 @@ public class ReferenceController {
         if(department == null){
             return ResponseEntity.status(404).body("Department not found");
         }
-
         Station station = new Station();
+        station.setId(id);
         station.setName(name);
         station.setDepartmentId(depId);
         station.setIsWaterSupply(isWaterSupply);
+        station.setPumpCount(pumpCount);
         station.setPoolCount(poolCount);
         station.setFirstGeneratorCount(firstGenCount);
         station.setSecondGeneratorCount(secondGenCount);
         station.setWellsNumber(wellsNumber);
         station.setChefId(chefId);
         return refService.updateStation(station);
+    }
+
+    @GetMapping("/station/delete")
+    public ResponseEntity deleteStation(@RequestParam("id") Integer id) {
+        return refService.deleteStationById(id);
     }
 
     @GetMapping("/user/getAll")
@@ -165,6 +173,7 @@ public class ReferenceController {
     }
     @GetMapping("/user/searchUser")
     public List<User> searchUser(@RequestParam("username") String username) {
-        return refService.getAllUsers();
+        User user = refService.getUserByUsername(username);
+        return user != null ? List.of(user) : List.of();
     }
 }

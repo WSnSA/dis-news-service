@@ -20,11 +20,11 @@ public class PermissionController {
         return permissionService.getAllPermissions();
     }
     @PostMapping("/add")
-    public ResponseEntity addPermission(@RequestBody List<PermissionModel> body) {
+    public ResponseEntity<?> addPermission(@RequestBody List<PermissionModel> body) {
         return permissionService.addPermission(body);
     }
     @PostMapping("/edit")
-    public ResponseEntity editPermission(@RequestBody List<PermissionModel> body) {
+    public ResponseEntity<?> editPermission(@RequestBody List<PermissionModel> body) {
         return permissionService.editPermission(body);
     }
     @GetMapping("/get")

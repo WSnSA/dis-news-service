@@ -1,14 +1,26 @@
 package mn.usug.dis_news_service.Entity;
-// WorkNewsDay.java
+
 import jakarta.persistence.*;
-import java.time.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "work_news_day",
-        uniqueConstraints = @UniqueConstraint(name="uq_work_news_day_date", columnNames = "news_date"),
-        indexes = { @Index(name="idx_work_news_day_month_date", columnList="month_key,news_date") })
-@Getter @Setter @NoArgsConstructor
+@Table(
+        name = "work_news_day",
+        uniqueConstraints = @UniqueConstraint(name = "uq_work_news_day_date", columnNames = "news_date"),
+        indexes = {
+                @Index(name = "idx_work_news_day_month_date", columnList = "month_key,news_date")
+        }
+)
+@Getter
+@Setter
+@NoArgsConstructor
 public class WorkNewsDay {
 
     @Id
@@ -35,4 +47,8 @@ public class WorkNewsDay {
 
     @Column(name = "updated_by")
     private Long updatedBy;
+
+    @OneToMany(mappedBy = "day", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC, id ASC")
+    private List<WorkNewsItem> items = new ArrayList<>();
 }

@@ -13,9 +13,13 @@ public class MenuModel {
     private Integer id;
     private Integer parentId;
     private String name;
+    private String icon;
     private String path;
     private String component;
     private Integer activeFlag;
     private Date createdDate;
     private Date updatedDate;
+
+    private Double latitude;
+    private Double longitude;
 }

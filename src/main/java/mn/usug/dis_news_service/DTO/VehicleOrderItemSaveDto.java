@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class VehicleOrderItemSaveDto {
 
-    private Long vehicleTypeId;
+    private Integer vehicleTypeId;
 
     // Ердийн машинд
     private Integer qty;

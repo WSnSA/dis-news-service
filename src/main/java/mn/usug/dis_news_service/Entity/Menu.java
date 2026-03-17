@@ -20,6 +20,9 @@ public class Menu {
     @Column(name = "name")
     private String name;
 
+    @Column(name = "icon", length = 60)
+    private String icon;
+
     @Column(name = "path")
     private String path;
 

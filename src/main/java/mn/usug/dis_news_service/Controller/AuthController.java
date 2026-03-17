@@ -1,12 +1,10 @@
 package mn.usug.dis_news_service.Controller;
 
-import jakarta.persistence.Id;
 import mn.usug.dis_news_service.Entity.User;
 import mn.usug.dis_news_service.Model.LoginRequest;
 import mn.usug.dis_news_service.Model.UserModel;
 import mn.usug.dis_news_service.Service.AESUtil;
 import mn.usug.dis_news_service.Service.ForgotPasswordService;
-import mn.usug.dis_news_service.Service.MainService;
 import mn.usug.dis_news_service.Service.ReferenceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -38,8 +36,11 @@ public class AuthController {
     }
 
     @PostMapping("/deactive")
-    public ResponseEntity<?> deactive(@RequestParam("username") String username,@RequestParam("password") String password) {
+    public ResponseEntity<?> deactive(@RequestParam("username") String username) {
         User user = refService.getUserByUsername(username);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
         user.setActiveFlag(false);
         refService.saveUser(user);
         return ResponseEntity.ok(user);
@@ -54,6 +55,20 @@ public class AuthController {
         else {
             return ResponseEntity.ok(refService.createUser(model));
         }
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @RequestParam("username") String username,
+            @RequestParam("oldPassword") String oldPassword,
+            @RequestParam("newPassword") String newPassword
+    ) {
+        User user = refService.getUserByUsername(username);
+        if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Хэрэглэгч олдсонгүй");
+        if (!user.getPassword().equals(oldPassword)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Одоогийн нууц үг буруу байна");
+        user.setPassword(newPassword);
+        refService.saveUser(user);
+        return ResponseEntity.ok().build();
     }
 
 

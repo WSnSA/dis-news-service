@@ -8,5 +8,7 @@ public record WorkNewsItemCreateReq(
         String title,
         String content,
         Integer sortOrder,
-        String metaJson
+        String metaJson,
+        Long departmentId,             // хэрэглэгчийн алба
+        Long userId                    // хэрэглэгчийн id
 ) {}

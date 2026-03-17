@@ -36,6 +36,9 @@ public class Station {
     @Column(name = "pool_count")
     private Integer poolCount;
 
+    @Column(name = "pump_count")
+    private Integer pumpCount;
+
     @Column(name = "wells_number")
     private Integer wellsNumber;
 

@@ -4,6 +4,7 @@ import mn.usug.dis_news_service.Model.HourlyReport;
 import mn.usug.dis_news_service.Model.HourlySecondReport;
 import mn.usug.dis_news_service.Service.MainService;
 import mn.usug.dis_news_service.Service.MenuService;
+import mn.usug.dis_news_service.Service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -19,10 +20,16 @@ public class MainController {
     MainService mainService;
     @Autowired
     private MenuService menuService;
+    @Autowired
+    private NotificationService notificationService;
 
     @PostMapping("/hourly")
     public ResponseEntity regHourly(@RequestBody HourlyReport report) {
-        return mainService.regHourly(report);
+        ResponseEntity result = mainService.regHourly(report);
+        if (result.getStatusCode().is2xxSuccessful()) {
+            notificationService.notifyWsHourly(report.getStationName(), report.getHour());
+        }
+        return result;
     }
 
     @GetMapping("/getHourlyHistory")

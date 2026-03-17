@@ -31,8 +31,10 @@ public class ReferenceService {
     public List<User> getAllUsers() {
         List<User> list = userDAO.findAll();
         list.forEach(item -> {
-            item.setDepName(getDepartmentById(item.getDepartmentId()).getShortName());
-            item.setPosName(getPositionById(item.getPositionId()).getName());
+            Department dep = getDepartmentById(item.getDepartmentId());
+            Position pos = getPositionById(item.getPositionId());
+            item.setDepName(dep != null ? dep.getShortName() : null);
+            item.setPosName(pos != null ? pos.getName() : null);
         });
         return list;
     }
@@ -53,7 +55,8 @@ public class ReferenceService {
     public List<Position> getAllPositions() {
         List<Position> list = positionDAO.findAll();
         list.forEach(item -> {
-            item.setDepName(getDepartmentById(item.getDepId()).getDepName());
+            Department dep = getDepartmentById(item.getDepId());
+            item.setDepName(dep != null ? dep.getDepName() : null);
         });
         return list;
     }
@@ -70,6 +73,9 @@ public class ReferenceService {
 
     public Position updatePosition(Position position) {
         Position oldPosition = positionDAO.findById(position.getId()).orElse(null);
+        if (oldPosition == null) {
+            return null;
+        }
         oldPosition.setDepId(position.getDepId());
         oldPosition.setName(position.getName());
         oldPosition.setEmployeeCount(position.getEmployeeCount());
@@ -95,7 +101,8 @@ public class ReferenceService {
     public List<Position> getPositionsByDepId(Integer id) {
         List<Position> list = positionDAO.findByDepId(id);
         list.forEach(item -> {
-            item.setDepName(getDepartmentById(item.getDepId()).getDepName());
+            Department dep = getDepartmentById(item.getDepId());
+            item.setDepName(dep != null ? dep.getDepName() : null);
         });
         return list;
     }
@@ -106,6 +113,9 @@ public class ReferenceService {
 
     public ResponseEntity deleteDepartmentById(Integer id) {
         Department department = departmentDAO.findById(id).orElse(null);
+        if (department == null) {
+            return ResponseEntity.status(404).body("Department not found");
+        }
         departmentDAO.delete(department);
         return ResponseEntity.ok(department);
     }
@@ -140,12 +150,16 @@ public class ReferenceService {
 
     public ResponseEntity deletePositionById(Integer id) {
         Position position = positionDAO.findById(id).orElse(null);
+        if (position == null) {
+            return ResponseEntity.status(404).body("Position not found");
+        }
         positionDAO.delete(position);
         return ResponseEntity.ok(position);
     }
 
     public ResponseEntity getAllStations(Integer depId) {
-        return ResponseEntity.ok(stationDAO.findByDepId());
+        if (depId == null || depId == 0) return ResponseEntity.ok(stationDAO.findAll());
+        return ResponseEntity.ok(stationDAO.findByDepId(depId));
     }
 
     public ResponseEntity getStationById(Integer id) {
@@ -157,15 +171,27 @@ public class ReferenceService {
     }
     public ResponseEntity updateStation(Station station) {
         Station oldStation = stationDAO.findById(station.getId()).orElse(null);
+        if (oldStation == null) {
+            return ResponseEntity.status(404).body("Station not found");
+        }
         oldStation.setChefId(station.getChefId());
         oldStation.setDepartmentId(station.getDepartmentId());
         oldStation.setIsWaterSupply(station.getIsWaterSupply());
         oldStation.setName(station.getName());
+        oldStation.setPumpCount(station.getPumpCount());
         oldStation.setPoolCount(station.getPoolCount());
         oldStation.setFirstGeneratorCount(station.getFirstGeneratorCount());
         oldStation.setSecondGeneratorCount(station.getSecondGeneratorCount());
         oldStation.setWellsNumber(station.getWellsNumber());
         return ResponseEntity.ok(stationDAO.save(oldStation));
+    }
+
+    public ResponseEntity deleteStationById(Integer id) {
+        if (!stationDAO.existsById(id)) {
+            return ResponseEntity.status(404).body("Station not found");
+        }
+        stationDAO.deleteById(id);
+        return ResponseEntity.ok().build();
     }
 
     public List<User> getAllUsersByFilter(Integer depId, Integer positionId) {

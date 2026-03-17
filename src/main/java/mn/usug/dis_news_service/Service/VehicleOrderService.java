@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,6 +46,7 @@ public class VehicleOrderService {
                             .map(i -> {
 
                                 VehicleType type = i.getVehicleType();
+                                if (type == null) return null;
 
                                 String displayName;
                                 Integer qty = i.getQty();
@@ -64,6 +66,7 @@ public class VehicleOrderService {
                                         qty
                                 );
                             })
+                            .filter(Objects::nonNull)
                             .toList();
 
             VehicleOrderDto dto = new VehicleOrderDto();

@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public interface SewageTreatmentRepository extends JpaRepository<SewageTreatment, Integer> {
 
@@ -35,4 +36,40 @@ public interface SewageTreatmentRepository extends JpaRepository<SewageTreatment
         ORDER BY p.id, m.id
         """, nativeQuery = true)
     List<Map<String, Object>> findSummaryRaw(@Param("d") LocalDate date, @Param("h") int hour);
+
+    /** Тухайн станц, огноо, цагт бүртгэгдсэн хамгийн сүүлийн бичлэгийг буцаана */
+    @Query(value = """
+        SELECT * FROM sewage_treatment
+        WHERE station_id = :stationId
+          AND DATE(created_date) = :date
+          AND HOUR(created_date) = :hour
+          AND active_flag = 1
+        ORDER BY id DESC LIMIT 1
+        """, nativeQuery = true)
+    Optional<SewageTreatment> findLatestByStationAndHour(
+            @Param("stationId") int stationId,
+            @Param("date") java.time.LocalDate date,
+            @Param("hour") int hour);
+
+    /** Тухайн станцын өдрийн бүх цагийн бүртгэл (хяналтын grid-д) */
+    @Query(value = """
+        SELECT
+          HOUR(created_date)  AS hour,
+          working_count       AS workingCount,
+          pending_count       AS pendingCount,
+          repairing_count     AS repairingCount,
+          received_waste      AS receivedWaste,
+          received_wool       AS receivedWool,
+          received_water      AS receivedWater,
+          substance_spent     AS substanceSpent,
+          treated_water       AS treatedWater
+        FROM sewage_treatment
+        WHERE station_id = :stationId
+          AND DATE(created_date) = :date
+          AND active_flag = 1
+        ORDER BY HOUR(created_date)
+        """, nativeQuery = true)
+    List<Map<String, Object>> findDailyHistory(
+            @Param("stationId") int stationId,
+            @Param("date") java.time.LocalDate date);
 }

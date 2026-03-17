@@ -38,6 +38,12 @@ public class WorkOrder {
     @Column(name = "fulfillment", columnDefinition = "TEXT")
     private String fulfillment;
 
+    @Column(name = "lat")
+    private Double lat;
+
+    @Column(name = "lng")
+    private Double lng;
+
     @Column(name = "status")
     private Integer status;
 
