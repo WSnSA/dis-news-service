@@ -33,8 +33,8 @@ public interface MenuDAO extends JpaRepository<Menu,Integer> {
 """)
     List<Menu> findByType(@Param("type") String type);
 
-    /** Цэвэрлэх байгууламжийн станцуудыг буцаана — WS бус, дэд цэстэй меню айтемүүд */
-    @Query("select a from Menu a where a.activeFlag = 1 and a.parentId is not null and (a.path is null or a.path not like '%ws%') order by a.parentId, a.id")
+    /** Цэвэрлэх байгууламжийн станцуудыг буцаана — /st/ эхлэлтэй path-тай меню айтемүүд */
+    @Query("select a from Menu a where a.activeFlag = 1 and a.path like '/st/%' order by a.parentId, a.id")
     List<Menu> findSewageStations();
 
 }

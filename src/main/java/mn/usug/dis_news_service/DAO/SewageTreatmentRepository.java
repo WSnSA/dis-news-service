@@ -37,6 +37,39 @@ public interface SewageTreatmentRepository extends JpaRepository<SewageTreatment
         """, nativeQuery = true)
     List<Map<String, Object>> findSummaryRaw(@Param("d") LocalDate date, @Param("h") int hour);
 
+    /** Бүхэл өдрийн нэгтгэл — бүх цэвэрлэх станцыг харуулна (өгөгдөлгүй ч гэсэн) */
+    @Query(value = """
+        SELECT
+          m.id   AS stationId,
+          p.name AS groupName,
+          m.name AS stationName,
+          (SELECT working_count   FROM dis_news.sewage_treatment
+           WHERE station_id = m.id AND DATE(created_date) = :d AND active_flag = 1
+           ORDER BY id DESC LIMIT 1) AS workingCount,
+          (SELECT pending_count   FROM dis_news.sewage_treatment
+           WHERE station_id = m.id AND DATE(created_date) = :d AND active_flag = 1
+           ORDER BY id DESC LIMIT 1) AS pendingCount,
+          (SELECT repairing_count FROM dis_news.sewage_treatment
+           WHERE station_id = m.id AND DATE(created_date) = :d AND active_flag = 1
+           ORDER BY id DESC LIMIT 1) AS repairingCount,
+          COALESCE((SELECT SUM(received_waste)  FROM dis_news.sewage_treatment
+                    WHERE station_id = m.id AND DATE(created_date) = :d AND active_flag = 1), 0) AS receivedWaste,
+          COALESCE((SELECT SUM(received_wool)   FROM dis_news.sewage_treatment
+                    WHERE station_id = m.id AND DATE(created_date) = :d AND active_flag = 1), 0) AS receivedWool,
+          COALESCE((SELECT SUM(received_water)  FROM dis_news.sewage_treatment
+                    WHERE station_id = m.id AND DATE(created_date) = :d AND active_flag = 1), 0) AS receivedWater,
+          COALESCE((SELECT SUM(substance_spent) FROM dis_news.sewage_treatment
+                    WHERE station_id = m.id AND DATE(created_date) = :d AND active_flag = 1), 0) AS substanceSpent,
+          COALESCE((SELECT SUM(treated_water)   FROM dis_news.sewage_treatment
+                    WHERE station_id = m.id AND DATE(created_date) = :d AND active_flag = 1), 0) AS treatedWater
+        FROM dis_news.menu m
+        LEFT JOIN dis_news.menu p ON p.id = m.parent_id
+        WHERE m.active_flag = 1
+          AND m.path LIKE '/st/%'
+        ORDER BY p.id, m.id
+        """, nativeQuery = true)
+    List<Map<String, Object>> findDailySummaryRaw(@Param("d") LocalDate date);
+
     /** Тухайн станц, огноо, цагт бүртгэгдсэн хамгийн сүүлийн бичлэгийг буцаана */
     @Query(value = """
         SELECT * FROM sewage_treatment

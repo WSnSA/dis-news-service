@@ -10,8 +10,9 @@ import mn.usug.dis_news_service.Entity.SewageTreatment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -42,6 +43,25 @@ public class SewageTreatmentService {
                 .toList();
     }
 
+    public List<SewageTreatmentSummaryDto> getDailySummary(LocalDate date) {
+        return repo.findDailySummaryRaw(date).stream()
+                .filter(r -> r.get("stationId") != null)
+                .map(r -> new SewageTreatmentSummaryDto(
+                        ((Number) r.get("stationId")).intValue(),
+                        (String) r.get("groupName"),
+                        (String) r.get("stationName"),
+                        r.get("workingCount")   != null ? String.valueOf(r.get("workingCount"))   : "0",
+                        r.get("pendingCount")   != null ? String.valueOf(r.get("pendingCount"))   : "0",
+                        r.get("repairingCount") != null ? String.valueOf(r.get("repairingCount")) : "0",
+                        r.get("receivedWaste")   == null ? 0d : ((Number) r.get("receivedWaste")).doubleValue(),
+                        r.get("receivedWool")    == null ? 0d : ((Number) r.get("receivedWool")).doubleValue(),
+                        r.get("receivedWater")   == null ? 0d : ((Number) r.get("receivedWater")).doubleValue(),
+                        r.get("substanceSpent")  == null ? 0d : ((Number) r.get("substanceSpent")).doubleValue(),
+                        r.get("treatedWater")    == null ? 0d : ((Number) r.get("treatedWater")).doubleValue()
+                ))
+                .toList();
+    }
+
     public List<Menu> getStations() {
         return menuDAO.findSewageStations();
     }
@@ -57,25 +77,24 @@ public class SewageTreatmentService {
         boolean isNew = e.getId() == null;
         if (isNew) {
             e.setStationId(req.stationId());
-            // created_date = огноо + цаг (UTC гэж тооцно)
-            e.setCreatedDate(LocalDateTime.of(date, LocalTime.of(hour, 0))
-                    .toInstant(ZoneOffset.ofHours(8)));
-            e.setCreatedBy(UserContext.getUserId());
+            e.setCreatedDate(LocalDateTime.of(date, LocalTime.of(hour, 0)));
+            Integer uid = UserContext.getUserId();
+            e.setCreatedBy(uid != null ? uid : 0);
             e.setActiveFlag(1);
             e.setStatus(1);
         } else {
-            e.setUpdatedDate(Instant.now());
+            e.setUpdatedDate(LocalDateTime.now());
             e.setUpdatedBy(UserContext.getUserId());
         }
 
-        e.setWorkingCount(req.workingCount());
-        e.setPendingCount(req.pendingCount());
-        e.setRepairingCount(req.repairingCount());
-        e.setReceivedWaste(req.receivedWaste());
-        e.setReceivedWool(req.receivedWool());
-        e.setReceivedWater(req.receivedWater());
-        e.setSubstanceSpent(req.substanceSpent());
-        e.setTreatedWater(req.treatedWater());
+        e.setWorkingCount(req.workingCount()   != null ? req.workingCount()    : "0");
+        e.setPendingCount(req.pendingCount()   != null ? req.pendingCount()    : "0");
+        e.setRepairingCount(req.repairingCount() != null ? req.repairingCount(): "0");
+        e.setReceivedWaste(req.receivedWaste()   != null ? req.receivedWaste()  : 0.0);
+        e.setReceivedWool(req.receivedWool()     != null ? req.receivedWool()   : 0.0);
+        e.setReceivedWater(req.receivedWater()   != null ? req.receivedWater()  : 0.0);
+        e.setSubstanceSpent(req.substanceSpent() != null ? req.substanceSpent(): 0.0);
+        e.setTreatedWater(req.treatedWater()     != null ? req.treatedWater()   : 0.0);
 
         return repo.save(e);
     }

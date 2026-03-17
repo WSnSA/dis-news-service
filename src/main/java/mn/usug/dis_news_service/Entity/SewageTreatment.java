@@ -7,7 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
@@ -56,12 +56,12 @@ public class SewageTreatment {
     private Integer createdBy;
 
     @Column(name = "created_date")
-    private Instant createdDate;
+    private LocalDateTime createdDate;
 
     @Column(name = "updated_by")
     private Integer updatedBy;
 
     @Column(name = "updated_date")
-    private Instant updatedDate;
+    private LocalDateTime updatedDate;
 
 }

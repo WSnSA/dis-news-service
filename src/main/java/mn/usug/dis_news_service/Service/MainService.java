@@ -152,13 +152,30 @@ public class MainService {
         report.setPipeFm7(stations.stream().mapToInt(s -> n(s.getPipeFm7())).sum());
         report.setPipeFm8(stations.stream().mapToInt(s -> n(s.getPipeFm8())).sum());
 
+        // Худгийн тоо — хамгийн сүүлийн цагийн утгыг авна
+        stations.stream()
+                .reduce((a, b) -> b)
+                .ifPresent(last -> {
+                    report.setFirstWorkingCount(last.getFirstWorkingCount());
+                    report.setFirstPendingCount(last.getFirstPendingCount());
+                    report.setFirstRepairingCount(last.getFirstRepairingCount());
+                });
+
         List<HourlyWsSecond> seconds = hourlyWsSecondDAO.findAllByMenuIdAndDate(menuId, date);
 
         Map<Integer, List<HourlyWsSecond>> grouped =
                 seconds.stream().collect(Collectors.groupingBy(HourlyWsSecond::getGeneratorNo));
 
+        // Насосны тоо — хамгийн сүүлийн цагийн бүртгэлээр
+        int latestHour = seconds.stream()
+                .mapToInt(s -> s.getHour() != null ? s.getHour() : 0)
+                .max().orElse(-1);
+        List<HourlyWsSecond> latestSeconds = latestHour >= 0
+                ? seconds.stream().filter(s -> latestHour == (s.getHour() != null ? s.getHour() : 0)).collect(Collectors.toList())
+                : new ArrayList<>();
+
         Map<Integer, List<HourlyWsSecond>> stated =
-                seconds.stream().collect(Collectors.groupingBy(HourlyWsSecond::getStatus));
+                latestSeconds.stream().collect(Collectors.groupingBy(HourlyWsSecond::getStatus));
 
         report.setSecondWorkingCount(stated.getOrDefault(1, new ArrayList<>()).size());
         report.setSecondPendingCount(stated.getOrDefault(2, new ArrayList<>()).size());

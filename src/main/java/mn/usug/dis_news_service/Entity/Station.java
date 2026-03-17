@@ -2,6 +2,8 @@ package mn.usug.dis_news_service.Entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -12,6 +14,7 @@ import lombok.Data;
 @Table(name = "station")
 public class Station {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
 
@@ -42,10 +45,10 @@ public class Station {
     @Column(name = "wells_number")
     private Integer wellsNumber;
 
-    @Column(name = "username", nullable = false, length = 50)
+    @Column(name = "username", length = 50)
     private String username;
 
-    @Column(name = "password", nullable = false, length = 100)
+    @Column(name = "password", length = 100)
     private String password;
 
 }

@@ -43,6 +43,13 @@ public class SewageTreatmentController {
         return service.getByStationAndHour(stationId, date, hour);
     }
 
+    /** Бүхэл өдрийн нэгтгэл (dashboard-д) */
+    @GetMapping("/daily-summary")
+    public List<SewageTreatmentSummaryDto> dailySummary(
+            @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
+        return service.getDailySummary(date);
+    }
+
     /** Тухайн станцын өдрийн бүх цагийн бүртгэл (хяналтын grid-д) */
     @GetMapping("/history")
     public List<Map<String, Object>> getHistory(

@@ -109,6 +109,7 @@ public class ReferenceController {
             return ResponseEntity.status(404).body("Department not found");
         }
         Station station = new Station();
+        station.setName(name);
         station.setDepartmentId(depId);
         station.setIsWaterSupply(isWaterSupply);
         station.setPumpCount(pumpCount);
