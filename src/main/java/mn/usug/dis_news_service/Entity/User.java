@@ -68,6 +68,9 @@ public class User {
     @Column(name = "station_id")
     private Integer stationId;
 
+    @Column(name = "first_login")
+    private Boolean firstLogin = true;
+
     @Transient
     private String depName;
 

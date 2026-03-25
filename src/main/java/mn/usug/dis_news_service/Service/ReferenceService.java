@@ -27,15 +27,25 @@ public class ReferenceService {
     StationDAO stationDAO;
 
 
-
     public List<User> getAllUsers() {
         List<User> list = userDAO.findAll();
+
         list.forEach(item -> {
-            Department dep = getDepartmentById(item.getDepartmentId());
-            Position pos = getPositionById(item.getPositionId());
+            Department dep = null;
+            Position pos = null;
+
+            if (item.getDepartmentId() != null) {
+                dep = getDepartmentById(item.getDepartmentId());
+            }
+
+            if (item.getPositionId() != null) {
+                pos = getPositionById(item.getPositionId());
+            }
+
             item.setDepName(dep != null ? dep.getShortName() : null);
             item.setPosName(pos != null ? pos.getName() : null);
         });
+
         return list;
     }
 
@@ -221,6 +231,7 @@ public class ReferenceService {
         user.setPositionId(model.getPositionId());
         user.setMailAddress(model.getMailAddress());
         user.setPhoneNumber(model.getPhoneNumber());
+        user.setFirstLogin(true);
         return userDAO.save(user);
     }
 

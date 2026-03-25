@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -73,6 +74,36 @@ public class AuthController {
 
 
 
+
+    @PutMapping("/first-password-change")
+    public ResponseEntity<?> firstPasswordChange(@RequestBody Map<String, String> body) {
+        String username = body.get("username");
+        String newPassword = body.get("newPassword");
+        User user = refService.getUserByUsername(username);
+        if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Хэрэглэгч олдсонгүй");
+        if (!Boolean.TRUE.equals(user.getFirstLogin())) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Анхны нэвтрэлт биш байна");
+        user.setPassword(newPassword);
+        user.setFirstLogin(false);
+        refService.saveUser(user);
+        Map<String, Object> result = new HashMap<>();
+        result.put("firstLogin", false);
+        return ResponseEntity.ok(result);
+    }
+
+    @PutMapping("/update-profile")
+    public ResponseEntity<?> updateProfile(@RequestBody UserModel model) {
+        User user = refService.getUserByUsername(model.getUsername());
+        if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Хэрэглэгч олдсонгүй");
+        if (model.getFirstName() != null) user.setFirstName(model.getFirstName());
+        if (model.getLastName() != null) user.setLastName(model.getLastName());
+        if (model.getPin() != null) user.setPin(model.getPin());
+        if (model.getPhoneNumber() != null) user.setPhoneNumber(model.getPhoneNumber());
+        if (model.getMailAddress() != null) user.setMailAddress(model.getMailAddress());
+        if (model.getDepartmentId() != null) user.setDepartmentId(model.getDepartmentId());
+        if (model.getPositionId() != null) user.setPositionId(model.getPositionId());
+        refService.saveUser(user);
+        return ResponseEntity.ok().build();
+    }
 
     // POST /auth/forgot/request  { "email": "a@b.com" }
     @PostMapping("/forgot/request")
