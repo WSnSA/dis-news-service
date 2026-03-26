@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ReferenceService {
@@ -28,25 +30,24 @@ public class ReferenceService {
 
 
     public List<User> getAllUsers() {
-        List<User> list = userDAO.findAll();
-
+        List<User> list = userDAO.findAll().stream()
+                .filter(u -> Boolean.TRUE.equals(u.getActiveFlag()))
+                .collect(Collectors.toList());
+        Map<Integer, Department> depMap = departmentDAO.findAll().stream()
+                .collect(Collectors.toMap(Department::getDepId, d -> d));
+        Map<Integer, Position> posMap = positionDAO.findAll().stream()
+                .collect(Collectors.toMap(Position::getId, p -> p));
         list.forEach(item -> {
-            Department dep = null;
-            Position pos = null;
-
-            if (item.getDepartmentId() != null) {
-                dep = getDepartmentById(item.getDepartmentId());
-            }
-
-            if (item.getPositionId() != null) {
-                pos = getPositionById(item.getPositionId());
-            }
-
+            Department dep = item.getDepartmentId() != null ? depMap.get(item.getDepartmentId()) : null;
+            Position pos = item.getPositionId() != null ? posMap.get(item.getPositionId()) : null;
             item.setDepName(dep != null ? dep.getShortName() : null);
             item.setPosName(pos != null ? pos.getName() : null);
         });
-
         return list;
+    }
+
+    public void deleteUser(Integer id) {
+        userDAO.deleteById(id);
     }
 
     public User getUserById(Integer id) {
@@ -64,8 +65,10 @@ public class ReferenceService {
 
     public List<Position> getAllPositions() {
         List<Position> list = positionDAO.findAll();
+        Map<Integer, Department> depMap = departmentDAO.findAll().stream()
+                .collect(Collectors.toMap(Department::getDepId, d -> d));
         list.forEach(item -> {
-            Department dep = getDepartmentById(item.getDepId());
+            Department dep = depMap.get(item.getDepId());
             item.setDepName(dep != null ? dep.getDepName() : null);
         });
         return list;
@@ -205,10 +208,16 @@ public class ReferenceService {
     }
 
     public List<User> getAllUsersByFilter(Integer depId, Integer positionId) {
-        List<User> list = userDAO.findUsersByFilter(depId, positionId);
+        List<User> list = userDAO.findUsersByFilter(depId, positionId).stream()
+                .filter(u -> Boolean.TRUE.equals(u.getActiveFlag()))
+                .collect(Collectors.toList());
+        Map<Integer, Department> depMap = departmentDAO.findAll().stream()
+                .collect(Collectors.toMap(Department::getDepId, d -> d));
+        Map<Integer, Position> posMap = positionDAO.findAll().stream()
+                .collect(Collectors.toMap(Position::getId, p -> p));
         list.forEach(item -> {
-            Department dep = getDepartmentById(item.getDepartmentId());
-            Position pos = getPositionById(item.getPositionId());
+            Department dep = item.getDepartmentId() != null ? depMap.get(item.getDepartmentId()) : null;
+            Position pos = item.getPositionId() != null ? posMap.get(item.getPositionId()) : null;
             item.setDepName(dep != null ? dep.getShortName() : null);
             item.setPosName(pos != null ? pos.getName() : null);
         });

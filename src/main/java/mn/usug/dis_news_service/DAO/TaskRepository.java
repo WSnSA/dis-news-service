@@ -14,6 +14,12 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
     // Алба + албан тушаалаар
     List<Task> findByDepartmentIdAndPositionId(Integer departmentId, Integer positionId);
 
+    @Query("select t from Task t where t.activeFlag = 1 and t.departmentId = :depId and t.positionId = :posId")
+    List<Task> findActiveByDeptAndPosition(@Param("depId") Integer depId, @Param("posId") Integer posId);
+
+    @Query("select t from Task t where t.activeFlag = 1 and t.departmentId = :depId")
+    List<Task> findActiveByDept(@Param("depId") Integer depId);
+
     // Тухайн өдрийн хурлын үүргүүд
     @Query("""
     select t from Task t
@@ -31,4 +37,7 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
 
     @Query("select a from Task a where a.activeFlag = 1")
     List<Task> findActive();
+
+    @Query("select count(t) from Task t where t.activeFlag = 1 and t.status < 2")
+    long countPending();
 }

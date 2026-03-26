@@ -4,6 +4,7 @@ import mn.usug.dis_news_service.Entity.*;
 import mn.usug.dis_news_service.Service.MainService;
 import mn.usug.dis_news_service.Service.ReferenceService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -163,6 +164,14 @@ public class ReferenceController {
     @GetMapping("/user/getAll")
     public List<User> getAllUsers() {
         return refService.getAllUsers();
+    }
+    @DeleteMapping("/user/delete/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Integer id) {
+        if (refService.getUserById(id) == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+        refService.deleteUser(id);
+        return ResponseEntity.ok().build();
     }
     @GetMapping("/user/getAllByFilter")
     public List<User> getAllUsers(@RequestParam("depId") Integer depId, @RequestParam("positionId") Integer positionId) {

@@ -54,6 +54,11 @@ public class WorkOrderController {
         return repository.findByExecutorDept(deptId);
     }
 
+    @GetMapping("/countPending")
+    public long countPending(@RequestParam Integer deptId) {
+        return repository.countPendingByDept(deptId);
+    }
+
     /* =====================
        SAVE (INSERT / UPDATE)
        ===================== */

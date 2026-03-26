@@ -36,6 +36,19 @@ public class AuthController {
         else return ResponseEntity.ok(AESUtil.encryptObject(user));
     }
 
+    @PutMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(
+            @RequestParam("username") String username,
+            @RequestParam(value = "reason", defaultValue = "") String reason
+    ) {
+        User user = refService.getUserByUsername(username);
+        if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Хэрэглэгч олдсонгүй");
+        user.setPassword("123456");
+        user.setFirstLogin(true);
+        refService.saveUser(user);
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/deactive")
     public ResponseEntity<?> deactive(@RequestParam("username") String username) {
         User user = refService.getUserByUsername(username);

@@ -45,6 +45,9 @@ public class Task {
     @Column(name = "fulfillment", length = 1000)
     private String fulfillment;
 
+    @Column(name = "return_note", columnDefinition = "text")
+    private String returnNote;
+
     @Column(name = "status")
     private Integer status;
 

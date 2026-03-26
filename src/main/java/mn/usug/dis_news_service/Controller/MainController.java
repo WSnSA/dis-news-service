@@ -1,5 +1,6 @@
 package mn.usug.dis_news_service.Controller;
 
+import mn.usug.dis_news_service.DAO.MenuDAO;
 import mn.usug.dis_news_service.Model.HourlyReport;
 import mn.usug.dis_news_service.Model.HourlySecondReport;
 import mn.usug.dis_news_service.Service.MainService;
@@ -22,12 +23,17 @@ public class MainController {
     private MenuService menuService;
     @Autowired
     private NotificationService notificationService;
+    @Autowired
+    private MenuDAO menuDAO;
 
     @PostMapping("/hourly")
     public ResponseEntity regHourly(@RequestBody HourlyReport report) {
         ResponseEntity result = mainService.regHourly(report);
         if (result.getStatusCode().is2xxSuccessful()) {
-            notificationService.notifyWsHourly(report.getStationName(), report.getHour());
+            String stationName = menuDAO.findById(report.getMenuId())
+                    .map(m -> m.getName())
+                    .orElse("Станц");
+            notificationService.notifyWsHourly(stationName, report.getHour());
         }
         return result;
     }

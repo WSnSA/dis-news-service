@@ -31,4 +31,10 @@ public class NotificationController {
     public void markRead(@PathVariable Long id) {
         repo.markReadById(id);
     }
+
+    /** Нэг мэдэгдэл уншаагүй болгох */
+    @PutMapping("/{id}/unread")
+    public void markUnread(@PathVariable Long id) {
+        repo.markUnreadById(id);
+    }
 }

@@ -29,4 +29,8 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Integer> {
     /* 🔹 Хийлгэх алба (departmentId = миний алба → Хүлээн авсан tab) */
     @Query("select w from WorkOrder w where w.activeFlag = 1 and w.departmentId = :deptId order by w.createdDate desc")
     List<WorkOrder> findByExecutorDept(@Param("deptId") Integer deptId);
+
+    /* 🔹 Тухайн албаны дуусаагүй захиалгын тоо (хоёр tab хамт) */
+    @Query("select count(w) from WorkOrder w where w.activeFlag = 1 and w.status < 2 and (w.assignedDepartmentId = :deptId or w.departmentId = :deptId)")
+    long countPendingByDept(@Param("deptId") Integer deptId);
 }
