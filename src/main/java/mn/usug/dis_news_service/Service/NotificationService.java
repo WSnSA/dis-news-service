@@ -37,7 +37,7 @@ public class NotificationService {
         broadcast(targets, "ws",
                 "Цагийн бүртгэл",
                 stationName + " — " + hour + ":00 цагийн бүртгэл хадгалагдлаа",
-                "pi-tint");
+                "pi-clock");
     }
 
     /** Ажлын мэдээ — тайлан/хянах самбар эрхтэй хүнд */
