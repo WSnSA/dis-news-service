@@ -4,6 +4,7 @@ package mn.usug.dis_news_service.DAO;
 import mn.usug.dis_news_service.Entity.HourlyWsStation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.Date;
@@ -18,4 +19,12 @@ public interface HourlyWsStationDAO extends JpaRepository<HourlyWsStation,Intege
 
     @Query("select a from HourlyWsStation a where a.menuId = ?1 and DATE(a.date) between ?2 and ?3")
     List<HourlyWsStation> findByMenuIdAndDateBetween(Integer menuId, Date start, Date end);
+
+    @Query(value = "SELECT hour, " +
+        "SUM(COALESCE(pipe_fm_1,0)) as fm1, " +
+        "SUM(COALESCE(pipe_fm_7,0)) as fm7, " +
+        "SUM(COALESCE(pipe_fm_8,0)) as fm8, " +
+        "SUM(COALESCE(pipe_fm_1,0)) + SUM(COALESCE(pipe_fm_7,0)) + SUM(COALESCE(pipe_fm_8,0)) as total " +
+        "FROM hourly_ws_station WHERE DATE(date) = :date GROUP BY hour ORDER BY hour", nativeQuery = true)
+    List<Object[]> getDailyFmByHour(@Param("date") String date);
 }

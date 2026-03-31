@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.function.Function;
@@ -291,6 +292,21 @@ public class MainService {
         report.setHourlyWsSecondList(genReports);
 
         return ResponseEntity.ok(report);
+    }
+
+    public ResponseEntity getDailyFmByHour(Date date) {
+        String ds = new SimpleDateFormat("yyyy-MM-dd").format(date);
+        List<Object[]> rows = hourlyWsStationDAO.getDailyFmByHour(ds);
+        List<Map<String, Object>> result = rows.stream().map(row -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("hour", ((Number) row[0]).intValue());
+            m.put("fm1",  row[1] != null ? ((Number) row[1]).intValue() : 0);
+            m.put("fm7",  row[2] != null ? ((Number) row[2]).intValue() : 0);
+            m.put("fm8",  row[3] != null ? ((Number) row[3]).intValue() : 0);
+            m.put("total", row[4] != null ? ((Number) row[4]).intValue() : 0);
+            return m;
+        }).toList();
+        return ResponseEntity.ok(result);
     }
 
     private int n(Integer v) {

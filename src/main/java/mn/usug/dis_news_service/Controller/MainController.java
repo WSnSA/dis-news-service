@@ -79,4 +79,10 @@ public class MainController {
         return menuService.getDailySummary(type, date);
     }
 
+    @GetMapping("/dailyFmByHour")
+    public ResponseEntity getDailyFmByHour(
+            @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") Date date) {
+        return mainService.getDailyFmByHour(date);
+    }
+
 }
