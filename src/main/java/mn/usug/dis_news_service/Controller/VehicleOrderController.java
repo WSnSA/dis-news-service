@@ -36,6 +36,34 @@ public class VehicleOrderController {
         return service.getByDate(date);
     }
 
+    /** Баталгаажаагүй (status=0) — 502 ажилтан харна */
+    @GetMapping("/getPending")
+    public List<VehicleOrderDto> getPending(@RequestParam LocalDate date) {
+        return service.getPending(date);
+    }
+
+    /** Баталгаажсан (status=1) — 507 ажилтан харна */
+    @GetMapping("/getConfirmed")
+    public List<VehicleOrderDto> getConfirmed(@RequestParam LocalDate date) {
+        return service.getConfirmed(date);
+    }
+
+    /**
+     * 502 ажилтан захиалгуудыг баталгаажуулна: status 0 → 1
+     * Body: захиалгын ID-уудын жагсаалт  [1, 2, 3]
+     */
+    @PostMapping("/bulk-confirm")
+    @Transactional
+    public void bulkConfirm(@RequestBody List<Long> orderIds) {
+        orderIds.forEach(id ->
+            orderRepo.findById(id).ifPresent(o -> {
+                o.setStatus(1);
+                orderRepo.save(o);
+            })
+        );
+        notificationService.notifyVehicleOrder("Захиалгууд баталгаажлаа", null);
+    }
+
     @PostMapping("/save")
     @Transactional
     public void save(@RequestBody VehicleOrderSaveDto dto) {
@@ -46,6 +74,9 @@ public class VehicleOrderController {
         order.setAssignedDepartmentId(dto.getAssignedDepartmentId());
         order.setAssignedEmployeeId(dto.getAssignedEmployeeId());
         order.setOrderDate(dto.getOrderDate());
+        order.setStartDate(dto.getStartDate());
+        order.setEndDate(dto.getEndDate() != null ? dto.getEndDate() : dto.getStartDate());
+        order.setTaskDuration(dto.getTaskDuration());
         order.setStatus(0);
         order.setActiveFlag(1);
         order.setCreatedDate(LocalDateTime.now());

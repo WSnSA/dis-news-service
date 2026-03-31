@@ -16,5 +16,6 @@ public class VehiclesToOutRowDto {
     private String vehicleMechanism;      // mashin_mehanizm
     private String vehicleRegistration;   // vehicleRegistrationNumber эсвэл vehicle_reg_raw
     private String phone;                 // driverPhoneNumber эсвэл phone_raw
+    private String driverName;            // driverName
     private LocalDateTime createdDate;
 }

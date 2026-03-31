@@ -8,4 +8,8 @@ import java.util.List;
 
 public interface VehiclesToOutRepository extends JpaRepository<VehiclesToOut, Integer> {
     List<VehiclesToOut> findAllByCreatedDateBetweenOrderByIdAsc(LocalDateTime from, LocalDateTime to);
+
+    java.util.Optional<VehiclesToOut> findFirstByVehicleOrderIdOrderByCreatedDateDesc(Integer vehicleOrderId);
+
+    List<VehiclesToOut> findAllByVehicleOrderIdOrderByIdAsc(Integer vehicleOrderId);
 }

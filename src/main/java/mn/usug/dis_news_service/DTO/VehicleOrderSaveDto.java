@@ -12,6 +12,10 @@ public class VehicleOrderSaveDto {
     private String workDescription;
     private LocalDate orderDate;
 
+    private LocalDate startDate;
+    private LocalDate endDate;
+    private String taskDuration;
+
     private Integer assignedDepartmentId;
     private Integer assignedEmployeeId;
 

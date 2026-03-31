@@ -18,6 +18,15 @@ public class VehiclesToOut {
     @Column(name = "vehicle_order_id")
     private Integer vehicleOrderId;
 
+    @Column(name = "department")
+    private String department;
+
+    @Column(name = "work_description", columnDefinition = "TEXT")
+    private String workDescription;
+
+    @Column(name = "vehicle_mechanism", length = 500)
+    private String vehicleMechanism;
+
     @Column(name = "order_code")
     private Integer orderCode;
 

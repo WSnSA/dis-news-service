@@ -48,6 +48,21 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
         return repo.findAllByCreatedDateBetweenOrderByIdAsc(from, to);
     }
 
+    @Override
+    public VehiclesToOutRowDto findRowByOrderId(Integer vehicleOrderId) {
+        return repo.findFirstByVehicleOrderIdOrderByCreatedDateDesc(vehicleOrderId)
+                .map(this::toRowDtoFilledFromLegacy)
+                .orElse(null);
+    }
+
+    @Override
+    public List<VehiclesToOutRowDto> findRowsByOrderId(Integer vehicleOrderId) {
+        return repo.findAllByVehicleOrderIdOrderByIdAsc(vehicleOrderId)
+                .stream()
+                .map(this::toRowDtoFilledFromLegacy)
+                .toList();
+    }
+
     // ✅ ШИНЭ: Front-д хэрэгтэй хэлбэрээр (legacy_data-с нөхөөд) буцаах
     public List<VehiclesToOutRowDto> findRowsByDate(LocalDate date) {
         LocalDateTime from = date.atStartOfDay();
@@ -63,18 +78,19 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
     private VehiclesToOutRowDto toRowDtoFilledFromLegacy(VehiclesToOut v) {
         JsonNode legacy = parseLegacy(v.getLegacyData());
 
+        // Entity талбар эхлэж, байхгүй бол legacy_data-с нөхнө
         String dep = pickFirstNonBlank(
-                null,
+                normalize(v.getDepartment()),
                 textAt(legacy, "zahialga_ogson_heltes")
         );
 
         String work = pickFirstNonBlank(
-                null,
+                normalize(v.getWorkDescription()),
                 textAt(legacy, "hiigdeh_ajil")
         );
 
         String mech = pickFirstNonBlank(
-                null,
+                normalize(v.getVehicleMechanism()),
                 textAt(legacy, "mashin_mehanizm")
         );
 
@@ -95,6 +111,7 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
                 .vehicleMechanism(mech)
                 .vehicleRegistration(reg)
                 .phone(phone)
+                .driverName(normalize(v.getDriverName()))
                 .createdDate(v.getCreatedDate())
                 .build();
     }
@@ -104,7 +121,8 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
                 && isBlank(r.getWorkDescription())
                 && isBlank(r.getVehicleMechanism())
                 && isBlank(r.getVehicleRegistration())
-                && isBlank(r.getPhone());
+                && isBlank(r.getPhone())
+                && isBlank(r.getDriverName());
     }
 
     private JsonNode parseLegacy(String json) {

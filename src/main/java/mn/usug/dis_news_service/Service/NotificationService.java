@@ -25,7 +25,8 @@ public class NotificationService {
     private final UserDAO userDAO;
 
     // ── Component paths ────────────────────────────────────────────────────────
-    private static final String COMP_REPORT      = "pages/report/report.component";
+    private static final
+    String COMP_REPORT      = "pages/report/report.component";
     private static final String COMP_FULFILLMENT = "pages/task-fulfillment/task-fulfillment.component";
     private static final String PATH_DASHBOARD   = "dashboard";
 
@@ -56,7 +57,7 @@ public class NotificationService {
                     .filter(u -> Boolean.TRUE.equals(u.getActiveFlag()))
                     .forEach(u -> targets.add(u.getId()));
         }
-        broadcast(targets, "vehicle-order", "Шинэ машин захиалга", msg, "pi-car");
+        broadcast(targets, "vehicle-order", "Машин захиалга", msg, "pi-car");
     }
 
     /** Ажилд гарах машин — тайлан/хянах самбар эрхтэй хүнд */

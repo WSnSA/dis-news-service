@@ -16,9 +16,38 @@ public interface VehicleOrderRepository extends JpaRepository<VehicleOrder, Long
         select v
         from VehicleOrder v
         where v.activeFlag = 1
-          and v.orderDate = :date
+          and (
+            (v.startDate is null and v.orderDate = :date)
+            or (v.startDate is not null and :date between v.startDate and v.endDate)
+          )
         order by v.createdDate
     """)
     List<VehicleOrder> findByDate(@Param("date") LocalDate date);
+
+    @Query("""
+        select v
+        from VehicleOrder v
+        where v.activeFlag = 1
+          and v.status = 0
+          and (
+            (v.startDate is null and v.orderDate = :date)
+            or (v.startDate is not null and :date between v.startDate and v.endDate)
+          )
+        order by v.assignedDepartmentId, v.createdDate
+    """)
+    List<VehicleOrder> findPendingByDate(@Param("date") LocalDate date);
+
+    @Query("""
+        select v
+        from VehicleOrder v
+        where v.activeFlag = 1
+          and v.status = 1
+          and (
+            (v.startDate is null and v.orderDate = :date)
+            or (v.startDate is not null and :date between v.startDate and v.endDate)
+          )
+        order by v.assignedDepartmentId, v.createdDate
+    """)
+    List<VehicleOrder> findConfirmedByDate(@Param("date") LocalDate date);
 }
 

@@ -28,6 +28,15 @@ public class VehicleOrder {
 
     private LocalDate orderDate;
 
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
+    @Column(name = "end_date")
+    private LocalDate endDate;
+
+    @Column(name = "task_duration", length = 100)
+    private String taskDuration;
+
     private Integer status;
     private Integer activeFlag;
 
