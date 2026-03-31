@@ -55,7 +55,7 @@ public class ReferenceService {
     }
 
     public User getUserByUsername(String username) {
-        User user = userDAO.findUserByUsername(username);
+        User user = userDAO.findUserByUsername(username == null ? null : username.strip());
         return user;
     }
 

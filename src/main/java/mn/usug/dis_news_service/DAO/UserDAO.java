@@ -12,8 +12,8 @@ public interface UserDAO extends JpaRepository<User,Integer> {
     @Query("select a from User a")
     List<User> findAll();
 
-    @Query("select a from User a where a.activeFlag = true and a.username = ?1")
-    User findUserByUsername(String username);
+    @Query(value = "SELECT * FROM users WHERE active_flag = 1 AND TRIM(REPLACE(REPLACE(username, CHAR(9), ''), CHAR(13), '')) = :username", nativeQuery = true)
+    User findUserByUsername(@Param("username") String username);
 
     @Query("""
   select u from User u
