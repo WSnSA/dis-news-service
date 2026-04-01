@@ -7,6 +7,7 @@ import mn.usug.dis_news_service.DTO.SewageTreatmentSummaryDto;
 import mn.usug.dis_news_service.DTO.WorkNewsDayRes;
 import mn.usug.dis_news_service.Entity.Menu;
 import mn.usug.dis_news_service.Model.HourlyReport;
+import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -25,7 +26,7 @@ public class ReportService {
 
     public DailyReportRes getDaily(LocalDate date) {
 
-        Date javaDate = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        LocalDate javaDate = LocalDate.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
 
         // ── Ус хангамж ──────────────────────────────────────────
         List<HourlyReport> source       = buildSection("source",       javaDate);
@@ -33,8 +34,8 @@ public class ReportService {
         List<HourlyReport> pool         = buildSection("pool",         javaDate);
         List<HourlyReport> js           = buildSection("js",           javaDate);
 
-        // ── Цэвэрлэх байгууламж (7:00 цагийн тайлан) ────────────
-        List<SewageTreatmentSummaryDto> sewage = sewageTreatmentService.getSummary(date, 7);
+        // ── Цэвэрлэх байгууламж (ээлжийн дараа өдрийн 7:00 цагийн тайлан) ────────────
+        List<SewageTreatmentSummaryDto> sewage = sewageTreatmentService.getSummary(date.plusDays(1), 7);
 
         // ── Ажлын мэдээ ──────────────────────────────────────────
         WorkNewsDayRes workNews = null;
@@ -56,7 +57,7 @@ public class ReportService {
     }
 
     // ── Тухайн төрлийн станцуудын өдрийн тайлан ────────────────
-    private List<HourlyReport> buildSection(String type, Date date) {
+    private List<HourlyReport> buildSection(String type, LocalDate date) {
         return menuDAO.findByType(type).stream()
                 .map(menu -> {
                     HourlyReport r = mainService.getDailyReport(menu.getId(), date);

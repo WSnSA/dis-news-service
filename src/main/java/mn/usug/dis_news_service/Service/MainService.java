@@ -100,60 +100,99 @@ public class MainService {
     }
 
 
-    public ResponseEntity<DailyReportListResponse> getDailyReportList(Integer menuId, Date date) {
+    public ResponseEntity<DailyReportListResponse> getDailyReportList(Integer menuId, LocalDate date) {
 
         DailyReportListResponse response = new DailyReportListResponse();
         response.setMenuId(menuId);
-        response.setDate(date);
+        response.setDate(java.sql.Date.valueOf(date));
 
-        // 1) Уг өдрийн бүх станцын цагийн мэдээлэл
-        List<HourlyWsStation> stations = hourlyWsStationDAO.findByMenuIdAndDate(menuId, date);
+        String dateStr = date.toString();
+        String nextDateStr = date.plusDays(1).toString();
 
-        // 2) Уг өдрийн бүх second мэдээлэл
-        List<HourlyWsSecond> seconds = hourlyWsSecondDAO.findAllByMenuIdAndDate(menuId, date);
+        List<HourlyWsStation> stations =
+                hourlyWsStationDAO.findByMenuIdAndShiftDay(menuId, dateStr, nextDateStr);
 
-        // 3) seconds-ийг hour-аар бүлэглэх
+        List<HourlyWsSecond> seconds =
+                hourlyWsSecondDAO.findAllByMenuIdAndShiftDay(menuId, dateStr, nextDateStr);
+
+        Map<Integer, HourlyWsStation> stationByHour = stations.stream()
+                .collect(Collectors.toMap(
+                        HourlyWsStation::getHour,
+                        s -> s,
+                        (a, b) -> a
+                ));
+
         Map<Integer, List<HourlyWsSecond>> secondsByHour = seconds.stream()
                 .collect(Collectors.groupingBy(HourlyWsSecond::getHour));
 
-        // 4) Эцсийн үр дүн
+        List<Integer> shiftHours = new ArrayList<>();
+        for (int h = 8; h <= 23; h++) shiftHours.add(h);
+        for (int h = 0; h <= 7; h++) shiftHours.add(h);
+
         List<HourReport> hourReports = new ArrayList<>();
-
-        for (HourlyWsStation station : stations) {
-            HourReport h = new HourReport();
-            h.setHour(station.getHour());
-            h.setStation(station);
-
-            List<HourlyWsSecond> sec = secondsByHour.getOrDefault(station.getHour(), new ArrayList<>());
-            h.setSeconds(sec);
-
-            hourReports.add(h);
+        for (Integer h : shiftHours) {
+            HourReport hr = new HourReport();
+            hr.setHour(h);
+            hr.setStation(stationByHour.get(h));
+            hr.setSeconds(secondsByHour.getOrDefault(h, new ArrayList<>()));
+            hourReports.add(hr);
         }
 
         response.setHours(hourReports);
-
         return ResponseEntity.ok(response);
     }
 
+    /// түр хэрэглэж байна шахсан ус заалт 2 холилдсон
+    private int calculateShiftFlowHeuristic(
+            List<HourlyWsStation> stations,
+            Function<HourlyWsStation, Integer> getter
+    ) {
+        if (stations == null || stations.isEmpty()) return 0;
 
+        List<Integer> values = stations.stream()
+                .map(getter)
+                .filter(Objects::nonNull)
+                .filter(v -> v > 0)
+                .toList();
 
-    public HourlyReport getDailyReport(Integer menuId, Date date) {
+        if (values.isEmpty()) return 0;
+
+        List<Integer> meterValues = values.stream()
+                .filter(v -> String.valueOf(Math.abs(v)).length() >= 5)
+                .toList();
+
+        // Хэрэв дор хаяж 2 том заалт байвал meter гэж үзнэ
+        if (meterValues.size() >= 2) {
+            Integer first = meterValues.get(0);
+            Integer last = meterValues.get(meterValues.size() - 1);
+            return Math.max(last - first, 0);
+        }
+
+        // Үгүй бол шууд шахсан усны нийлбэр
+        return values.stream().mapToInt(Integer::intValue).sum();
+    }
+
+    public HourlyReport getDailyReport(Integer menuId, LocalDate date) {
         HourlyReport report = new HourlyReport();
         report.setMenuId(menuId);
-        report.setDate(date);
+        report.setDate(java.sql.Date.valueOf(date));
 
-        List<HourlyWsStation> stations = hourlyWsStationDAO.findByMenuIdAndDate(menuId, date);
+        String dateStr     = date.toString();
+        String nextDateStr = date.plusDays(1).toString();
+
+        List<HourlyWsStation> stations =
+                hourlyWsStationDAO.findByMenuIdAndShiftDay(menuId, dateStr, nextDateStr);
 
         report.setFirstPool(stations.stream().mapToInt(s -> n(s.getFirstPool())).sum());
         report.setSecondPool(stations.stream().mapToInt(s -> n(s.getSecondPool())).sum());
         report.setThirdPool(stations.stream().mapToInt(s -> n(s.getThirdPool())).sum());
         report.setFourthPool(stations.stream().mapToInt(s -> n(s.getFourthPool())).sum());
 
-        report.setPipeFm1(stations.stream().mapToInt(s -> n(s.getPipeFm1())).sum());
-        report.setPipeFm7(stations.stream().mapToInt(s -> n(s.getPipeFm7())).sum());
-        report.setPipeFm8(stations.stream().mapToInt(s -> n(s.getPipeFm8())).sum());
+        report.setPipeFm1(calculateShiftFlowHeuristic(stations, HourlyWsStation::getPipeFm1));
+        report.setPipeFm7(calculateShiftFlowHeuristic(stations, HourlyWsStation::getPipeFm7));
+        report.setPipeFm8(calculateShiftFlowHeuristic(stations, HourlyWsStation::getPipeFm8));
 
-        // Худгийн тоо — хамгийн сүүлийн цагийн утгыг авна
+        // Ээлжийн хамгийн сүүлийн station мөр
         stations.stream()
                 .reduce((a, b) -> b)
                 .ifPresent(last -> {
@@ -162,18 +201,28 @@ public class MainService {
                     report.setFirstRepairingCount(last.getFirstRepairingCount());
                 });
 
-        List<HourlyWsSecond> seconds = hourlyWsSecondDAO.findAllByMenuIdAndDate(menuId, date);
+        List<HourlyWsSecond> seconds =
+                hourlyWsSecondDAO.findAllByMenuIdAndShiftDay(menuId, dateStr, nextDateStr);
 
+        // Генератор тус бүрийн ээлжийн aggregate
         Map<Integer, List<HourlyWsSecond>> grouped =
                 seconds.stream().collect(Collectors.groupingBy(HourlyWsSecond::getGeneratorNo));
 
-        // Насосны тоо — хамгийн сүүлийн цагийн бүртгэлээр
-        int latestHour = seconds.stream()
-                .mapToInt(s -> s.getHour() != null ? s.getHour() : 0)
-                .max().orElse(-1);
-        List<HourlyWsSecond> latestSeconds = latestHour >= 0
-                ? seconds.stream().filter(s -> latestHour == (s.getHour() != null ? s.getHour() : 0)).collect(Collectors.toList())
-                : new ArrayList<>();
+        // Ээлжийн хамгийн сүүлийн second timestamp-ийг date + hour-аар олно
+        Comparator<HourlyWsSecond> secondComparator = Comparator
+                .comparing(HourlyWsSecond::getDate)
+                .thenComparing(s -> s.getHour() != null ? s.getHour() : -1)
+                .thenComparing(HourlyWsSecond::getId);
+
+        Optional<HourlyWsSecond> latestSecondOpt = seconds.stream().max(secondComparator);
+
+        List<HourlyWsSecond> latestSeconds = latestSecondOpt
+                .map(latest -> seconds.stream()
+                        .filter(s ->
+                                Objects.equals(s.getDate(), latest.getDate()) &&
+                                        Objects.equals(s.getHour(), latest.getHour()))
+                        .toList())
+                .orElseGet(ArrayList::new);
 
         Map<Integer, List<HourlyWsSecond>> stated =
                 latestSeconds.stream().collect(Collectors.groupingBy(HourlyWsSecond::getStatus));
@@ -185,7 +234,6 @@ public class MainService {
         List<HourlySecondReport> generatorReports = new ArrayList<>();
 
         for (Map.Entry<Integer, List<HourlyWsSecond>> e : grouped.entrySet()) {
-
             Integer genNo = e.getKey();
             List<HourlyWsSecond> list = e.getValue();
 
@@ -295,8 +343,9 @@ public class MainService {
     }
 
     public ResponseEntity getDailyFmByHour(Date date) {
-        String ds = new SimpleDateFormat("yyyy-MM-dd").format(date);
-        List<Object[]> rows = hourlyWsStationDAO.getDailyFmByHour(ds);
+        String ds     = toDateStr(date);
+        String nextDs = shiftNextDayStr(date);
+        List<Object[]> rows = hourlyWsStationDAO.getDailyFmByHourShift(ds, nextDs);
         List<Map<String, Object>> result = rows.stream().map(row -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("hour", ((Number) row[0]).intValue());
@@ -307,6 +356,17 @@ public class MainService {
             return m;
         }).toList();
         return ResponseEntity.ok(result);
+    }
+
+    /** "yyyy-MM-dd" форматаар Date-г string болгоно (timezone-аас хамааралгүй) */
+    private String toDateStr(Date date) {
+        return new SimpleDateFormat("yyyy-MM-dd").format(date);
+    }
+
+    /** Ээлжийн дараагийн өдрийн string буцаана (D+1) */
+    private String shiftNextDayStr(Date date) {
+        LocalDate next = LocalDate.parse(toDateStr(date)).plusDays(1);
+        return next.toString();
     }
 
     private int n(Integer v) {

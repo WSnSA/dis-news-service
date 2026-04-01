@@ -7,10 +7,12 @@ import mn.usug.dis_news_service.Service.MainService;
 import mn.usug.dis_news_service.Service.MenuService;
 import mn.usug.dis_news_service.Service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
@@ -46,14 +48,15 @@ public class MainController {
     }
 
     @GetMapping("/getDailyReportList")
-    public ResponseEntity getDailyReportList(@RequestParam("menuId") Integer menuId,
-                                         @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") Date date) {
+    public ResponseEntity<?> getDailyReportList(
+            @RequestParam("menuId") Integer menuId,
+            @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         return mainService.getDailyReportList(menuId, date);
     }
 
     @GetMapping("/getDailyReport")
     public ResponseEntity getDailyReport(@RequestParam("menuId") Integer menuId,
-                                         @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") Date date) {
+                                         @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         return ResponseEntity.ok().body(mainService.getDailyReport(menuId, date));
     }
 
@@ -72,9 +75,9 @@ public class MainController {
     }
 
     @GetMapping("/getDailySummary")
-    public ResponseEntity getDailySummary(
+    public ResponseEntity<?> getDailySummary(
             @RequestParam("type") Integer type,
-            @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") Date date
+            @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date
     ){
         return menuService.getDailySummary(type, date);
     }

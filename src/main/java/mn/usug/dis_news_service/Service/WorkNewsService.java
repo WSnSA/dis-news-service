@@ -32,15 +32,31 @@ public class WorkNewsService {
 
     private static final DateTimeFormatter MONTH_KEY = DateTimeFormatter.ofPattern("yyyy/MM");
 
+    private LocalDate resolveShiftDate(LocalDateTime dt) {
+        return dt.toLocalTime().isBefore(LocalTime.of(8, 0))
+                ? dt.toLocalDate().minusDays(1)
+                : dt.toLocalDate();
+    }
+
+    private LocalDate currentShiftDate() {
+        return resolveShiftDate(LocalDateTime.now());
+    }
+
+    private void validateShiftEditable(LocalDate targetDate) {
+        if (!Objects.equals(targetDate, currentShiftDate())) {
+            throw new IllegalStateException("Зөвхөн одоогийн ээлжийн мэдээг засах боломжтой.");
+        }
+    }
+
     @Transactional
     public Long createItem(WorkNewsItemCreateReq req) {
-        // Token-оос авах боломжтой бол тэргүүлэх, эсвэл request body-аас fallback
         Integer ctxId = UserContext.getUserId();
         Long userId = ctxId != null ? ctxId.longValue()
                 : (req.userId() != null ? req.userId() : 0L);
         Long departmentId = req.departmentId() != null ? req.departmentId() : 0L;
 
-        LocalDate date = LocalDate.parse(req.newsDate()); // yyyy-MM-dd
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate date = resolveShiftDate(now);
         String monthKey = date.format(MONTH_KEY);
 
         WorkNewsDay day = dayRepo.findByNewsDate(date).orElseGet(() -> {
@@ -48,7 +64,7 @@ public class WorkNewsService {
             d.setNewsDate(date);
             d.setMonthKey(monthKey);
             d.setStatus(1);
-            d.setCreatedAt(LocalDateTime.now());
+            d.setCreatedAt(now);
             d.setCreatedBy(userId);
             return dayRepo.save(d);
         });
@@ -61,7 +77,7 @@ public class WorkNewsService {
         item.setMetaJson(req.metaJson());
         item.setSortOrder(req.sortOrder() == null ? 0 : req.sortOrder());
         item.setDepartmentId(departmentId);
-        item.setCreatedAt(LocalDateTime.now());
+        item.setCreatedAt(now);
         item.setCreatedBy(userId);
 
         return itemRepo.save(item).getId();
@@ -96,10 +112,11 @@ public class WorkNewsService {
         WorkNewsItem item = itemRepo.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("WorkNewsItem not found: " + id));
 
+        validateShiftEditable(item.getDay().getNewsDate());
+
         Integer ctxId = UserContext.getUserId();
 
-        if (req.itemType() != null && !req.itemType().isBlank())
-            item.setItemType(req.itemType());
+        if (req.itemType() != null && !req.itemType().isBlank()) item.setItemType(req.itemType());
         if (req.title() != null) item.setTitle(req.title());
         if (req.content() != null) item.setContent(req.content());
         if (req.metaJson() != null) item.setMetaJson(req.metaJson());
@@ -113,14 +130,18 @@ public class WorkNewsService {
 
     @Transactional
     public void deleteItem(Long id) {
-        itemRepo.deleteById(id);
+        WorkNewsItem item = itemRepo.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("WorkNewsItem not found: " + id));
+
+        validateShiftEditable(item.getDay().getNewsDate());
+        itemRepo.delete(item);
     }
 
     private String resolveUserName(Long userId) {
         if (userId == null || userId == 0L) return null;
         User u = userDAO.findById(userId.intValue()).orElse(null);
         if (u == null) return null;
-        String ln = u.getLastName()  != null ? u.getLastName().substring(0, 1)  + "." : "";
+        String ln = u.getLastName() != null ? u.getLastName().substring(0, 1) + "." : "";
         String fn = u.getFirstName() != null ? u.getFirstName() : "";
         return (ln + fn).trim();
     }

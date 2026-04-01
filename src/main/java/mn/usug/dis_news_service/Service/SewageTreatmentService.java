@@ -13,8 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -44,7 +47,8 @@ public class SewageTreatmentService {
     }
 
     public List<SewageTreatmentSummaryDto> getDailySummary(LocalDate date) {
-        return repo.findDailySummaryRaw(date).stream()
+        // Ээлжийн өдөр: D өдрийн 8:00 – D+1 өдрийн 7:00
+        return repo.findDailySummaryShiftRaw(date, date.plusDays(1)).stream()
                 .filter(r -> r.get("stationId") != null)
                 .map(r -> new SewageTreatmentSummaryDto(
                         ((Number) r.get("stationId")).intValue(),
@@ -101,8 +105,41 @@ public class SewageTreatmentService {
 
     /** Тухайн станцын өдрийн бүх цагийн бүртгэл */
     public List<Map<String, Object>> getHistory(int stationId, LocalDate date) {
-        return repo.findDailyHistory(stationId, date);
+        List<Map<String, Object>> raw = repo.findShiftHistory(stationId, date, date.plusDays(1));
+
+        Map<Integer, Map<String, Object>> byHour = raw.stream()
+                .collect(Collectors.toMap(
+                        r -> ((Number) r.get("hour")).intValue(),
+                        r -> r,
+                        (a, b) -> b
+                ));
+
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        for (int h = 8; h <= 23; h++) {
+            result.add(byHour.getOrDefault(h, emptyHourRow(h)));
+        }
+        for (int h = 0; h <= 7; h++) {
+            result.add(byHour.getOrDefault(h, emptyHourRow(h)));
+        }
+
+        return result;
     }
+
+    private Map<String, Object> emptyHourRow(int hour) {
+        Map<String, Object> row = new HashMap<>();
+        row.put("hour", hour);
+        row.put("workingCount", "0");
+        row.put("pendingCount", "0");
+        row.put("repairingCount", "0");
+        row.put("receivedWaste", null);
+        row.put("receivedWool", null);
+        row.put("receivedWater", null);
+        row.put("substanceSpent", null);
+        row.put("treatedWater", null);
+        return row;
+    }
+
 
     /** Тухайн станц, огноо, цагийн бүртгэлийг буцаана (засах үед) */
     public SewageTreatmentSummaryDto getByStationAndHour(int stationId, LocalDate date, int hour) {

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -65,13 +66,11 @@ public class MenuService {
         return ResponseEntity.ok().body(menuDAO.getMarkers());
     }
 
-    public ResponseEntity getDailySummary(Integer type, Date date) {
+    public ResponseEntity<?> getDailySummary(Integer type, LocalDate date) {
         List<HourlyReport> reportList = new ArrayList<>();
         String typeStr = "";
-        if (type == 0){
-            typeStr = "";
-        }
-        else if (type == 1){
+
+        if (type == 1){
             typeStr = "source";
         }
         else if (type == 2){
@@ -92,7 +91,8 @@ public class MenuService {
             reportList.add(report);
         });
 
-
-        return reportList.isEmpty() ? ResponseEntity.notFound().build() : ResponseEntity.ok().body(reportList);
+        return reportList.isEmpty()
+                ? ResponseEntity.notFound().build()
+                : ResponseEntity.ok(reportList);
     }
 }
