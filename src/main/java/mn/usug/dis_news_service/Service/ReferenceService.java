@@ -196,6 +196,14 @@ public class ReferenceService {
         oldStation.setFirstGeneratorCount(station.getFirstGeneratorCount());
         oldStation.setSecondGeneratorCount(station.getSecondGeneratorCount());
         oldStation.setWellsNumber(station.getWellsNumber());
+        oldStation.setComponentKey(station.getComponentKey());
+        oldStation.setPoolDetails(station.getPoolDetails());
+        oldStation.setMenuId(station.getMenuId());
+        oldStation.setMode(station.getMode());
+        oldStation.setFirstWellTotal(station.getFirstWellTotal());
+        oldStation.setWellDetails(station.getWellDetails());
+        oldStation.setPumpDetails(station.getPumpDetails());
+        oldStation.setLineDetails(station.getLineDetails());
         return ResponseEntity.ok(stationDAO.save(oldStation));
     }
 

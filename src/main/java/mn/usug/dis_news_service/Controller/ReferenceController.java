@@ -99,12 +99,16 @@ public class ReferenceController {
             @RequestParam("poolCount") Integer poolCount,
             @RequestParam("firstGenCount") Integer firstGenCount,
             @RequestParam("secondGenCount") Integer secondGenCount,
-            @RequestParam("wellsNumber") Integer wellsNumber
+            @RequestParam("wellsNumber") Integer wellsNumber,
+            @RequestParam(value = "componentKey", required = false, defaultValue = "") String componentKey,
+            @RequestParam(value = "poolDetails", required = false, defaultValue = "[]") String poolDetails,
+            @RequestParam(value = "menuId", required = false) Integer menuId,
+            @RequestParam(value = "mode", required = false, defaultValue = "full") String mode,
+            @RequestParam(value = "firstWellTotal", required = false, defaultValue = "0") Integer firstWellTotal,
+            @RequestParam(value = "wellDetails", required = false, defaultValue = "[]") String wellDetails,
+            @RequestParam(value = "pumpDetails", required = false, defaultValue = "[]") String pumpDetails,
+            @RequestParam(value = "lineDetails", required = false, defaultValue = "[]") String lineDetails
     ) {
-        User user = refService.getUserById(chefId);
-        if(user == null){
-            return ResponseEntity.status(404).body("Chef not found");
-        }
         Department department = refService.getDepartmentById(depId);
         if(department == null){
             return ResponseEntity.status(404).body("Department not found");
@@ -119,6 +123,14 @@ public class ReferenceController {
         station.setSecondGeneratorCount(secondGenCount);
         station.setWellsNumber(wellsNumber);
         station.setChefId(chefId);
+        station.setComponentKey(componentKey.isBlank() ? null : componentKey);
+        station.setPoolDetails(poolDetails);
+        station.setMenuId(menuId);
+        station.setMode(mode.isBlank() ? null : mode);
+        station.setFirstWellTotal(firstWellTotal);
+        station.setWellDetails(wellDetails);
+        station.setPumpDetails(pumpDetails);
+        station.setLineDetails(lineDetails);
         return refService.addStation(station);
     }
 
@@ -133,11 +145,15 @@ public class ReferenceController {
             @RequestParam("poolCount") Integer poolCount,
             @RequestParam("firstGenCount") Integer firstGenCount,
             @RequestParam("secondGenCount") Integer secondGenCount,
-            @RequestParam("wellsNumber") Integer wellsNumber) {
-        User user = refService.getUserById(chefId);
-        if(user == null){
-            return ResponseEntity.status(404).body("Chef not found");
-        }
+            @RequestParam("wellsNumber") Integer wellsNumber,
+            @RequestParam(value = "componentKey", required = false, defaultValue = "") String componentKey,
+            @RequestParam(value = "poolDetails", required = false, defaultValue = "[]") String poolDetails,
+            @RequestParam(value = "menuId", required = false) Integer menuId,
+            @RequestParam(value = "mode", required = false, defaultValue = "full") String mode,
+            @RequestParam(value = "firstWellTotal", required = false, defaultValue = "0") Integer firstWellTotal,
+            @RequestParam(value = "wellDetails", required = false, defaultValue = "[]") String wellDetails,
+            @RequestParam(value = "pumpDetails", required = false, defaultValue = "[]") String pumpDetails,
+            @RequestParam(value = "lineDetails", required = false, defaultValue = "[]") String lineDetails) {
         Department department = refService.getDepartmentById(depId);
         if(department == null){
             return ResponseEntity.status(404).body("Department not found");
@@ -153,6 +169,14 @@ public class ReferenceController {
         station.setSecondGeneratorCount(secondGenCount);
         station.setWellsNumber(wellsNumber);
         station.setChefId(chefId);
+        station.setComponentKey(componentKey.isBlank() ? null : componentKey);
+        station.setPoolDetails(poolDetails);
+        station.setMenuId(menuId);
+        station.setMode(mode.isBlank() ? null : mode);
+        station.setFirstWellTotal(firstWellTotal);
+        station.setWellDetails(wellDetails);
+        station.setPumpDetails(pumpDetails);
+        station.setLineDetails(lineDetails);
         return refService.updateStation(station);
     }
 

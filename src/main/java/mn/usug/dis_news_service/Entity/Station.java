@@ -51,4 +51,28 @@ public class Station {
     @Column(name = "password", length = 100)
     private String password;
 
+    @Column(name = "component_key", length = 100)
+    private String componentKey;
+
+    @Column(name = "pool_details", columnDefinition = "TEXT")
+    private String poolDetails;
+
+    @Column(name = "menu_id")
+    private Integer menuId;
+
+    @Column(name = "mode", length = 20)
+    private String mode;
+
+    @Column(name = "first_well_total")
+    private Integer firstWellTotal;
+
+    @Column(name = "well_details", columnDefinition = "TEXT")
+    private String wellDetails;
+
+    @Column(name = "pump_details", columnDefinition = "TEXT")
+    private String pumpDetails;
+
+    @Column(name = "line_details", columnDefinition = "TEXT")
+    private String lineDetails;
+
 }
