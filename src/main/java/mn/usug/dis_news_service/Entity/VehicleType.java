@@ -1,9 +1,6 @@
 package mn.usug.dis_news_service.Entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
@@ -12,7 +9,9 @@ import lombok.Data;
 public class VehicleType {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(nullable = false, length = 200)
     private String name;
 }

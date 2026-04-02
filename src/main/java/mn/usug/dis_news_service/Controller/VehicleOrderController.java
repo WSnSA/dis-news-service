@@ -64,6 +64,57 @@ public class VehicleOrderController {
         notificationService.notifyVehicleOrder("Захиалгууд баталгаажлаа", null);
     }
 
+    /** Хүлээгдэж буй (status=0) захиалгыг засах */
+    @PutMapping("/update/{id}")
+    @Transactional
+    public void update(@PathVariable Long id, @RequestBody VehicleOrderSaveDto dto) {
+        VehicleOrder order = orderRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("VehicleOrder not found: " + id));
+        if (order.getStatus() != 0) {
+            throw new IllegalStateException("Зөвхөн хүлээгдэж буй захиалгыг засах боломжтой");
+        }
+        order.setWorkDescription(dto.getWorkDescription());
+        order.setStartDate(dto.getStartDate());
+        order.setEndDate(dto.getEndDate() != null ? dto.getEndDate() : dto.getStartDate());
+        order.setTaskDuration(dto.getTaskDuration());
+        order.setUpdatedDate(LocalDateTime.now());
+        orderRepo.save(order);
+
+        itemRepo.deleteAll(itemRepo.findByVehicleOrderId(id));
+
+        if (dto.getVehicles() != null) {
+            for (VehicleOrderItemSaveDto itemDto : dto.getVehicles()) {
+                VehicleOrderItem item = new VehicleOrderItem();
+                item.setVehicleOrder(order);
+                item.setCreatedDate(LocalDateTime.now());
+                VehicleType type = vehicleTypeRepo.findById(itemDto.getVehicleTypeId())
+                        .orElseThrow(() -> new RuntimeException("VehicleType not found: " + itemDto.getVehicleTypeId()));
+                item.setVehicleType(type);
+                if ("Бусад".equals(type.getName())) {
+                    item.setOtherText(itemDto.getOtherText());
+                    item.setQty(null);
+                } else {
+                    item.setQty(itemDto.getQty());
+                    item.setOtherText(null);
+                }
+                itemRepo.save(item);
+            }
+        }
+    }
+
+    /** Зөвхөн хүлээгдэж буй (status=0) захиалгыг устгана */
+    @DeleteMapping("/delete/{id}")
+    @Transactional
+    public void delete(@PathVariable Long id) {
+        VehicleOrder order = orderRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("VehicleOrder not found: " + id));
+        if (order.getStatus() != 0) {
+            throw new IllegalStateException("Зөвхөн хүлээгдэж буй захиалгыг устгах боломжтой");
+        }
+        itemRepo.deleteAll(itemRepo.findByVehicleOrderId(id));
+        orderRepo.deleteById(id);
+    }
+
     @PostMapping("/save")
     @Transactional
     public void save(@RequestBody VehicleOrderSaveDto dto) {

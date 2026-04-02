@@ -10,4 +10,5 @@ public class VehicleItemDto {
     private Integer vehicleTypeId;
     private String vehicleTypeName;
     private Integer qty;
+    private String otherText;
 }

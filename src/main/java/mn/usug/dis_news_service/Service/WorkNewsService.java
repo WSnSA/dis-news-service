@@ -31,6 +31,7 @@ public class WorkNewsService {
     private final DepartmentDAO departmentDAO;
 
     private static final DateTimeFormatter MONTH_KEY = DateTimeFormatter.ofPattern("yyyy/MM");
+    private static final ZoneId UB = ZoneId.of("Asia/Ulaanbaatar");
 
     private LocalDate resolveShiftDate(LocalDateTime dt) {
         return dt.toLocalTime().isBefore(LocalTime.of(8, 0))
@@ -39,7 +40,7 @@ public class WorkNewsService {
     }
 
     private LocalDate currentShiftDate() {
-        return resolveShiftDate(LocalDateTime.now());
+        return resolveShiftDate(LocalDateTime.now(UB));
     }
 
     private void validateShiftEditable(LocalDate targetDate) {
@@ -55,7 +56,7 @@ public class WorkNewsService {
                 : (req.userId() != null ? req.userId() : 0L);
         Long departmentId = req.departmentId() != null ? req.departmentId() : 0L;
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(UB);
         LocalDate date = resolveShiftDate(now);
         String monthKey = date.format(MONTH_KEY);
 
@@ -85,11 +86,13 @@ public class WorkNewsService {
 
     @Transactional(readOnly = true)
     public WorkNewsDayRes getByDay(LocalDate date) {
-        WorkNewsDay day = dayRepo.findByNewsDate(date)
-                .orElseThrow(() -> new NoSuchElementException("Work news day not found: " + date));
+        LocalDateTime from = date.atStartOfDay();
+        LocalDateTime to   = date.plusDays(1).atStartOfDay();
 
-        List<WorkNewsItemRes> items = itemRepo.findByDayIdOrderBySortOrderAsc(day.getId())
-                .stream()
+        List<WorkNewsItem> raw = itemRepo.findByCreatedAtRange(from, to);
+        if (raw.isEmpty()) throw new NoSuchElementException("Work news not found for shift: " + date);
+
+        List<WorkNewsItemRes> items = raw.stream()
                 .map(i -> new WorkNewsItemRes(
                         i.getId(),
                         i.getItemType(),
@@ -104,7 +107,7 @@ public class WorkNewsService {
                 ))
                 .toList();
 
-        return new WorkNewsDayRes(day.getNewsDate().toString(), day.getMonthKey(), items);
+        return new WorkNewsDayRes(date.toString(), date.format(MONTH_KEY), items);
     }
 
     @Transactional
@@ -112,7 +115,7 @@ public class WorkNewsService {
         WorkNewsItem item = itemRepo.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("WorkNewsItem not found: " + id));
 
-        validateShiftEditable(item.getDay().getNewsDate());
+        validateShiftEditable(item.getCreatedAt().toLocalDate());
 
         Integer ctxId = UserContext.getUserId();
 
@@ -133,7 +136,7 @@ public class WorkNewsService {
         WorkNewsItem item = itemRepo.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("WorkNewsItem not found: " + id));
 
-        validateShiftEditable(item.getDay().getNewsDate());
+        validateShiftEditable(item.getCreatedAt().toLocalDate());
         itemRepo.delete(item);
     }
 

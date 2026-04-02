@@ -12,6 +12,9 @@ public interface WorkNewsItemRepository extends JpaRepository<WorkNewsItem, Long
 
     List<WorkNewsItem> findByDayIdOrderBySortOrderAsc(Long dayId);
 
+    @Query("select i from WorkNewsItem i where i.createdAt >= :from and i.createdAt < :to order by i.sortOrder asc, i.id asc")
+    List<WorkNewsItem> findByCreatedAtRange(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
     @Query("""
     select i from WorkNewsItem i
     join i.day d

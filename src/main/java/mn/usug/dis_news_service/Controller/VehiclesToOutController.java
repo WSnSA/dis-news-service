@@ -95,10 +95,21 @@ public class VehiclesToOutController {
 
     @PutMapping("/{id}")
     public VehiclesToOut update(@PathVariable Integer id, @RequestBody VehiclesToOut vehiclesToOut) {
-        vehiclesToOut.setId(id);
-        vehiclesToOut.setUpdatedDate(LocalDateTime.now());
-        vehiclesToOut.setUpdatedBy(UserContext.getUserId());
-        return service.save(vehiclesToOut);
+        VehiclesToOut existing = service.findById(id);
+        existing.setVehicleMechanism(vehiclesToOut.getVehicleMechanism());
+        existing.setVehicleRegistrationNumber(vehiclesToOut.getVehicleRegistrationNumber());
+        existing.setDriverPhoneNumber(vehiclesToOut.getDriverPhoneNumber());
+        existing.setDriverName(vehiclesToOut.getDriverName());
+        existing.setUpdatedDate(LocalDateTime.now());
+        existing.setUpdatedBy(UserContext.getUserId());
+        VehiclesToOut saved = service.save(existing);
+
+        if (existing.getVehicleOrderId() != null) {
+            orderRepo.findById(existing.getVehicleOrderId().longValue()).ifPresent(order ->
+                notificationService.notifyVehicleOrder("Машины хуваарилалт засварлагдлаа", order.getAssignedDepartmentId())
+            );
+        }
+        return saved;
     }
 
     @DeleteMapping("/{id}")

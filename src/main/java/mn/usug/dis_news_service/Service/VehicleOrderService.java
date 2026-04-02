@@ -62,14 +62,16 @@ public class VehicleOrderService {
                                 String displayName;
                                 Integer qty = i.getQty();
 
+                                String otherText = null;
                                 if ("Бусад".equals(type.getName())) {
                                     displayName = i.getOtherText();
+                                    otherText   = i.getOtherText();
                                     qty = null;
                                 } else {
                                     displayName = type.getName();
                                 }
 
-                                return new VehicleItemDto(type.getId(), displayName, qty);
+                                return new VehicleItemDto(type.getId(), displayName, qty, otherText);
                             })
                             .filter(Objects::nonNull)
                             .toList();
