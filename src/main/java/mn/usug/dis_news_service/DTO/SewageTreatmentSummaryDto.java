@@ -13,5 +13,6 @@ public record SewageTreatmentSummaryDto(
         Double receivedWool,
         Double receivedWater,
         Double substanceSpent,
-        Double treatedWater
+        Double treatedWater,
+        Double solidWaste
 ) {}

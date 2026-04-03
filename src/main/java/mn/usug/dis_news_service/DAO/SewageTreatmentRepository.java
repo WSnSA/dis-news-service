@@ -26,7 +26,8 @@ public interface SewageTreatmentRepository extends JpaRepository<SewageTreatment
           COALESCE(st.received_wool, 0)     AS receivedWool,
           COALESCE(st.received_water, 0)    AS receivedWater,
           COALESCE(st.substance_spent, 0)   AS substanceSpent,
-          COALESCE(st.treated_water, 0)     AS treatedWater
+          COALESCE(st.treated_water, 0)     AS treatedWater,
+          COALESCE(st.solid_waste, 0)       AS solidWaste
         FROM dis_news.sewage_treatment st
         JOIN dis_news.menu m ON m.id = st.station_id
         LEFT JOIN dis_news.menu p ON p.id = m.parent_id
@@ -61,7 +62,9 @@ public interface SewageTreatmentRepository extends JpaRepository<SewageTreatment
           COALESCE((SELECT SUM(substance_spent) FROM dis_news.sewage_treatment
                     WHERE station_id = m.id AND DATE(created_date) = :d AND active_flag = 1), 0) AS substanceSpent,
           COALESCE((SELECT SUM(treated_water)   FROM dis_news.sewage_treatment
-                    WHERE station_id = m.id AND DATE(created_date) = :d AND active_flag = 1), 0) AS treatedWater
+                    WHERE station_id = m.id AND DATE(created_date) = :d AND active_flag = 1), 0) AS treatedWater,
+          COALESCE((SELECT SUM(solid_waste)     FROM dis_news.sewage_treatment
+                    WHERE station_id = m.id AND DATE(created_date) = :d AND active_flag = 1), 0) AS solidWaste
         FROM dis_news.menu m
         LEFT JOIN dis_news.menu p ON p.id = m.parent_id
         WHERE m.active_flag = 1
@@ -110,7 +113,11 @@ public interface SewageTreatmentRepository extends JpaRepository<SewageTreatment
           COALESCE((SELECT SUM(treated_water)   FROM dis_news.sewage_treatment
                     WHERE station_id = m.id AND active_flag = 1
                       AND ((DATE(created_date) = :d AND HOUR(created_date) >= 8)
-                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 7))), 0) AS treatedWater
+                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 7))), 0) AS treatedWater,
+          COALESCE((SELECT SUM(solid_waste)     FROM dis_news.sewage_treatment
+                    WHERE station_id = m.id AND active_flag = 1
+                      AND ((DATE(created_date) = :d AND HOUR(created_date) >= 8)
+                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 7))), 0) AS solidWaste
         FROM dis_news.menu m
         LEFT JOIN dis_news.menu p ON p.id = m.parent_id
         WHERE m.active_flag = 1
@@ -144,7 +151,8 @@ public interface SewageTreatmentRepository extends JpaRepository<SewageTreatment
           received_wool       AS receivedWool,
           received_water      AS receivedWater,
           substance_spent     AS substanceSpent,
-          treated_water       AS treatedWater
+          treated_water       AS treatedWater,
+          solid_waste         AS solidWaste
         FROM sewage_treatment
         WHERE station_id = :stationId
           AND DATE(created_date) = :date
@@ -167,7 +175,8 @@ public interface SewageTreatmentRepository extends JpaRepository<SewageTreatment
       received_wool   AS receivedWool,
       received_water  AS receivedWater,
       substance_spent AS substanceSpent,
-      treated_water   AS treatedWater
+      treated_water   AS treatedWater,
+      solid_waste     AS solidWaste
     FROM sewage_treatment
     WHERE station_id = :stationId
       AND active_flag = 1

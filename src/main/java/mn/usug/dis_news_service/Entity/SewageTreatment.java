@@ -46,6 +46,9 @@ public class SewageTreatment {
     @Column(name = "treated_water")
     private Double treatedWater;
 
+    @Column(name = "solid_waste")
+    private Double solidWaste;
+
     @Column(name = "active_flag", nullable = false)
     private Integer activeFlag;
 

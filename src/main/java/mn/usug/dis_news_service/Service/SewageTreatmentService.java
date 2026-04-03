@@ -41,7 +41,8 @@ public class SewageTreatmentService {
                         r.get("receivedWool")  == null ? 0d : ((Number) r.get("receivedWool")).doubleValue(),
                         r.get("receivedWater") == null ? 0d : ((Number) r.get("receivedWater")).doubleValue(),
                         r.get("substanceSpent") == null ? 0d : ((Number) r.get("substanceSpent")).doubleValue(),
-                        r.get("treatedWater")  == null ? 0d : ((Number) r.get("treatedWater")).doubleValue()
+                        r.get("treatedWater")  == null ? 0d : ((Number) r.get("treatedWater")).doubleValue(),
+                        r.get("solidWaste")    == null ? 0d : ((Number) r.get("solidWaste")).doubleValue()
                 ))
                 .toList();
     }
@@ -61,7 +62,8 @@ public class SewageTreatmentService {
                         r.get("receivedWool")    == null ? 0d : ((Number) r.get("receivedWool")).doubleValue(),
                         r.get("receivedWater")   == null ? 0d : ((Number) r.get("receivedWater")).doubleValue(),
                         r.get("substanceSpent")  == null ? 0d : ((Number) r.get("substanceSpent")).doubleValue(),
-                        r.get("treatedWater")    == null ? 0d : ((Number) r.get("treatedWater")).doubleValue()
+                        r.get("treatedWater")    == null ? 0d : ((Number) r.get("treatedWater")).doubleValue(),
+                        r.get("solidWaste")      == null ? 0d : ((Number) r.get("solidWaste")).doubleValue()
                 ))
                 .toList();
     }
@@ -99,6 +101,7 @@ public class SewageTreatmentService {
         e.setReceivedWater(req.receivedWater()   != null ? req.receivedWater()  : 0.0);
         e.setSubstanceSpent(req.substanceSpent() != null ? req.substanceSpent(): 0.0);
         e.setTreatedWater(req.treatedWater()     != null ? req.treatedWater()   : 0.0);
+        e.setSolidWaste(req.solidWaste()         != null ? req.solidWaste()     : 0.0);
 
         return repo.save(e);
     }
@@ -137,6 +140,7 @@ public class SewageTreatmentService {
         row.put("receivedWater", null);
         row.put("substanceSpent", null);
         row.put("treatedWater", null);
+        row.put("solidWaste", null);
         return row;
     }
 
@@ -151,7 +155,8 @@ public class SewageTreatmentService {
                         e.getReceivedWool()  != null ? e.getReceivedWool()  : 0d,
                         e.getReceivedWater() != null ? e.getReceivedWater() : 0d,
                         e.getSubstanceSpent() != null ? e.getSubstanceSpent() : 0d,
-                        e.getTreatedWater()  != null ? e.getTreatedWater()  : 0d
+                        e.getTreatedWater()  != null ? e.getTreatedWater()  : 0d,
+                        e.getSolidWaste()    != null ? e.getSolidWaste()    : 0d
                 ))
                 .orElse(null);
     }

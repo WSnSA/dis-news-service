@@ -86,10 +86,7 @@ public class WorkNewsService {
 
     @Transactional(readOnly = true)
     public WorkNewsDayRes getByDay(LocalDate date) {
-        LocalDateTime from = date.atStartOfDay();
-        LocalDateTime to   = date.plusDays(1).atStartOfDay();
-
-        List<WorkNewsItem> raw = itemRepo.findByCreatedAtRange(from, to);
+        List<WorkNewsItem> raw = itemRepo.findByNewsDate(date);
         if (raw.isEmpty()) throw new NoSuchElementException("Work news not found for shift: " + date);
 
         List<WorkNewsItemRes> items = raw.stream()
@@ -115,7 +112,7 @@ public class WorkNewsService {
         WorkNewsItem item = itemRepo.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("WorkNewsItem not found: " + id));
 
-        validateShiftEditable(item.getCreatedAt().toLocalDate());
+        validateShiftEditable(item.getDay().getNewsDate());
 
         Integer ctxId = UserContext.getUserId();
 
@@ -136,7 +133,7 @@ public class WorkNewsService {
         WorkNewsItem item = itemRepo.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("WorkNewsItem not found: " + id));
 
-        validateShiftEditable(item.getCreatedAt().toLocalDate());
+        validateShiftEditable(item.getDay().getNewsDate());
         itemRepo.delete(item);
     }
 

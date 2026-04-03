@@ -11,5 +11,6 @@ public record SewageTreatmentSaveReq(
         Double  receivedWool,
         Double  receivedWater,
         Double  substanceSpent,
-        Double  treatedWater
+        Double  treatedWater,
+        Double  solidWaste
 ) {}
