@@ -27,8 +27,12 @@ public class MainService {
     @Transactional
     public ResponseEntity regHourly(HourlyReport report) {
 
-        // 1) Save Station
-        HourlyWsStation station = new HourlyWsStation();
+        // 1) Upsert HourlyWsStation — байгаа бол шинэчлэх, байхгүй бол үүсгэх
+        HourlyWsStation station = hourlyWsStationDAO
+                .findByMenuIdAndDateAndHour(report.getMenuId(), report.getDate(), report.getHour());
+        if (station == null) {
+            station = new HourlyWsStation();
+        }
 
         station.setMenuId(report.getMenuId());
         station.setDate(report.getDate());
@@ -49,11 +53,13 @@ public class MainService {
 
         hourlyWsStationDAO.save(station);
 
-        // 2) Save Seconds → from secondList
+        // 2) Хуучин second бүртгэлийг устгаж, шинийг хадгална
+        hourlyWsSecondDAO.deleteByMenuIdAndDateAndHour(
+                report.getMenuId(), report.getDate(), report.getHour());
+
         if (report.getSecondList() != null) {
-            report.getSecondList().forEach(item -> {
-                regHourlySecond(report.getMenuId(), report.getDate(), report.getHour(), item);
-            });
+            report.getSecondList().forEach(item ->
+                regHourlySecond(report.getMenuId(), report.getDate(), report.getHour(), item));
         }
 
         return ResponseEntity.ok("OK");

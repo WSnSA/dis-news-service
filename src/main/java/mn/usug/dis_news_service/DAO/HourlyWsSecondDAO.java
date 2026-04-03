@@ -4,8 +4,10 @@ package mn.usug.dis_news_service.DAO;
 import mn.usug.dis_news_service.Entity.HourlyWsSecond;
 import mn.usug.dis_news_service.Entity.HourlyWsStation;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Date;
@@ -36,5 +38,10 @@ public interface HourlyWsSecondDAO extends JpaRepository<HourlyWsSecond,Integer>
 
     @Query("select a from HourlyWsSecond a where a.menuId = ?1 and DATE(a.date) between ?2 and ?3")
     List<HourlyWsSecond> findByMenuIdAndDateBetween(Integer menuId, Date start, Date end);
+
+    @Modifying
+    @Transactional
+    @Query("delete from HourlyWsSecond a where a.menuId = ?1 and DATE(a.date) = ?2 and a.hour = ?3")
+    void deleteByMenuIdAndDateAndHour(Integer menuId, Date date, Integer hour);
 
 }
