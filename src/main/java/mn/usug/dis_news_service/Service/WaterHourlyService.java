@@ -67,6 +67,28 @@ public class WaterHourlyService {
             AND `hour` = :h
             AND status = 0 AND generator_no = 0
           GROUP BY menu_id
+        ),
+        -- Тухайн цагаас өмнөх хамгийн сүүлд бичсэн FM заалт (station-д тулгуурлан)
+        prev_fm_ranked AS (
+          SELECT
+            menu_id,
+            pipe_fm_1,
+            pipe_fm_7,
+            pipe_fm_8,
+            ROW_NUMBER() OVER (
+              PARTITION BY menu_id
+              ORDER BY `date` DESC, `hour` DESC
+            ) AS rn
+          FROM dis_news.hourly_ws_station
+          WHERE (
+            (`date` >= :from AND `date` < :to AND `hour` < :h)
+            OR `date` < :from
+          )
+        ),
+        prev_fm AS (
+          SELECT menu_id, pipe_fm_1 AS prev_fm1, pipe_fm_7 AS prev_fm7, pipe_fm_8 AS prev_fm8
+          FROM prev_fm_ranked
+          WHERE rn = 1
         )
         SELECT
           lm.group_name,
@@ -87,20 +109,35 @@ public class WaterHourlyService {
           ws.pipe_fm_7 AS pipe_fm_7,
           ws.pipe_fm_8 AS pipe_fm_8,
 
-          -- ✅ хуучин шиг: зөвхөн "1,7" list-ийг буцаана
           COALESCE(pw.gen_list, '0') AS pump_working,
           COALESCE(pp.gen_list, '0') AS pump_pending,
           COALESCE(pr.gen_list, '0') AS pump_repairing,
 
-          -- pressureBar-г том-багаар нь хэвлэнэ (хуучин таблиц шиг харагдана)
           CASE
             WHEN sm.pressure IS NULL AND sm.pressure_2 IS NULL THEN NULL
             WHEN sm.pressure_2 IS NULL THEN CAST(sm.pressure AS CHAR)
             ELSE CONCAT(GREATEST(sm.pressure, sm.pressure_2), '-', LEAST(sm.pressure, sm.pressure_2))
           END AS pressure_bar,
 
-          sm.chlorine     AS chlorine_mgL,
-          sm.pumped_water AS pumped_m3h
+          sm.chlorine AS chlorine_mgL,
+
+          -- Шахсан ус = FM заалтын зөрүү (өмнөх цагтай харьцуулсан)
+          CASE
+            WHEN ws.pipe_fm_1 IS NULL AND ws.pipe_fm_7 IS NULL AND ws.pipe_fm_8 IS NULL THEN NULL
+            ELSE (
+              CASE WHEN ws.pipe_fm_1 IS NOT NULL AND pf.prev_fm1 IS NOT NULL AND ws.pipe_fm_1 > pf.prev_fm1
+                   THEN ws.pipe_fm_1 - pf.prev_fm1 ELSE 0 END +
+              CASE WHEN ws.pipe_fm_7 IS NOT NULL AND pf.prev_fm7 IS NOT NULL AND ws.pipe_fm_7 > pf.prev_fm7
+                   THEN ws.pipe_fm_7 - pf.prev_fm7 ELSE 0 END +
+              CASE WHEN ws.pipe_fm_8 IS NOT NULL AND pf.prev_fm8 IS NOT NULL AND ws.pipe_fm_8 > pf.prev_fm8
+                   THEN ws.pipe_fm_8 - pf.prev_fm8 ELSE 0 END
+            )
+          END AS pumped_m3h,
+
+          TRIM(CONCAT(COALESCE(cu.last_name,''), ' ', COALESCE(cu.first_name,''))) AS created_by_name,
+          DATE_FORMAT(ws.created_date, '%H:%i')                                    AS created_time,
+          TRIM(CONCAT(COALESCE(uu.last_name,''), ' ', COALESCE(uu.first_name,''))) AS updated_by_name,
+          DATE_FORMAT(ws.updated_date, '%H:%i')                                    AS updated_time
 
         FROM leaf_menu lm
 
@@ -109,15 +146,16 @@ public class WaterHourlyService {
          AND ws.`hour` = :h
          AND ws.menu_id = lm.id
 
-        LEFT JOIN sec_meta sm
-          ON sm.menu_id = lm.id
+        LEFT JOIN dis_news.users cu ON cu.id = ws.created_by
+        LEFT JOIN dis_news.users uu ON uu.id = ws.updated_by
 
-        LEFT JOIN sec_pumps pw
-          ON pw.menu_id = lm.id AND pw.status = 1
-        LEFT JOIN sec_pumps pp
-          ON pp.menu_id = lm.id AND pp.status = 2
-        LEFT JOIN sec_pumps pr
-          ON pr.menu_id = lm.id AND pr.status = 3
+        LEFT JOIN prev_fm pf ON pf.menu_id = lm.id
+
+        LEFT JOIN sec_meta sm ON sm.menu_id = lm.id
+
+        LEFT JOIN sec_pumps pw ON pw.menu_id = lm.id AND pw.status = 1
+        LEFT JOIN sec_pumps pp ON pp.menu_id = lm.id AND pp.status = 2
+        LEFT JOIN sec_pumps pr ON pr.menu_id = lm.id AND pr.status = 3
 
         ORDER BY lm.group_ord, lm.id
         """;
@@ -159,6 +197,10 @@ public class WaterHourlyService {
                 .pressureBar(rs.getString("pressure_bar"))
                 .chlorineMgL(toDouble(rs.getObject("chlorine_mgL")))
                 .pumpedM3h(toDouble(rs.getObject("pumped_m3h")))
+                .createdByName(rs.getString("created_by_name"))
+                .createdTime(rs.getString("created_time"))
+                .updatedByName(rs.getString("updated_by_name"))
+                .updatedTime(rs.getString("updated_time"))
                 .build()
         );
     }

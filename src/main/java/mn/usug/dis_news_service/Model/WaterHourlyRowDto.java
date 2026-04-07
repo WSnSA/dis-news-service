@@ -28,5 +28,10 @@ public record WaterHourlyRowDto(
 
         String pressureBar,   // ж: "5.6-6.0" эсвэл "6.0"
         Double chlorineMgL,   // тоон
-        Double pumpedM3h      // тоон
+        Double pumpedM3h,     // тоон
+
+        String createdByName,  // бүртгэсэн ажилтны нэр
+        String createdTime,    // бүртгэсэн цаг "HH:mm"
+        String updatedByName,  // засварласан ажилтны нэр
+        String updatedTime     // засварласан цаг "HH:mm"
 ) {}

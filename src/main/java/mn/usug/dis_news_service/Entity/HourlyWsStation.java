@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.ColumnDefault;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Data
@@ -53,4 +54,23 @@ public class HourlyWsStation {
 
     @Column(name = "pipe_fm_8")
     private Integer pipeFm8;
+
+    @Column(name = "created_by")
+    private Integer createdBy;
+
+    @Column(name = "created_date")
+    private LocalDateTime createdDate;
+
+    @Column(name = "updated_by")
+    private Integer updatedBy;
+
+    @Column(name = "updated_date")
+    private LocalDateTime updatedDate;
+
+    /** Дэлгэцэд харуулах нэр — DB-д хадгалагдахгүй */
+    @Transient
+    public String createdByName;
+
+    @Transient
+    public String updatedByName;
 }

@@ -15,6 +15,7 @@ import java.util.function.Function;
 import java.util.function.ToDoubleFunction;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
+import mn.usug.dis_news_service.DAO.UserDAO;
 
 @Service
 public class MainService {
@@ -24,14 +25,23 @@ public class MainService {
     @Autowired
     HourlyWsSecondDAO hourlyWsSecondDAO;
 
+    @Autowired
+    UserDAO userDAO;
+
     @Transactional
     public ResponseEntity regHourly(HourlyReport report) {
 
         // 1) Upsert HourlyWsStation — байгаа бол шинэчлэх, байхгүй бол үүсгэх
         HourlyWsStation station = hourlyWsStationDAO
                 .findByMenuIdAndDateAndHour(report.getMenuId(), report.getDate(), report.getHour());
-        if (station == null) {
+        boolean isNew = station == null;
+        if (isNew) {
             station = new HourlyWsStation();
+            station.setCreatedBy(UserContext.getUserId());
+            station.setCreatedDate(java.time.LocalDateTime.now());
+        } else {
+            station.setUpdatedBy(UserContext.getUserId());
+            station.setUpdatedDate(java.time.LocalDateTime.now());
         }
 
         station.setMenuId(report.getMenuId());
@@ -118,6 +128,25 @@ public class MainService {
         List<HourlyWsStation> stations =
                 hourlyWsStationDAO.findByMenuIdAndShiftDay(menuId, dateStr, nextDateStr);
 
+        // createdBy/updatedBy ID-уудаар хэрэглэгчийн нэрийг batch-аар ачааллана
+        Set<Integer> userIds = new HashSet<>();
+        stations.forEach(s -> {
+            if (s.getCreatedBy() != null) userIds.add(s.getCreatedBy());
+            if (s.getUpdatedBy() != null) userIds.add(s.getUpdatedBy());
+        });
+        Map<Integer, String> nameById = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            userDAO.findAllById(userIds).forEach(u ->
+                nameById.put(u.getId(),
+                    ((u.getLastName() != null ? u.getLastName() : "") + " " +
+                     (u.getFirstName() != null ? u.getFirstName() : "")).trim())
+            );
+        }
+        stations.forEach(s -> {
+            if (s.getCreatedBy() != null) s.createdByName = nameById.getOrDefault(s.getCreatedBy(), "");
+            if (s.getUpdatedBy() != null) s.updatedByName = nameById.getOrDefault(s.getUpdatedBy(), "");
+        });
+
         List<HourlyWsSecond> seconds =
                 hourlyWsSecondDAO.findAllByMenuIdAndShiftDay(menuId, dateStr, nextDateStr);
 
@@ -148,34 +177,28 @@ public class MainService {
         return ResponseEntity.ok(response);
     }
 
-    /// түр хэрэглэж байна шахсан ус заалт 2 холилдсон
-    private int calculateShiftFlowHeuristic(
+    /**
+     * FM-n заалт (тоолуурын нийлбэр утга) дээр тулгуурлан ээлжийн шахсан усыг тооцоолно.
+     * Цаг тутмын заалтуудын зөрүүний нийлбэрийг буцаана.
+     * Өмнөх цаг бүртгэлгүй бол хамгийн сүүлд бичсэн заалтыг ашиглана (stations date+hour ASC эрэмбэтэй).
+     * Сөрөг зөрүүг (тоолуур шинэчлэгдсэн гэх мэт) тооцохгүй.
+     */
+    private int calculateShiftFlowDiff(
             List<HourlyWsStation> stations,
             Function<HourlyWsStation, Integer> getter
     ) {
         if (stations == null || stations.isEmpty()) return 0;
-
-        List<Integer> values = stations.stream()
-                .map(getter)
-                .filter(Objects::nonNull)
-                .filter(v -> v > 0)
-                .toList();
-
-        if (values.isEmpty()) return 0;
-
-        List<Integer> meterValues = values.stream()
-                .filter(v -> String.valueOf(Math.abs(v)).length() >= 5)
-                .toList();
-
-        // Хэрэв дор хаяж 2 том заалт байвал meter гэж үзнэ
-        if (meterValues.size() >= 2) {
-            Integer first = meterValues.get(0);
-            Integer last = meterValues.get(meterValues.size() - 1);
-            return Math.max(last - first, 0);
+        int total = 0;
+        Integer prev = null;
+        for (HourlyWsStation s : stations) {
+            Integer cur = getter.apply(s);
+            if (cur == null || cur <= 0) continue;
+            if (prev != null && cur > prev) {
+                total += cur - prev;
+            }
+            prev = cur;
         }
-
-        // Үгүй бол шууд шахсан усны нийлбэр
-        return values.stream().mapToInt(Integer::intValue).sum();
+        return total;
     }
 
     public HourlyReport getDailyReport(Integer menuId, LocalDate date) {
@@ -194,9 +217,9 @@ public class MainService {
         report.setThirdPool(stations.stream().mapToInt(s -> n(s.getThirdPool())).sum());
         report.setFourthPool(stations.stream().mapToInt(s -> n(s.getFourthPool())).sum());
 
-        report.setPipeFm1(calculateShiftFlowHeuristic(stations, HourlyWsStation::getPipeFm1));
-        report.setPipeFm7(calculateShiftFlowHeuristic(stations, HourlyWsStation::getPipeFm7));
-        report.setPipeFm8(calculateShiftFlowHeuristic(stations, HourlyWsStation::getPipeFm8));
+        report.setPipeFm1(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm1));
+        report.setPipeFm7(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm7));
+        report.setPipeFm8(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm8));
 
         // Ээлжийн хамгийн сүүлийн station мөр
         stations.stream()
