@@ -186,18 +186,18 @@ public class WaterHourlyService {
                 .menuId(rs.getInt("menu_id"))
                 .stationName(rs.getString("station_name"))
 
-                .wellWorking((Integer) rs.getObject("well_working"))
-                .wellPending((Integer) rs.getObject("well_pending"))
-                .wellRepairing((Integer) rs.getObject("well_repairing"))
+                .wellWorking(toInteger(rs.getObject("well_working")))
+                .wellPending(toInteger(rs.getObject("well_pending")))
+                .wellRepairing(toInteger(rs.getObject("well_repairing")))
 
-                .pool1((Integer) rs.getObject("pool_1"))
-                .pool2((Integer) rs.getObject("pool_2"))
-                .pool3((Integer) rs.getObject("pool_3"))
-                .pool4((Integer) rs.getObject("pool_4"))
+                .pool1(toInteger(rs.getObject("pool_1")))
+                .pool2(toInteger(rs.getObject("pool_2")))
+                .pool3(toInteger(rs.getObject("pool_3")))
+                .pool4(toInteger(rs.getObject("pool_4")))
 
-                .pipeFm1((Integer) rs.getObject("pipe_fm_1"))
-                .pipeFm7((Integer) rs.getObject("pipe_fm_7"))
-                .pipeFm8((Integer) rs.getObject("pipe_fm_8"))
+                .pipeFm1(toInteger(rs.getObject("pipe_fm_1")))
+                .pipeFm7(toInteger(rs.getObject("pipe_fm_7")))
+                .pipeFm8(toInteger(rs.getObject("pipe_fm_8")))
 
                 .pumpWorking(rs.getString("pump_working"))
                 .pumpPending(rs.getString("pump_pending"))
@@ -210,7 +210,7 @@ public class WaterHourlyService {
                 .createdTime(rs.getString("created_time"))
                 .updatedByName(rs.getString("updated_by_name"))
                 .updatedTime(rs.getString("updated_time"))
-                .firstWellTotal((Integer) rs.getObject("first_well_total"))
+                .firstWellTotal(toInteger(rs.getObject("first_well_total")))
                 .poolDetails(rs.getString("pool_details"))
                 .build()
         );
@@ -218,7 +218,13 @@ public class WaterHourlyService {
 
     private static Double toDouble(Object v) {
         if (v == null) return null;
-        if (v instanceof Number n) return n.doubleValue(); // BigDecimal ч энд орно
+        if (v instanceof Number n) return n.doubleValue();
         return Double.valueOf(v.toString());
+    }
+
+    private static Integer toInteger(Object v) {
+        if (v == null) return null;
+        if (v instanceof Number n) return n.intValue();
+        return Integer.valueOf(v.toString());
     }
 }
