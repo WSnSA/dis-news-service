@@ -36,4 +36,13 @@ public class HourlyReport {
     private List<HourlySecondReport> hourlyWsSecondList;
 
     private String stationName;
+
+    /** Station config-оос — нийт 1-р өргөгчийн худгийн тоо (null = 1-р өргөгч байхгүй) */
+    private Integer firstWellTotal;
+
+    /** Station config-оос — pool-уудын JSON "[{name,capacity},...]" */
+    private String poolDetails;
+
+    /** Тухайн ээлжид мэдээ оруулсан эсэх */
+    private boolean hasData;
 }

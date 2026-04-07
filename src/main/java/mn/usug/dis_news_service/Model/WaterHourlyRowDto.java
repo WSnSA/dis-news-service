@@ -33,5 +33,8 @@ public record WaterHourlyRowDto(
         String createdByName,  // бүртгэсэн ажилтны нэр
         String createdTime,    // бүртгэсэн цаг "HH:mm"
         String updatedByName,  // засварласан ажилтны нэр
-        String updatedTime     // засварласан цаг "HH:mm"
+        String updatedTime,    // засварласан цаг "HH:mm"
+
+        Integer firstWellTotal, // station config-оос — нийт худгийн тоо (null = 1-р өргөгч байхгүй)
+        String poolDetails      // station config-оос — JSON "[{\"name\":\"500н\",\"capacity\":500},...]"
 ) {}

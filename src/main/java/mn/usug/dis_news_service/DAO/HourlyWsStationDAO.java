@@ -17,6 +17,11 @@ public interface HourlyWsStationDAO extends JpaRepository<HourlyWsStation,Intege
     List<HourlyWsStation> findByMenuIdAndDate(Integer menuId, Date date);
 
     // Ээлжийн өдөр: D өдрийн 8:00 – D+1 өдрийн 7:00 (String param-аар timezone алдаа гарахгүй)
+    /** Станцын хамгийн сүүлийн бүртгэл — өдрөөс үл хамааран */
+    @Query(value = "SELECT * FROM hourly_ws_station WHERE menu_id = :menuId ORDER BY date DESC, id DESC LIMIT 1",
+           nativeQuery = true)
+    java.util.Optional<HourlyWsStation> findLatestByMenuId(@Param("menuId") Integer menuId);
+
     @Query(value = """
     SELECT *
     FROM hourly_ws_station

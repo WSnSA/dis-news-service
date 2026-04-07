@@ -28,6 +28,9 @@ public class MainService {
     @Autowired
     UserDAO userDAO;
 
+    @Autowired
+    mn.usug.dis_news_service.DAO.StationDAO stationDAO;
+
     @Transactional
     public ResponseEntity regHourly(HourlyReport report) {
 
@@ -212,23 +215,35 @@ public class MainService {
         List<HourlyWsStation> stations =
                 hourlyWsStationDAO.findByMenuIdAndShiftDay(menuId, dateStr, nextDateStr);
 
-        report.setFirstPool(stations.stream().mapToInt(s -> n(s.getFirstPool())).sum());
-        report.setSecondPool(stations.stream().mapToInt(s -> n(s.getSecondPool())).sum());
-        report.setThirdPool(stations.stream().mapToInt(s -> n(s.getThirdPool())).sum());
-        report.setFourthPool(stations.stream().mapToInt(s -> n(s.getFourthPool())).sum());
+        report.setHasData(!stations.isEmpty());
 
         report.setPipeFm1(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm1));
         report.setPipeFm7(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm7));
         report.setPipeFm8(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm8));
 
-        // Ээлжийн хамгийн сүүлийн station мөр
+        // Усан сан — өнөөдрийн ээлжийн хамгийн сүүлийн бүртгэлээс
         stations.stream()
                 .reduce((a, b) -> b)
                 .ifPresent(last -> {
-                    report.setFirstWorkingCount(last.getFirstWorkingCount());
-                    report.setFirstPendingCount(last.getFirstPendingCount());
-                    report.setFirstRepairingCount(last.getFirstRepairingCount());
+                    report.setFirstPool(last.getFirstPool());
+                    report.setSecondPool(last.getSecondPool());
+                    report.setThirdPool(last.getThirdPool());
+                    report.setFourthPool(last.getFourthPool());
                 });
+
+        // 1-р өргөгчийн худгийн тоо — станцын хамгийн сүүлийн бүртгэлээс (өдрөөс үл хамааран)
+        hourlyWsStationDAO.findLatestByMenuId(menuId).ifPresent(latest -> {
+            report.setFirstWorkingCount(latest.getFirstWorkingCount());
+            report.setFirstPendingCount(latest.getFirstPendingCount());
+            report.setFirstRepairingCount(latest.getFirstRepairingCount());
+        });
+
+        // Station config-оос усан сангийн capacity мэдээлэл
+        stationDAO.findByMenuId(menuId).ifPresent(st -> {
+            Integer fwt = st.getFirstWellTotal() != null ? st.getFirstWellTotal() : st.getWellsNumber();
+            report.setFirstWellTotal(fwt);
+            report.setPoolDetails(st.getPoolDetails());
+        });
 
         List<HourlyWsSecond> seconds =
                 hourlyWsSecondDAO.findAllByMenuIdAndShiftDay(menuId, dateStr, nextDateStr);

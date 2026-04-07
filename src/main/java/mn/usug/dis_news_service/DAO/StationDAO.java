@@ -12,4 +12,6 @@ public interface StationDAO extends JpaRepository<Station,Integer> {
 
     @Query("select a from Station a where a.departmentId = ?1")
     List<Station> findByDepId(Integer depId);
+
+    java.util.Optional<Station> findByMenuId(Integer menuId);
 }

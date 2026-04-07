@@ -89,6 +89,13 @@ public class WaterHourlyService {
           SELECT menu_id, pipe_fm_1 AS prev_fm1, pipe_fm_7 AS prev_fm7, pipe_fm_8 AS prev_fm8
           FROM prev_fm_ranked
           WHERE rn = 1
+        ),
+        -- Тухайн цаг+өдөрт хамгийн сүүлд бичсэн мөрийг авна (давхардал зайлуулах)
+        ws_latest AS (
+          SELECT *,
+            ROW_NUMBER() OVER (PARTITION BY menu_id ORDER BY id DESC) AS rn
+          FROM dis_news.hourly_ws_station
+          WHERE `date` >= :from AND `date` < :to AND `hour` = :h
         )
         SELECT
           lm.group_name,
@@ -137,14 +144,16 @@ public class WaterHourlyService {
           TRIM(CONCAT(COALESCE(cu.last_name,''), ' ', COALESCE(cu.first_name,''))) AS created_by_name,
           DATE_FORMAT(ws.created_date, '%H:%i')                                    AS created_time,
           TRIM(CONCAT(COALESCE(uu.last_name,''), ' ', COALESCE(uu.first_name,''))) AS updated_by_name,
-          DATE_FORMAT(ws.updated_date, '%H:%i')                                    AS updated_time
+          DATE_FORMAT(ws.updated_date, '%H:%i')                                    AS updated_time,
+
+          COALESCE(st.first_well_total, st.wells_number)                           AS first_well_total,
+          st.pool_details                                                           AS pool_details
 
         FROM leaf_menu lm
 
-        LEFT JOIN dis_news.hourly_ws_station ws
-          ON ws.`date` >= :from AND ws.`date` < :to
-         AND ws.`hour` = :h
-         AND ws.menu_id = lm.id
+        LEFT JOIN ws_latest ws ON ws.menu_id = lm.id AND ws.rn = 1
+
+        LEFT JOIN dis_news.station st ON st.menu_id = lm.id
 
         LEFT JOIN dis_news.users cu ON cu.id = ws.created_by
         LEFT JOIN dis_news.users uu ON uu.id = ws.updated_by
@@ -201,6 +210,8 @@ public class WaterHourlyService {
                 .createdTime(rs.getString("created_time"))
                 .updatedByName(rs.getString("updated_by_name"))
                 .updatedTime(rs.getString("updated_time"))
+                .firstWellTotal((Integer) rs.getObject("first_well_total"))
+                .poolDetails(rs.getString("pool_details"))
                 .build()
         );
     }
