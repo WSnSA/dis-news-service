@@ -198,7 +198,7 @@ public class ReferenceService {
         oldStation.setWellsNumber(station.getWellsNumber());
         oldStation.setComponentKey(station.getComponentKey());
         oldStation.setPoolDetails(station.getPoolDetails());
-        oldStation.setMenuId(station.getMenuId());
+        if (station.getMenuId() != null) oldStation.setMenuId(station.getMenuId());
         oldStation.setMode(station.getMode());
         oldStation.setFirstWellTotal(station.getFirstWellTotal());
         oldStation.setWellDetails(station.getWellDetails());

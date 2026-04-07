@@ -10,6 +10,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 
 @Entity
@@ -69,6 +70,12 @@ public class Task {
     @LastModifiedBy
     @Column(name = "updated_by")
     private Integer updatedBy;
+
+    /* ===== TRANSIENT — хариу дотор байрлуулах ===== */
+
+    /** Хариуцагч алба + биелэлт тус бүр (task_departments-с) */
+    @Transient
+    private List<TaskDepartment> departments;
 
     /* ===== ХУУЧИН СИСТЕМ (READ ONLY) ===== */
 
