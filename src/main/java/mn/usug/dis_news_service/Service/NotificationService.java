@@ -11,6 +11,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -151,7 +152,7 @@ public class NotificationService {
                            String title, String message, String icon) {
         if (userIds.isEmpty()) return;
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ulaanbaatar"));
 
         List<Notification> records = userIds.stream().map(uid -> {
             Notification n = new Notification();

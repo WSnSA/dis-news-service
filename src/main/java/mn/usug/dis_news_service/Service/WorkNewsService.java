@@ -122,7 +122,7 @@ public class WorkNewsService {
         if (req.metaJson() != null) item.setMetaJson(req.metaJson());
         if (req.sortOrder() != null) item.setSortOrder(req.sortOrder());
 
-        item.setUpdatedAt(LocalDateTime.now());
+        item.setUpdatedAt(LocalDateTime.now(ZoneId.of("Asia/Ulaanbaatar")));
         item.setUpdatedBy(ctxId != null ? ctxId.longValue() : null);
 
         itemRepo.save(item);

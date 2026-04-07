@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.ToDoubleFunction;
@@ -41,10 +43,10 @@ public class MainService {
         if (isNew) {
             station = new HourlyWsStation();
             station.setCreatedBy(UserContext.getUserId());
-            station.setCreatedDate(java.time.LocalDateTime.now());
+            station.setCreatedDate(LocalDateTime.now(ZoneId.of("Asia/Ulaanbaatar")));
         } else {
             station.setUpdatedBy(UserContext.getUserId());
-            station.setUpdatedDate(java.time.LocalDateTime.now());
+            station.setUpdatedDate(LocalDateTime.now(ZoneId.of("Asia/Ulaanbaatar")));
         }
 
         station.setMenuId(report.getMenuId());
