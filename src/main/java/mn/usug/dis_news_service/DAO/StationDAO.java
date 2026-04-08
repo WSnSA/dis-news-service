@@ -14,4 +14,6 @@ public interface StationDAO extends JpaRepository<Station,Integer> {
     List<Station> findByDepId(Integer depId);
 
     java.util.Optional<Station> findByMenuId(Integer menuId);
+
+    List<Station> findAllByMenuIdIn(List<Integer> menuIds);
 }

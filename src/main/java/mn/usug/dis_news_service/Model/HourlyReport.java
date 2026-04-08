@@ -45,4 +45,7 @@ public class HourlyReport {
 
     /** Тухайн ээлжид мэдээ оруулсан эсэх */
     private boolean hasData;
+
+    /** Температурын утгуудын JSON "[{name,value},...]" */
+    private String temperatureValues;
 }

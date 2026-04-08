@@ -65,6 +65,7 @@ public class MainService {
         station.setPipeFm1(report.getPipeFm1());
         station.setPipeFm7(report.getPipeFm7());
         station.setPipeFm8(report.getPipeFm8());
+        station.setTemperatureValues(report.getTemperatureValues());
 
         hourlyWsStationDAO.save(station);
 
@@ -313,6 +314,104 @@ public class MainService {
         report.setHourlyWsSecondList(generatorReports);
 
         return report;
+    }
+
+    /**
+     * getDailyReport-ийг batch хэлбэрт оруулсан хувилбар.
+     * MenuService.getDailySummary N+1 query-г 4 query болгохын тулд ашиглана.
+     * getDailyReport өөрөө хэвээр үлдэнэ — dashboard болон бусад газар хэрэглэж байгаа.
+     */
+    public Map<Integer, HourlyReport> getDailyReportBatch(List<Integer> menuIds, LocalDate date) {
+        if (menuIds == null || menuIds.isEmpty()) return Map.of();
+
+        String dateStr     = date.toString();
+        String nextDateStr = date.plusDays(1).toString();
+
+        // 4 query — станц тоооос үл хамааран
+        List<HourlyWsStation> allStations  = hourlyWsStationDAO.findAllByMenuIdsAndShiftDay(menuIds, dateStr, nextDateStr);
+        List<HourlyWsStation> latestList   = hourlyWsStationDAO.findLatestByMenuIds(menuIds);
+        List<Station>         allConfigs   = stationDAO.findAllByMenuIdIn(menuIds);
+        List<HourlyWsSecond>  allSeconds   = hourlyWsSecondDAO.findAllByMenuIdsAndShiftDay(menuIds, dateStr, nextDateStr);
+
+        // Memory-д бүлэглэнэ
+        Map<Integer, List<HourlyWsStation>> stationsByMenu = allStations.stream()
+                .collect(Collectors.groupingBy(HourlyWsStation::getMenuId));
+        Map<Integer, HourlyWsStation>       latestByMenu   = latestList.stream()
+                .collect(Collectors.toMap(HourlyWsStation::getMenuId, s -> s, (a, b) -> a));
+        Map<Integer, Station>               configByMenu   = allConfigs.stream()
+                .filter(s -> s.getMenuId() != null)
+                .collect(Collectors.toMap(Station::getMenuId, s -> s, (a, b) -> a));
+        Map<Integer, List<HourlyWsSecond>>  secondsByMenu  = allSeconds.stream()
+                .collect(Collectors.groupingBy(HourlyWsSecond::getMenuId));
+
+        Map<Integer, HourlyReport> result = new LinkedHashMap<>();
+
+        for (Integer menuId : menuIds) {
+            List<HourlyWsStation> stations = stationsByMenu.getOrDefault(menuId, List.of());
+            HourlyWsStation       latest   = latestByMenu.get(menuId);
+            Station               config   = configByMenu.get(menuId);
+            List<HourlyWsSecond>  seconds  = secondsByMenu.getOrDefault(menuId, List.of());
+
+            HourlyReport report = new HourlyReport();
+            report.setMenuId(menuId);
+            report.setDate(java.sql.Date.valueOf(date));
+            report.setHasData(!stations.isEmpty());
+
+            report.setPipeFm1(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm1));
+            report.setPipeFm7(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm7));
+            report.setPipeFm8(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm8));
+
+            // Усан сан — ээлжийн хамгийн сүүлийн бүртгэлээс
+            if (!stations.isEmpty()) {
+                HourlyWsStation last = stations.get(stations.size() - 1);
+                report.setFirstPool(last.getFirstPool());
+                report.setSecondPool(last.getSecondPool());
+                report.setThirdPool(last.getThirdPool());
+                report.setFourthPool(last.getFourthPool());
+            }
+
+            // 1-р өргөгч — хамгийн сүүлийн бүртгэлээс (өдрөөс үл хамааран)
+            if (latest != null) {
+                report.setFirstWorkingCount(latest.getFirstWorkingCount());
+                report.setFirstPendingCount(latest.getFirstPendingCount());
+                report.setFirstRepairingCount(latest.getFirstRepairingCount());
+            }
+
+            // Station config
+            if (config != null) {
+                Integer fwt = config.getFirstWellTotal() != null
+                        ? config.getFirstWellTotal()
+                        : config.getWellsNumber();
+                report.setFirstWellTotal(fwt);
+                report.setPoolDetails(config.getPoolDetails());
+            }
+
+            // 2-р өргөгч — ээлжийн хамгийн сүүлийн цагийн seconds-аас
+            if (!seconds.isEmpty()) {
+                Comparator<HourlyWsSecond> cmp = Comparator
+                        .comparing(HourlyWsSecond::getDate)
+                        .thenComparing(s -> s.getHour() != null ? s.getHour() : -1)
+                        .thenComparing(HourlyWsSecond::getId);
+
+                Optional<HourlyWsSecond> latestSecOpt = seconds.stream().max(cmp);
+                List<HourlyWsSecond> latestSecs = latestSecOpt
+                        .map(ls -> seconds.stream()
+                                .filter(s -> Objects.equals(s.getDate(), ls.getDate()) &&
+                                             Objects.equals(s.getHour(), ls.getHour()))
+                                .toList())
+                        .orElseGet(List::of);
+
+                Map<Integer, List<HourlyWsSecond>> stated =
+                        latestSecs.stream().collect(Collectors.groupingBy(HourlyWsSecond::getStatus));
+                report.setSecondWorkingCount(stated.getOrDefault(1, List.of()).size());
+                report.setSecondPendingCount(stated.getOrDefault(2, List.of()).size());
+                report.setSecondRepairingCount(stated.getOrDefault(3, List.of()).size());
+            }
+
+            result.put(menuId, report);
+        }
+
+        return result;
     }
 
     public ResponseEntity<HourlyReport> getMonthlyReport(Integer menuId, int year, int month) {

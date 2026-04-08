@@ -75,4 +75,13 @@ public class Station {
     @Column(name = "line_details", columnDefinition = "TEXT")
     private String lineDetails;
 
+    @Column(name = "temperature_details", columnDefinition = "TEXT")
+    private String temperatureDetails;
+
+    @Column(name = "has_chlorine")
+    private Boolean hasChlorine;
+
+    @Column(name = "chlorine_label", length = 100)
+    private String chlorineLabel;
+
 }

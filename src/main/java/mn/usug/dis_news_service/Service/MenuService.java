@@ -9,9 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class MenuService {
@@ -67,32 +67,31 @@ public class MenuService {
     }
 
     public ResponseEntity<?> getDailySummary(Integer type, LocalDate date) {
-        List<HourlyReport> reportList = new ArrayList<>();
-        String typeStr = "";
+        String typeStr = switch (type) {
+            case 1 -> "source";
+            case 2 -> "transmission";
+            case 3 -> "js";
+            case 4 -> "pool";
+            default -> "";
+        };
 
-        if (type == 1){
-            typeStr = "source";
-        }
-        else if (type == 2){
-            typeStr = "transmission";
-        }
-        else if (type == 3){
-            typeStr = "js";
-        }
-        else if (type == 4){
-            typeStr = "pool";
-        }
+        List<Menu> menus = menuDAO.findByType(typeStr);
+        if (menus.isEmpty()) return ResponseEntity.notFound().build();
 
-        List<Menu> list = menuDAO.findByType(typeStr);
+        List<Integer> menuIds = menus.stream().map(Menu::getId).toList();
 
-        list.forEach(item -> {
-            HourlyReport report = mainService.getDailyReport(item.getId(), date);
-            report.setStationName(item.getName());
-            reportList.add(report);
-        });
+        // Batch load: N*4 query → 4 query
+        Map<Integer, HourlyReport> batchResult = mainService.getDailyReportBatch(menuIds, date);
 
-        return reportList.isEmpty()
-                ? ResponseEntity.notFound().build()
-                : ResponseEntity.ok(reportList);
+        List<HourlyReport> reportList = menus.stream()
+                .map(menu -> {
+                    HourlyReport r = batchResult.getOrDefault(menu.getId(), new HourlyReport());
+                    r.setMenuId(menu.getId());
+                    r.setStationName(menu.getName());
+                    return r;
+                })
+                .toList();
+
+        return ResponseEntity.ok(reportList);
     }
 }

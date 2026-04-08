@@ -40,6 +40,36 @@ public interface HourlyWsStationDAO extends JpaRepository<HourlyWsStation,Intege
     @Query("select a from HourlyWsStation a where a.menuId = ?1 and DATE(a.date) between ?2 and ?3")
     List<HourlyWsStation> findByMenuIdAndDateBetween(Integer menuId, Date start, Date end);
 
+    // ── Batch query: бүх станцыг нэг дор татна (getDailySummary N+1 → 4 query болгох) ──
+
+    @Query(value = """
+    SELECT *
+    FROM hourly_ws_station
+    WHERE menu_id IN :menuIds
+      AND (
+            (DATE(date) = :dateStr     AND hour >= 8)
+         OR (DATE(date) = :nextDateStr AND hour <= 7)
+      )
+    ORDER BY date ASC, hour ASC
+    """, nativeQuery = true)
+    List<HourlyWsStation> findAllByMenuIdsAndShiftDay(
+            @Param("menuIds") List<Integer> menuIds,
+            @Param("dateStr") String dateStr,
+            @Param("nextDateStr") String nextDateStr);
+
+    /** Станц тус бүрийн хамгийн сүүлийн бүртгэл (MAX(id) per menu_id) */
+    @Query(value = """
+    SELECT h.*
+    FROM hourly_ws_station h
+    INNER JOIN (
+        SELECT menu_id, MAX(id) AS max_id
+        FROM hourly_ws_station
+        WHERE menu_id IN :menuIds
+        GROUP BY menu_id
+    ) latest ON h.id = latest.max_id
+    """, nativeQuery = true)
+    List<HourlyWsStation> findLatestByMenuIds(@Param("menuIds") List<Integer> menuIds);
+
     @Query(value = "SELECT hour, " +
         "SUM(COALESCE(pipe_fm_1,0)) as fm1, " +
         "SUM(COALESCE(pipe_fm_7,0)) as fm7, " +

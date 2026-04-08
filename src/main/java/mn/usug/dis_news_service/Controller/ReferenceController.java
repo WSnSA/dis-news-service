@@ -107,7 +107,10 @@ public class ReferenceController {
             @RequestParam(value = "firstWellTotal", required = false, defaultValue = "0") Integer firstWellTotal,
             @RequestParam(value = "wellDetails", required = false, defaultValue = "[]") String wellDetails,
             @RequestParam(value = "pumpDetails", required = false, defaultValue = "[]") String pumpDetails,
-            @RequestParam(value = "lineDetails", required = false, defaultValue = "[]") String lineDetails
+            @RequestParam(value = "lineDetails", required = false, defaultValue = "[]") String lineDetails,
+            @RequestParam(value = "temperatureDetails", required = false, defaultValue = "[]") String temperatureDetails,
+            @RequestParam(value = "hasChlorine", required = false, defaultValue = "false") Boolean hasChlorine,
+            @RequestParam(value = "chlorineLabel", required = false, defaultValue = "") String chlorineLabel
     ) {
         Department department = refService.getDepartmentById(depId);
         if(department == null){
@@ -131,6 +134,9 @@ public class ReferenceController {
         station.setWellDetails(wellDetails);
         station.setPumpDetails(pumpDetails);
         station.setLineDetails(lineDetails);
+        station.setTemperatureDetails(temperatureDetails);
+        station.setHasChlorine(hasChlorine);
+        station.setChlorineLabel(chlorineLabel.isBlank() ? null : chlorineLabel);
         return refService.addStation(station);
     }
 
@@ -153,7 +159,10 @@ public class ReferenceController {
             @RequestParam(value = "firstWellTotal", required = false, defaultValue = "0") Integer firstWellTotal,
             @RequestParam(value = "wellDetails", required = false, defaultValue = "[]") String wellDetails,
             @RequestParam(value = "pumpDetails", required = false, defaultValue = "[]") String pumpDetails,
-            @RequestParam(value = "lineDetails", required = false, defaultValue = "[]") String lineDetails) {
+            @RequestParam(value = "lineDetails", required = false, defaultValue = "[]") String lineDetails,
+            @RequestParam(value = "temperatureDetails", required = false, defaultValue = "[]") String temperatureDetails,
+            @RequestParam(value = "hasChlorine", required = false, defaultValue = "false") Boolean hasChlorine,
+            @RequestParam(value = "chlorineLabel", required = false, defaultValue = "") String chlorineLabel) {
         Department department = refService.getDepartmentById(depId);
         if(department == null){
             return ResponseEntity.status(404).body("Department not found");
@@ -177,6 +186,9 @@ public class ReferenceController {
         station.setWellDetails(wellDetails);
         station.setPumpDetails(pumpDetails);
         station.setLineDetails(lineDetails);
+        station.setTemperatureDetails(temperatureDetails);
+        station.setHasChlorine(hasChlorine);
+        station.setChlorineLabel(chlorineLabel.isBlank() ? null : chlorineLabel);
         return refService.updateStation(station);
     }
 

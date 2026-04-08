@@ -67,6 +67,9 @@ public class HourlyWsStation {
     @Column(name = "updated_date")
     private LocalDateTime updatedDate;
 
+    @Column(name = "temperature_values", columnDefinition = "TEXT")
+    private String temperatureValues;
+
     /** Дэлгэцэд харуулах нэр — DB-д хадгалагдахгүй */
     @Transient
     public String createdByName;
