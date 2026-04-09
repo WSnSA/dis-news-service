@@ -191,11 +191,12 @@ public class MainService {
      */
     private int calculateShiftFlowDiff(
             List<HourlyWsStation> stations,
-            Function<HourlyWsStation, Integer> getter
+            Function<HourlyWsStation, Integer> getter,
+            Integer initialPrev
     ) {
         if (stations == null || stations.isEmpty()) return 0;
         int total = 0;
-        Integer prev = null;
+        Integer prev = initialPrev;
         for (HourlyWsStation s : stations) {
             Integer cur = getter.apply(s);
             if (cur == null || cur <= 0) continue;
@@ -205,6 +206,13 @@ public class MainService {
             prev = cur;
         }
         return total;
+    }
+
+    private int calculateShiftFlowDiff(
+            List<HourlyWsStation> stations,
+            Function<HourlyWsStation, Integer> getter
+    ) {
+        return calculateShiftFlowDiff(stations, getter, null);
     }
 
     public HourlyReport getDailyReport(Integer menuId, LocalDate date) {
@@ -220,9 +228,15 @@ public class MainService {
 
         report.setHasData(!stations.isEmpty());
 
-        report.setPipeFm1(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm1));
-        report.setPipeFm7(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm7));
-        report.setPipeFm8(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm8));
+        // Өмнөх ээлжийн сүүлийн FM заалтыг baseline болгон ашиглана → 08:00-ийн шахсан ус алдагдахгүй
+        String prevDateStr = date.minusDays(1).toString();
+        HourlyWsStation prevLast = hourlyWsStationDAO
+                .findLastByMenuIdAndPrevShift(menuId, prevDateStr, dateStr)
+                .orElse(null);
+
+        report.setPipeFm1(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm1, prevLast != null ? prevLast.getPipeFm1() : null));
+        report.setPipeFm7(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm7, prevLast != null ? prevLast.getPipeFm7() : null));
+        report.setPipeFm8(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm8, prevLast != null ? prevLast.getPipeFm8() : null));
 
         // Усан сан — өнөөдрийн ээлжийн хамгийн сүүлийн бүртгэлээс
         stations.stream()
@@ -327,9 +341,12 @@ public class MainService {
         String dateStr     = date.toString();
         String nextDateStr = date.plusDays(1).toString();
 
-        // 4 query — станц тоооос үл хамааран
+        String prevDateStr = date.minusDays(1).toString();
+
+        // 5 query — станц тооноос үл хамааран
         List<HourlyWsStation> allStations  = hourlyWsStationDAO.findAllByMenuIdsAndShiftDay(menuIds, dateStr, nextDateStr);
         List<HourlyWsStation> latestList   = hourlyWsStationDAO.findLatestByMenuIds(menuIds);
+        List<HourlyWsStation> prevLastList = hourlyWsStationDAO.findLastByMenuIdsAndPrevShift(menuIds, prevDateStr, dateStr);
         List<Station>         allConfigs   = stationDAO.findAllByMenuIdIn(menuIds);
         List<HourlyWsSecond>  allSeconds   = hourlyWsSecondDAO.findAllByMenuIdsAndShiftDay(menuIds, dateStr, nextDateStr);
 
@@ -337,6 +354,8 @@ public class MainService {
         Map<Integer, List<HourlyWsStation>> stationsByMenu = allStations.stream()
                 .collect(Collectors.groupingBy(HourlyWsStation::getMenuId));
         Map<Integer, HourlyWsStation>       latestByMenu   = latestList.stream()
+                .collect(Collectors.toMap(HourlyWsStation::getMenuId, s -> s, (a, b) -> a));
+        Map<Integer, HourlyWsStation>       prevLastByMenu = prevLastList.stream()
                 .collect(Collectors.toMap(HourlyWsStation::getMenuId, s -> s, (a, b) -> a));
         Map<Integer, Station>               configByMenu   = allConfigs.stream()
                 .filter(s -> s.getMenuId() != null)
@@ -349,6 +368,7 @@ public class MainService {
         for (Integer menuId : menuIds) {
             List<HourlyWsStation> stations = stationsByMenu.getOrDefault(menuId, List.of());
             HourlyWsStation       latest   = latestByMenu.get(menuId);
+            HourlyWsStation       prevLast = prevLastByMenu.get(menuId);
             Station               config   = configByMenu.get(menuId);
             List<HourlyWsSecond>  seconds  = secondsByMenu.getOrDefault(menuId, List.of());
 
@@ -357,9 +377,10 @@ public class MainService {
             report.setDate(java.sql.Date.valueOf(date));
             report.setHasData(!stations.isEmpty());
 
-            report.setPipeFm1(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm1));
-            report.setPipeFm7(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm7));
-            report.setPipeFm8(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm8));
+            // Өмнөх ээлжийн сүүлийн FM заалтыг baseline болгон ашиглана → 08:00-ийн шахсан ус алдагдахгүй
+            report.setPipeFm1(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm1, prevLast != null ? prevLast.getPipeFm1() : null));
+            report.setPipeFm7(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm7, prevLast != null ? prevLast.getPipeFm7() : null));
+            report.setPipeFm8(calculateShiftFlowDiff(stations, HourlyWsStation::getPipeFm8, prevLast != null ? prevLast.getPipeFm8() : null));
 
             // Усан сан — ээлжийн хамгийн сүүлийн бүртгэлээс
             if (!stations.isEmpty()) {
