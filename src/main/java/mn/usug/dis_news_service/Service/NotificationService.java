@@ -26,10 +26,7 @@ public class NotificationService {
     private final UserDAO userDAO;
 
     // ── Component paths ────────────────────────────────────────────────────────
-    private static final
-    String COMP_REPORT      = "pages/report/report.component";
     private static final String COMP_FULFILLMENT = "pages/task-fulfillment/task-fulfillment.component";
-    private static final String PATH_DASHBOARD   = "dashboard";
 
     // ── Public notify methods ──────────────────────────────────────────────────
 
@@ -39,34 +36,33 @@ public class NotificationService {
         LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ulaanbaatar"));
         String timeStr = now.getMonthValue() + "/" + now.getDayOfMonth()
                 + " " + String.format("%02d:%02d", now.getHour(), now.getMinute());
-        broadcast(targets, "ws",
+        broadcastPerUser(targets, "ws",
                 "Цагийн бүртгэл",
-                timeStr + " цагийн бүртгэл хийгдлээ",
+                stationName + " — " + timeStr + " цагийн бүртгэл хийгдлээ",
                 "pi-clock");
     }
 
-    /** Ажлын мэдээ — тайлан/хянах самбар эрхтэй хүнд */
+    /** Ажлын мэдээ — хүлээн авагч байхгүй бол depId=9 */
     public void notifyWorkNews(String title) {
-        Set<Integer> targets = reportDashboardUsers();
+        Set<Integer> targets = fallbackDept9(new HashSet<>());
         broadcast(targets, "news", "Ажлын мэдээ нэмэгдлээ", title, "pi-file-edit");
     }
 
-    /** Машин захиалга — тайлан/хянах самбар эрхтэй хүнд + хуваарилагдсан алба */
+    /** Машин захиалга — хуваарилагдсан алба, байхгүй бол depId=9 */
     public void notifyVehicleOrder(String description, Integer assignedDepartmentId) {
         String msg = truncate(description, 100);
-        Set<Integer> targets = reportDashboardUsers();
-        // Хуваарилагдсан алба дахь хэрэглэгчдийг нэмнэ
+        Set<Integer> targets = new HashSet<>();
         if (assignedDepartmentId != null && assignedDepartmentId > 0) {
             userDAO.findUsersByFilter(assignedDepartmentId, 0).stream()
                     .filter(u -> Boolean.TRUE.equals(u.getActiveFlag()))
                     .forEach(u -> targets.add(u.getId()));
         }
-        broadcast(targets, "vehicle-order", "Машин захиалга", msg, "pi-car");
+        broadcast(fallbackDept9(targets), "vehicle-order", "Машин захиалга", msg, "pi-car");
     }
 
-    /** Ажилд гарах машин — тайлан/хянах самбар эрхтэй хүнд */
+    /** Ажилд гарах машин — хүлээн авагч байхгүй бол depId=9 */
     public void notifyVehicleOut(String info) {
-        Set<Integer> targets = reportDashboardUsers();
+        Set<Integer> targets = fallbackDept9(new HashSet<>());
         broadcast(targets, "vehicle-out", "Ажилд гарах машин", info, "pi-truck");
     }
 
@@ -115,27 +111,6 @@ public class NotificationService {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** Тайлан болон хянах самбар эрхтэй бүх идэвхтэй хэрэглэгчдийн ID */
-    private Set<Integer> reportDashboardUsers() {
-        Set<Integer> menuIds = new HashSet<>();
-        menuDAO.findByComponent(COMP_REPORT).forEach(m -> menuIds.add(m.getId()));
-        menuDAO.findByPath(PATH_DASHBOARD).forEach(m -> menuIds.add(m.getId()));
-
-        Set<Integer> userIds = permissionDAO.findAll().stream()
-                .filter(p -> menuIds.contains(p.getMenuId())
-                          && p.getCanView() != null && p.getCanView() == 1)
-                .map(p -> p.getUserId())
-                .collect(Collectors.toSet());
-
-        // Идэвхгүй хэрэглэгч хасах
-        Set<Integer> activeUsers = userDAO.findAll().stream()
-                .filter(u -> Boolean.TRUE.equals(u.getActiveFlag()))
-                .map(u -> u.getId())
-                .collect(Collectors.toSet());
-        userIds.retainAll(activeUsers);
-        return userIds;
-    }
-
     /** Тухайн цонхны canEdit=1 эрхтэй userId-ийн жагсаалт */
     private Set<Integer> usersWithMenuEditPermission(String component) {
         Set<Integer> menuIds = menuDAO.findByComponent(component).stream()
@@ -148,6 +123,29 @@ public class NotificationService {
                           && p.getCanEdit() != null && p.getCanEdit() == 1)
                 .map(p -> p.getUserId())
                 .collect(Collectors.toSet());
+    }
+
+    /** DB-д хадгалж, хэрэглэгч тус бүрийн /topic/notify/{category}/{userId} руу илгээнэ */
+    private void broadcastPerUser(Set<Integer> userIds, String category,
+                                  String title, String message, String icon) {
+        if (userIds.isEmpty()) return;
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ulaanbaatar"));
+        NotificationDto dto = new NotificationDto(category, title, message, icon, System.currentTimeMillis());
+        List<Notification> records = userIds.stream().map(uid -> {
+            Notification n = new Notification();
+            n.setUserId(uid);
+            n.setCategory(category);
+            n.setTitle(title);
+            n.setMessage(message);
+            n.setIcon(icon);
+            n.setIsRead(0);
+            n.setCreatedAt(now);
+            return n;
+        }).toList();
+        notifRepo.saveAll(records);
+        userIds.forEach(uid ->
+            messaging.convertAndSend("/topic/notify/" + category + "/" + uid, dto)
+        );
     }
 
     /** DB-д хадгалж, WebSocket-ээр broadcast хийнэ */
@@ -176,19 +174,17 @@ public class NotificationService {
         );
     }
 
+    /** Хоосон бол depId=9-ийн хэрэглэгчдийг буцаана */
+    private Set<Integer> fallbackDept9(Set<Integer> targets) {
+        return targets.isEmpty() ? userIdsInDept(9) : targets;
+    }
+
     /** Тухайн алба дахь идэвхтэй хэрэглэгчдийн ID */
     private Set<Integer> userIdsInDept(Integer deptId) {
         if (deptId == null || deptId == 0) return Collections.emptySet();
         return userDAO.findUsersByFilter(deptId, 0).stream()
                 .filter(u -> Boolean.TRUE.equals(u.getActiveFlag()))
                 .map(u -> u.getId())
-                .collect(Collectors.toSet());
-    }
-
-    /** WS станцуудын menuId жагсаалт */
-    private Set<Integer> wsMenuIdSet() {
-        return menuDAO.findByWS().stream()
-                .map(m -> m.getId())
                 .collect(Collectors.toSet());
     }
 
