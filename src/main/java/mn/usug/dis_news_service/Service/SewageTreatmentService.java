@@ -120,10 +120,10 @@ public class SewageTreatmentService {
 
         List<Map<String, Object>> result = new ArrayList<>();
 
-        for (int h = 8; h <= 23; h++) {
+        for (int h = 7; h <= 23; h++) {
             result.add(byHour.getOrDefault(h, emptyHourRow(h)));
         }
-        for (int h = 0; h <= 7; h++) {
+        for (int h = 0; h <= 6; h++) {
             result.add(byHour.getOrDefault(h, emptyHourRow(h)));
         }
 

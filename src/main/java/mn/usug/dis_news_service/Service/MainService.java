@@ -167,8 +167,8 @@ public class MainService {
                 .collect(Collectors.groupingBy(HourlyWsSecond::getHour));
 
         List<Integer> shiftHours = new ArrayList<>();
-        for (int h = 8; h <= 23; h++) shiftHours.add(h);
-        for (int h = 0; h <= 7; h++) shiftHours.add(h);
+        for (int h = 7; h <= 23; h++) shiftHours.add(h);
+        for (int h = 0; h <= 6; h++) shiftHours.add(h);
 
         List<HourReport> hourReports = new ArrayList<>();
         for (Integer h : shiftHours) {

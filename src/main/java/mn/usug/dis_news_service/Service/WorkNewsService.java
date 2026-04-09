@@ -34,7 +34,7 @@ public class WorkNewsService {
     private static final ZoneId UB = ZoneId.of("Asia/Ulaanbaatar");
 
     private LocalDate resolveShiftDate(LocalDateTime dt) {
-        return dt.toLocalTime().isBefore(LocalTime.of(8, 0))
+        return dt.toLocalTime().isBefore(LocalTime.of(7, 0))
                 ? dt.toLocalDate().minusDays(1)
                 : dt.toLocalDate();
     }

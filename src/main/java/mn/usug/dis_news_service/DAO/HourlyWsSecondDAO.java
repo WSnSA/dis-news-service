@@ -20,14 +20,14 @@ public interface HourlyWsSecondDAO extends JpaRepository<HourlyWsSecond,Integer>
     @Query("select a from HourlyWsSecond a where a.menuId = ?1 and DATE(a.date) = ?2")
     List<HourlyWsSecond> findAllByMenuIdAndDate(Integer menuId, Date date);
 
-    // Ээлжийн өдөр: D өдрийн 8:00 – D+1 өдрийн 7:00 (String param-аар timezone алдаа гарахгүй)
+    // Ээлжийн өдөр: D өдрийн 7:00 – D+1 өдрийн 6:00 (String param-аар timezone алдаа гарахгүй)
     @Query(value = """
     SELECT *
     FROM hourly_ws_second
     WHERE menu_id = :menuId
       AND (
-            (DATE(date) = :dateStr AND hour >= 8)
-         OR (DATE(date) = :nextDateStr AND hour <= 7)
+            (DATE(date) = :dateStr AND hour >= 7)
+         OR (DATE(date) = :nextDateStr AND hour <= 6)
       )
     ORDER BY date ASC, hour ASC, id ASC
     """, nativeQuery = true)
@@ -45,8 +45,8 @@ public interface HourlyWsSecondDAO extends JpaRepository<HourlyWsSecond,Integer>
     FROM hourly_ws_second
     WHERE menu_id IN :menuIds
       AND (
-            (DATE(date) = :dateStr     AND hour >= 8)
-         OR (DATE(date) = :nextDateStr AND hour <= 7)
+            (DATE(date) = :dateStr     AND hour >= 7)
+         OR (DATE(date) = :nextDateStr AND hour <= 6)
       )
     ORDER BY date ASC, hour ASC, id ASC
     """, nativeQuery = true)
