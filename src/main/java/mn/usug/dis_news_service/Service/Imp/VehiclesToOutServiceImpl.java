@@ -3,6 +3,8 @@ package mn.usug.dis_news_service.Service.Imp;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import mn.usug.dis_news_service.DAO.UserDAO;
+import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
 import mn.usug.dis_news_service.Entity.VehiclesToOut;
 import mn.usug.dis_news_service.Model.VehiclesToOutRowDto;
 import mn.usug.dis_news_service.DAO.VehiclesToOutRepository;
@@ -11,13 +13,21 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class VehiclesToOutServiceImpl implements VehiclesToOutService {
 
     private final VehiclesToOutRepository repo;
+    private final VehicleOrderRepository vehicleOrderRepo;
+    private final UserDAO userDAO;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -65,17 +75,46 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
 
     // ✅ ШИНЭ: Front-д хэрэгтэй хэлбэрээр (legacy_data-с нөхөөд) буцаах
     public List<VehiclesToOutRowDto> findRowsByDate(LocalDate date) {
-        LocalDateTime from = date.atStartOfDay();
-        LocalDateTime to = date.plusDays(1).atStartOfDay();
+        List<VehiclesToOut> records = repo.findByDate(date);
 
-        return repo.findAllByCreatedDateBetweenOrderByIdAsc(from, to).stream()
-                .map(this::toRowDtoFilledFromLegacy)
-                // хэрэггүй хоосон мөрүүдийг хүсвэл энд шүүж болно
+        // Batch: vehicle_order.created_by → user.first_name
+        Set<Long> orderIds = records.stream()
+                .map(VehiclesToOut::getVehicleOrderId)
+                .filter(Objects::nonNull)
+                .map(Integer::longValue)
+                .collect(Collectors.toSet());
+
+        Map<Integer, Integer> orderToUser = new HashMap<>();
+        if (!orderIds.isEmpty()) {
+            vehicleOrderRepo.findAllById(orderIds)
+                    .forEach(o -> { if (o.getCreatedBy() != null) orderToUser.put(o.getId().intValue(), o.getCreatedBy()); });
+        }
+
+        Map<Integer, String> userNames = new HashMap<>();
+        Set<Integer> userIds = new HashSet<>(orderToUser.values());
+        if (!userIds.isEmpty()) {
+            userDAO.findAllById(userIds)
+                    .forEach(u -> userNames.put(u.getId(), u.getFirstName()));
+        }
+
+        return records.stream()
+                .map(v -> {
+                    String name = null;
+                    if (v.getVehicleOrderId() != null) {
+                        Integer uid = orderToUser.get(v.getVehicleOrderId());
+                        if (uid != null) name = userNames.get(uid);
+                    }
+                    return toRowDtoFilledFromLegacy(v, name);
+                })
                 .filter(r -> !isAllBlank(r))
                 .toList();
     }
 
     private VehiclesToOutRowDto toRowDtoFilledFromLegacy(VehiclesToOut v) {
+        return toRowDtoFilledFromLegacy(v, null);
+    }
+
+    private VehiclesToOutRowDto toRowDtoFilledFromLegacy(VehiclesToOut v, String orderCreatedByName) {
         JsonNode legacy = parseLegacy(v.getLegacyData());
 
         // Entity талбар эхлэж, байхгүй бол legacy_data-с нөхнө
@@ -113,6 +152,7 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
                 .phone(phone)
                 .driverName(normalize(v.getDriverName()))
                 .createdDate(v.getCreatedDate())
+                .orderCreatedByName(orderCreatedByName)
                 .build();
     }
 

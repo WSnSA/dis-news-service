@@ -33,12 +33,15 @@ public class NotificationService {
 
     // ── Public notify methods ──────────────────────────────────────────────────
 
-    /** Ус хангамжийн цагийн бүртгэл — тайлан/хянах самбар эрхтэй хүнд */
+    /** Ус хангамжийн цагийн бүртгэл — 9-р алба дахь идэвхтэй хэрэглэгчдэд */
     public void notifyWsHourly(String stationName, int hour) {
-        Set<Integer> targets = reportDashboardUsers();
+        Set<Integer> targets = userIdsInDept(9);
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ulaanbaatar"));
+        String timeStr = now.getMonthValue() + "/" + now.getDayOfMonth()
+                + " " + String.format("%02d:%02d", now.getHour(), now.getMinute());
         broadcast(targets, "ws",
                 "Цагийн бүртгэл",
-                stationName + " — " + hour + ":00 цагийн бүртгэл хадгалагдлаа",
+                timeStr + " цагийн бүртгэл хийгдлээ",
                 "pi-clock");
     }
 

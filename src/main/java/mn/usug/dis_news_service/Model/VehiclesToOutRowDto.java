@@ -18,4 +18,5 @@ public class VehiclesToOutRowDto {
     private String phone;                 // driverPhoneNumber эсвэл phone_raw
     private String driverName;            // driverName
     private LocalDateTime createdDate;
+    private String orderCreatedByName;    // vehicle_order.created_by → users.first_name
 }
