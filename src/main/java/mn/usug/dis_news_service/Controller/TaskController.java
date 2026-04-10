@@ -177,13 +177,15 @@ public class TaskController {
     /* =====================================
        6. БИЕЛЭЛТ ОРУУЛАХ (dept тус бүр)
        ===================================== */
+    @PostMapping("/{taskId}/dept/{deptId}/fulfillment")
     @PutMapping("/{taskId}/dept/{deptId}/fulfillment")
     public Task updateDeptFulfillment(
             @PathVariable Integer taskId,
             @PathVariable Integer deptId,
-            @RequestParam String fulfillment,
-            @RequestParam Integer status
+            @RequestBody Map<String, Object> body
     ) {
+        String fulfillment = body.getOrDefault("fulfillment", "").toString();
+        Integer status = Integer.valueOf(body.getOrDefault("status", 0).toString());
         TaskDepartment td = taskDeptRepository.findByTaskIdAndDepartmentId(taskId, deptId)
                 .orElseGet(() -> {
                     TaskDepartment newTd = new TaskDepartment();
