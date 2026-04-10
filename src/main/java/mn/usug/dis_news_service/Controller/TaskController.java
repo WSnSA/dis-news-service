@@ -185,7 +185,13 @@ public class TaskController {
             @RequestParam Integer status
     ) {
         TaskDepartment td = taskDeptRepository.findByTaskIdAndDepartmentId(taskId, deptId)
-                .orElseThrow(() -> new RuntimeException("TaskDepartment not found"));
+                .orElseGet(() -> {
+                    TaskDepartment newTd = new TaskDepartment();
+                    newTd.setTaskId(taskId);
+                    newTd.setDepartmentId(deptId);
+                    newTd.setStatus(0);
+                    return newTd;
+                });
 
         td.setFulfillment(fulfillment);
         td.setStatus(status);
