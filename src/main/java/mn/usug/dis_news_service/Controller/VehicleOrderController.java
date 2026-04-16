@@ -77,6 +77,10 @@ public class VehicleOrderController {
         order.setStartDate(dto.getStartDate());
         order.setEndDate(dto.getEndDate() != null ? dto.getEndDate() : dto.getStartDate());
         order.setTaskDuration(dto.getTaskDuration());
+        order.setPickupLocation(dto.getPickupLocation());
+        order.setDropoffLocation(dto.getDropoffLocation());
+        order.setPassengerCount(dto.getPassengerCount());
+        order.setRequestedTime(dto.getRequestedTime());
         order.setUpdatedDate(LocalDateTime.now());
         orderRepo.save(order);
 
@@ -128,6 +132,11 @@ public class VehicleOrderController {
         order.setStartDate(dto.getStartDate());
         order.setEndDate(dto.getEndDate() != null ? dto.getEndDate() : dto.getStartDate());
         order.setTaskDuration(dto.getTaskDuration());
+        order.setOrderType(dto.getOrderType() != null ? dto.getOrderType() : 0);
+        order.setPickupLocation(dto.getPickupLocation());
+        order.setDropoffLocation(dto.getDropoffLocation());
+        order.setPassengerCount(dto.getPassengerCount());
+        order.setRequestedTime(dto.getRequestedTime());
         order.setStatus(0);
         order.setActiveFlag(1);
         order.setCreatedDate(LocalDateTime.now());

@@ -37,6 +37,26 @@ public class VehicleOrder {
     @Column(name = "task_duration", length = 100)
     private String taskDuration;
 
+    /** 0 = Механизм захиалга, 1 = Суудлын машин захиалга */
+    @Column(name = "order_type")
+    private Integer orderType;
+
+    /** Суудлын машин: эхлэх цэг */
+    @Column(name = "pickup_location", length = 200)
+    private String pickupLocation;
+
+    /** Суудлын машин: очих цэг */
+    @Column(name = "dropoff_location", length = 200)
+    private String dropoffLocation;
+
+    /** Суудлын машин: зорчигчийн тоо */
+    @Column(name = "passenger_count")
+    private Integer passengerCount;
+
+    /** Суудлын машин: хэрэгтэй цаг (жш: "09:30") */
+    @Column(name = "requested_time", length = 20)
+    private String requestedTime;
+
     private Integer status;
     private Integer activeFlag;
 

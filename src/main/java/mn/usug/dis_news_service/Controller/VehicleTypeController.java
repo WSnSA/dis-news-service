@@ -14,9 +14,22 @@ public class VehicleTypeController {
 
     private final VehicleTypeRepository repository;
 
+    /** Бүгд (parent + child) */
     @GetMapping("/getAll")
     public List<VehicleType> getAll() {
         return repository.findAll();
+    }
+
+    /** Зөвхөн үндсэн (parent_id IS NULL) — жагсаалтад ашиглана */
+    @GetMapping("/getRoots")
+    public List<VehicleType> getRoots() {
+        return repository.findByParentIdIsNull();
+    }
+
+    /** Дэд төрлүүд parentId-аар */
+    @GetMapping("/getByParent")
+    public List<VehicleType> getByParent(@RequestParam Integer parentId) {
+        return repository.findByParentId(parentId);
     }
 
     @PostMapping("/save")
@@ -30,6 +43,7 @@ public class VehicleTypeController {
         VehicleType existing = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("VehicleType not found: " + id));
         existing.setName(vehicleType.getName());
+        existing.setParentId(vehicleType.getParentId());
         return repository.save(existing);
     }
 

@@ -19,6 +19,14 @@ public class VehicleOrderSaveDto {
     private Integer assignedDepartmentId;
     private Integer assignedEmployeeId;
 
+    /** 0=механизм  1=суудлын машин */
+    private Integer orderType;
+
+    private String  pickupLocation;
+    private String  dropoffLocation;
+    private Integer passengerCount;
+    private String  requestedTime;
+
     private List<VehicleOrderItemSaveDto> vehicles;
 }
 

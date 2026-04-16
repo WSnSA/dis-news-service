@@ -18,9 +18,18 @@ public class VehicleOrderDto {
     /** 0=хүлээгдэж байна  1=баталгаажсан  2=хуваарилагдсан */
     private Integer status;
 
+    /** 0=механизм  1=суудлын машин */
+    private Integer orderType;
+
     private String workDescription;
     private Integer assignedDepartmentId;
     private String assignedDepartmentName;
+
+    /* Суудлын машин захиалгын нэмэлт талбарууд */
+    private String  pickupLocation;
+    private String  dropoffLocation;
+    private Integer passengerCount;
+    private String  requestedTime;
 
     private List<VehicleItemDto> vehicles;
 }

@@ -14,4 +14,7 @@ public class VehicleType {
 
     @Column(nullable = false, length = 200)
     private String name;
+
+    @Column(name = "parent_id")
+    private Integer parentId;
 }
