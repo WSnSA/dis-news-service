@@ -1,5 +1,6 @@
 package mn.usug.dis_news_service.DTO;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 
 @Data
@@ -7,21 +8,19 @@ public class VehiclesToOutSaveDto {
 
     private Integer vehicleOrderId;
 
-    /** Захиалга дээрх алба (frontend-с хуулж ирнэ) */
+    @JsonAlias({"assignedDepartmentName"})
     private String department;
 
-    /** Хаана, ямар ажил */
     private String workDescription;
 
-    /** Машин/механизмын нэр (форматлагдсан) */
+    @JsonAlias({"vehicleTypeName"})
     private String vehicleMechanism;
 
-    /** Улсын дугаар */
+    @JsonAlias({"vehicleRegistrationNumber"})
     private String vehicleRegistration;
 
-    /** Жолоочийн утас */
+    @JsonAlias({"driverPhoneNumber"})
     private String phone;
 
-    /** Ажилд гарч буй ажилтны нэр */
     private String driverName;
 }
