@@ -81,43 +81,43 @@ public interface SewageTreatmentRepository extends JpaRepository<SewageTreatment
           m.name AS stationName,
           (SELECT working_count   FROM dis_news.sewage_treatment
            WHERE station_id = m.id AND active_flag = 1
-             AND ((DATE(created_date) = :d AND HOUR(created_date) >= 8)
-                  OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 7))
+             AND ((DATE(created_date) = :d AND HOUR(created_date) >= 7)
+                  OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 6))
            ORDER BY id DESC LIMIT 1) AS workingCount,
           (SELECT pending_count   FROM dis_news.sewage_treatment
            WHERE station_id = m.id AND active_flag = 1
-             AND ((DATE(created_date) = :d AND HOUR(created_date) >= 8)
-                  OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 7))
+             AND ((DATE(created_date) = :d AND HOUR(created_date) >= 7)
+                  OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 6))
            ORDER BY id DESC LIMIT 1) AS pendingCount,
           (SELECT repairing_count FROM dis_news.sewage_treatment
            WHERE station_id = m.id AND active_flag = 1
-             AND ((DATE(created_date) = :d AND HOUR(created_date) >= 8)
-                  OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 7))
+             AND ((DATE(created_date) = :d AND HOUR(created_date) >= 7)
+                  OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 6))
            ORDER BY id DESC LIMIT 1) AS repairingCount,
           COALESCE((SELECT SUM(received_waste)  FROM dis_news.sewage_treatment
                     WHERE station_id = m.id AND active_flag = 1
-                      AND ((DATE(created_date) = :d AND HOUR(created_date) >= 8)
-                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 7))), 0) AS receivedWaste,
+                      AND ((DATE(created_date) = :d AND HOUR(created_date) >= 7)
+                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 6))), 0) AS receivedWaste,
           COALESCE((SELECT SUM(received_wool)   FROM dis_news.sewage_treatment
                     WHERE station_id = m.id AND active_flag = 1
-                      AND ((DATE(created_date) = :d AND HOUR(created_date) >= 8)
-                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 7))), 0) AS receivedWool,
+                      AND ((DATE(created_date) = :d AND HOUR(created_date) >= 7)
+                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 6))), 0) AS receivedWool,
           COALESCE((SELECT SUM(received_water)  FROM dis_news.sewage_treatment
                     WHERE station_id = m.id AND active_flag = 1
-                      AND ((DATE(created_date) = :d AND HOUR(created_date) >= 8)
-                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 7))), 0) AS receivedWater,
+                      AND ((DATE(created_date) = :d AND HOUR(created_date) >= 7)
+                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 6))), 0) AS receivedWater,
           COALESCE((SELECT SUM(substance_spent) FROM dis_news.sewage_treatment
                     WHERE station_id = m.id AND active_flag = 1
-                      AND ((DATE(created_date) = :d AND HOUR(created_date) >= 8)
-                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 7))), 0) AS substanceSpent,
+                      AND ((DATE(created_date) = :d AND HOUR(created_date) >= 7)
+                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 6))), 0) AS substanceSpent,
           COALESCE((SELECT SUM(treated_water)   FROM dis_news.sewage_treatment
                     WHERE station_id = m.id AND active_flag = 1
-                      AND ((DATE(created_date) = :d AND HOUR(created_date) >= 8)
-                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 7))), 0) AS treatedWater,
+                      AND ((DATE(created_date) = :d AND HOUR(created_date) >= 7)
+                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 6))), 0) AS treatedWater,
           COALESCE((SELECT SUM(solid_waste)     FROM dis_news.sewage_treatment
                     WHERE station_id = m.id AND active_flag = 1
-                      AND ((DATE(created_date) = :d AND HOUR(created_date) >= 8)
-                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 7))), 0) AS solidWaste
+                      AND ((DATE(created_date) = :d AND HOUR(created_date) >= 7)
+                           OR (DATE(created_date) = :nextD AND HOUR(created_date) <= 6))), 0) AS solidWaste
         FROM dis_news.menu m
         LEFT JOIN dis_news.menu p ON p.id = m.parent_id
         WHERE m.active_flag = 1
@@ -181,8 +181,8 @@ public interface SewageTreatmentRepository extends JpaRepository<SewageTreatment
     WHERE station_id = :stationId
       AND active_flag = 1
       AND (
-            (DATE(created_date) = :date AND HOUR(created_date) >= 8)
-         OR (DATE(created_date) = :nextDate AND HOUR(created_date) <= 7)
+            (DATE(created_date) = :date AND HOUR(created_date) >= 7)
+         OR (DATE(created_date) = :nextDate AND HOUR(created_date) <= 6)
       )
     ORDER BY DATE(created_date), HOUR(created_date)
     """, nativeQuery = true)
