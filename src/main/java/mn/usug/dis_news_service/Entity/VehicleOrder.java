@@ -57,7 +57,13 @@ public class VehicleOrder {
     @Column(name = "requested_time", length = 20)
     private String requestedTime;
 
+    /** 0=хүлээгдэж байна  1=баталгаажсан  2=хуваарилагдсан  3=боломжгүй */
     private Integer status;
+
+    /** status=3 үед автобаазаас ирсэн шалтгаан */
+    @Column(name = "decline_reason", columnDefinition = "TEXT")
+    private String declineReason;
+
     private Integer activeFlag;
 
     @CreatedDate

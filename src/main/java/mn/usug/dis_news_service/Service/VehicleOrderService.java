@@ -86,6 +86,7 @@ public class VehicleOrderService {
             dto.setAssignedDepartmentId(o.getAssignedDepartmentId());
             dto.setAssignedDepartmentName(depMap.get(o.getAssignedDepartmentId()));
             dto.setStatus(o.getStatus());
+            dto.setDeclineReason(o.getDeclineReason());
             dto.setOrderType(o.getOrderType() != null ? o.getOrderType() : 0);
             dto.setPickupLocation(o.getPickupLocation());
             dto.setDropoffLocation(o.getDropoffLocation());

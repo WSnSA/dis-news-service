@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/ref/vehicle-order")
@@ -62,6 +63,24 @@ public class VehicleOrderController {
             })
         );
         notificationService.notifyVehicleOrder("Захиалгууд баталгаажлаа", null);
+    }
+
+    /**
+     * 507 ажилтан баталгаажсан захиалгад "Боломжгүй" хариу өгнө: status 1 → 3
+     * Body: { "reason": "Шалтгаан текст" }
+     */
+    @PutMapping("/decline/{id}")
+    @Transactional
+    public void decline(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        VehicleOrder order = orderRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("VehicleOrder not found: " + id));
+        if (order.getStatus() != 1) {
+            throw new IllegalStateException("Зөвхөн баталгаажсан захиалгад боломжгүй хариу өгөх боломжтой");
+        }
+        order.setStatus(3);
+        order.setDeclineReason(body.getOrDefault("reason", ""));
+        orderRepo.save(order);
+        notificationService.notifyVehicleOrder("Захиалга боломжгүй болов", order.getAssignedDepartmentId());
     }
 
     /** Хүлээгдэж буй (status=0) захиалгыг засах */

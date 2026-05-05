@@ -15,8 +15,11 @@ public class VehicleOrderDto {
     private LocalDate endDate;
     private String taskDuration;
 
-    /** 0=хүлээгдэж байна  1=баталгаажсан  2=хуваарилагдсан */
+    /** 0=хүлээгдэж байна  1=баталгаажсан  2=хуваарилагдсан  3=боломжгүй */
     private Integer status;
+
+    /** status=3 үед автобаазаас ирсэн шалтгаан */
+    private String declineReason;
 
     /** 0=механизм  1=суудлын машин */
     private Integer orderType;

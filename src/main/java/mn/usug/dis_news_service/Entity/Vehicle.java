@@ -118,6 +118,10 @@ public class Vehicle {
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
+    /** 1=Үйлчилгээ  2=Цэвэр ус  3=Бохир ус */
+    @Column(name = "service_type")
+    private Integer serviceType;
+
     // ── Audit ────────────────────────────────────────────────
     @CreatedDate
     @Column(name = "created_at", updatable = false)

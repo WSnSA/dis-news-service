@@ -113,6 +113,7 @@ public class VehicleController {
         existing.setWheelPosition(vehicle.getWheelPosition());
         existing.setRfid(vehicle.getRfid());
         existing.setNote(vehicle.getNote());
+        existing.setServiceType(vehicle.getServiceType());
 
         repository.save(existing);
         saveDrivers(id, vehicle.getDrivers());
