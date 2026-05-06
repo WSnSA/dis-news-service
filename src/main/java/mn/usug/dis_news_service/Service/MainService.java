@@ -66,6 +66,7 @@ public class MainService {
         station.setPipeFm7(report.getPipeFm7());
         station.setPipeFm8(report.getPipeFm8());
         station.setTemperatureValues(report.getTemperatureValues());
+        station.setPressureValues(report.getPressureValues());
 
         hourlyWsStationDAO.save(station);
 

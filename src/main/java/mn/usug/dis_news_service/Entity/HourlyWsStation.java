@@ -70,6 +70,9 @@ public class HourlyWsStation {
     @Column(name = "temperature_values", columnDefinition = "TEXT")
     private String temperatureValues;
 
+    @Column(name = "pressure_values", columnDefinition = "TEXT")
+    private String pressureValues;
+
     /** Дэлгэцэд харуулах нэр — DB-д хадгалагдахгүй */
     @Transient
     public String createdByName;

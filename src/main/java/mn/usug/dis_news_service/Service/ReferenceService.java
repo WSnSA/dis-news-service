@@ -205,6 +205,7 @@ public class ReferenceService {
         oldStation.setPumpDetails(station.getPumpDetails());
         oldStation.setLineDetails(station.getLineDetails());
         oldStation.setTemperatureDetails(station.getTemperatureDetails());
+        oldStation.setPressureDetails(station.getPressureDetails());
         oldStation.setHasChlorine(station.getHasChlorine());
         oldStation.setChlorineLabel(station.getChlorineLabel());
         return ResponseEntity.ok(stationDAO.save(oldStation));

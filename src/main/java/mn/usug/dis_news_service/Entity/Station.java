@@ -78,6 +78,9 @@ public class Station {
     @Column(name = "temperature_details", columnDefinition = "TEXT")
     private String temperatureDetails;
 
+    @Column(name = "pressure_details", columnDefinition = "TEXT")
+    private String pressureDetails;
+
     @Column(name = "has_chlorine")
     private Boolean hasChlorine;
 

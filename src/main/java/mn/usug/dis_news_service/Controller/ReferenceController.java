@@ -109,6 +109,7 @@ public class ReferenceController {
             @RequestParam(value = "pumpDetails", required = false, defaultValue = "[]") String pumpDetails,
             @RequestParam(value = "lineDetails", required = false, defaultValue = "[]") String lineDetails,
             @RequestParam(value = "temperatureDetails", required = false, defaultValue = "[]") String temperatureDetails,
+            @RequestParam(value = "pressureDetails", required = false, defaultValue = "[]") String pressureDetails,
             @RequestParam(value = "hasChlorine", required = false, defaultValue = "false") Boolean hasChlorine,
             @RequestParam(value = "chlorineLabel", required = false, defaultValue = "") String chlorineLabel
     ) {
@@ -135,6 +136,7 @@ public class ReferenceController {
         station.setPumpDetails(pumpDetails);
         station.setLineDetails(lineDetails);
         station.setTemperatureDetails(temperatureDetails);
+        station.setPressureDetails(pressureDetails);
         station.setHasChlorine(hasChlorine);
         station.setChlorineLabel(chlorineLabel.isBlank() ? null : chlorineLabel);
         return refService.addStation(station);
@@ -161,6 +163,7 @@ public class ReferenceController {
             @RequestParam(value = "pumpDetails", required = false, defaultValue = "[]") String pumpDetails,
             @RequestParam(value = "lineDetails", required = false, defaultValue = "[]") String lineDetails,
             @RequestParam(value = "temperatureDetails", required = false, defaultValue = "[]") String temperatureDetails,
+            @RequestParam(value = "pressureDetails", required = false, defaultValue = "[]") String pressureDetails,
             @RequestParam(value = "hasChlorine", required = false, defaultValue = "false") Boolean hasChlorine,
             @RequestParam(value = "chlorineLabel", required = false, defaultValue = "") String chlorineLabel) {
         Department department = refService.getDepartmentById(depId);
@@ -187,6 +190,7 @@ public class ReferenceController {
         station.setPumpDetails(pumpDetails);
         station.setLineDetails(lineDetails);
         station.setTemperatureDetails(temperatureDetails);
+        station.setPressureDetails(pressureDetails);
         station.setHasChlorine(hasChlorine);
         station.setChlorineLabel(chlorineLabel.isBlank() ? null : chlorineLabel);
         return refService.updateStation(station);

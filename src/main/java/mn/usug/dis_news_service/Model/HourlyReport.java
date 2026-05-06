@@ -48,4 +48,7 @@ public class HourlyReport {
 
     /** Температурын утгуудын JSON "[{name,value},...]" */
     private String temperatureValues;
+
+    /** Даралтын утгуудын JSON "[{name,value},...]" */
+    private String pressureValues;
 }
