@@ -49,6 +49,12 @@ public class VehicleOrderController {
         return service.getConfirmed(date);
     }
 
+    /** Суудлын машин — албаны баталгаажуулалт хүлээж буй */
+    @GetMapping("/getDeptPending")
+    public List<VehicleOrderDto> getDeptPending(@RequestParam LocalDate date) {
+        return service.getDeptPending(date);
+    }
+
     /**
      * 502 ажилтан захиалгуудыг баталгаажуулна: status 0 → 1
      * Body: захиалгын ID-уудын жагсаалт  [1, 2, 3]
@@ -63,6 +69,30 @@ public class VehicleOrderController {
             })
         );
         notificationService.notifyVehicleOrder("Захиалгууд баталгаажлаа", null);
+    }
+
+    /**
+     * Албаны баталгаажуулагч суудлын машины хүсэлтүүдийг баталгаажуулна:
+     * deptApproved=false → true. Дараа нь автобаазын pending-д орно.
+     * Body: { "ids": [1,2,3], "userId": <approver> }
+     */
+    @PostMapping("/bulk-dept-approve")
+    @Transactional
+    public void bulkDeptApprove(@RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<Number> raw = (List<Number>) body.getOrDefault("ids", List.of());
+        Object userIdObj = body.get("userId");
+        Integer approver = userIdObj instanceof Number ? ((Number) userIdObj).intValue() : null;
+
+        raw.forEach(idNum -> {
+            Long id = idNum.longValue();
+            orderRepo.findById(id).ifPresent(o -> {
+                o.setDeptApproved(true);
+                o.setDeptApprovedBy(approver);
+                orderRepo.save(o);
+            });
+        });
+        notificationService.notifyVehicleOrder("Албаны баталгаажуулалт хийгдлээ", null);
     }
 
     /**
@@ -151,12 +181,16 @@ public class VehicleOrderController {
         order.setStartDate(dto.getStartDate());
         order.setEndDate(dto.getEndDate() != null ? dto.getEndDate() : dto.getStartDate());
         order.setTaskDuration(dto.getTaskDuration());
-        order.setOrderType(dto.getOrderType() != null ? dto.getOrderType() : 0);
+        Integer orderType = dto.getOrderType() != null ? dto.getOrderType() : 0;
+        order.setOrderType(orderType);
         order.setPickupLocation(dto.getPickupLocation());
         order.setDropoffLocation(dto.getDropoffLocation());
         order.setPassengerCount(dto.getPassengerCount());
         order.setRequestedTime(dto.getRequestedTime());
         order.setStatus(0);
+        // Суудлын машин (orderType=1) — албаны баталгаажуулалт шаардлагатай
+        // Механизм (orderType=0) — шууд автобаазад орно
+        order.setDeptApproved(orderType == 1 ? Boolean.FALSE : Boolean.TRUE);
         order.setActiveFlag(1);
         order.setCreatedDate(LocalDateTime.now());
 

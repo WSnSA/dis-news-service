@@ -60,6 +60,14 @@ public class VehicleOrder {
     /** 0=хүлээгдэж байна  1=баталгаажсан  2=хуваарилагдсан  3=боломжгүй */
     private Integer status;
 
+    /** Суудлын машин (orderType=1) — албаны дотоод баталгаажуулалт. true болсны дараа автобаазын pending-д орно */
+    @Column(name = "dept_approved")
+    private Boolean deptApproved;
+
+    /** Албаны баталгаажуулсан хэрэглэгчийн id */
+    @Column(name = "dept_approved_by")
+    private Integer deptApprovedBy;
+
     /** status=3 үед автобаазаас ирсэн шалтгаан */
     @Column(name = "decline_reason", columnDefinition = "TEXT")
     private String declineReason;

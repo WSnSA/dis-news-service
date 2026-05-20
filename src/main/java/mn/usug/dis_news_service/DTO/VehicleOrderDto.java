@@ -24,6 +24,17 @@ public class VehicleOrderDto {
     /** 0=механизм  1=суудлын машин */
     private Integer orderType;
 
+    /** Албаны дотоод баталгаажуулалт (суудлын машин) */
+    private Boolean deptApproved;
+    private Integer deptApprovedBy;
+
+    /** Хэн үүсгэсэн */
+    private Integer createdBy;
+    private String createdByName;
+
+    /** Тухайн албаны даргын userId — frontend "дарга-н хүсэлт мөн үү" гэдгийг таних */
+    private Integer departmentChairmanId;
+
     private String workDescription;
     private Integer assignedDepartmentId;
     private String assignedDepartmentName;

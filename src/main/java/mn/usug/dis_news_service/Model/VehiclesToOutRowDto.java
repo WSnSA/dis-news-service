@@ -19,4 +19,9 @@ public class VehiclesToOutRowDto {
     private String driverName;            // driverName
     private LocalDateTime createdDate;
     private String orderCreatedByName;    // vehicle_order.created_by → users.first_name
+
+    /** vehicle_order.id — frontend дээр group хийхэд хэрэгтэй */
+    private Integer vehicleOrderId;
+    /** 0=механизм, 1=суудлын — frontend дээр төрлөөр шүүхэд хэрэгтэй */
+    private Integer orderType;
 }

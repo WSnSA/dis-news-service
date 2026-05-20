@@ -130,6 +130,12 @@ public class VehiclesToOutController {
         e.setDriverName(dto.getDriverName());
         e.setActiveFlag(1);
         e.setStatus(1);
+
+        // order-аас orderType хуулж тавина — frontend дээр car/truck шүүхэд
+        if (dto.getVehicleOrderId() != null) {
+            orderRepo.findById(dto.getVehicleOrderId().longValue())
+                    .ifPresent(o -> e.setOrderType(o.getOrderType()));
+        }
         return e;
     }
 

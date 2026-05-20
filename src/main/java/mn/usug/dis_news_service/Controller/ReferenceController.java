@@ -37,12 +37,17 @@ public class ReferenceController {
     }
 
     @GetMapping("/department/add")
-    public Department addDepartment(@RequestParam("name") String name, @RequestParam("employeeCount") Integer employeeCount, @RequestParam("chairmanId") Integer chairmanId) {
+    public Department addDepartment(@RequestParam("name") String name,
+                                    @RequestParam("employeeCount") Integer employeeCount,
+                                    @RequestParam(value = "chairmanId", required = false) Integer chairmanId) {
         return refService.addDepartment(name, employeeCount, chairmanId);
     }
 
     @GetMapping("/department/edit")
-    public Department editDepartment(@RequestParam("id") Integer id, @RequestParam("name") String name, @RequestParam("employeeCount") Integer employeeCount, @RequestParam("chairmanId") Integer chairmanId) {
+    public Department editDepartment(@RequestParam("id") Integer id,
+                                     @RequestParam("name") String name,
+                                     @RequestParam("employeeCount") Integer employeeCount,
+                                     @RequestParam(value = "chairmanId", required = false) Integer chairmanId) {
         return refService.editDepartment(id, name, employeeCount, chairmanId);
     }
 
@@ -204,6 +209,10 @@ public class ReferenceController {
     @GetMapping("/user/getAll")
     public List<User> getAllUsers() {
         return refService.getAllUsers();
+    }
+    @GetMapping("/user/getAllByDepId")
+    public List<User> getAllByDepId(@RequestParam("depId") Integer depId) {
+        return refService.getAllByDepId(depId);
     }
     @DeleteMapping("/user/delete/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Integer id) {

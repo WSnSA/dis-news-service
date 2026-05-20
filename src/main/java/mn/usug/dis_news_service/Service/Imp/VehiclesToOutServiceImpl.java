@@ -77,7 +77,7 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
     public List<VehiclesToOutRowDto> findRowsByDate(LocalDate date) {
         List<VehiclesToOut> records = repo.findByDate(date);
 
-        // Batch: vehicle_order.created_by → user.first_name
+        // Batch: vehicle_order — createdBy + orderType
         Set<Long> orderIds = records.stream()
                 .map(VehiclesToOut::getVehicleOrderId)
                 .filter(Objects::nonNull)
@@ -85,36 +85,50 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
                 .collect(Collectors.toSet());
 
         Map<Integer, Integer> orderToUser = new HashMap<>();
+        Map<Integer, Integer> orderToType = new HashMap<>();
         if (!orderIds.isEmpty()) {
-            vehicleOrderRepo.findAllById(orderIds)
-                    .forEach(o -> { if (o.getCreatedBy() != null) orderToUser.put(o.getId().intValue(), o.getCreatedBy()); });
+            vehicleOrderRepo.findAllById(orderIds).forEach(o -> {
+                Integer key = o.getId().intValue();
+                if (o.getCreatedBy() != null) orderToUser.put(key, o.getCreatedBy());
+                if (o.getOrderType() != null) orderToType.put(key, o.getOrderType());
+            });
         }
 
         Map<Integer, String> userNames = new HashMap<>();
         Set<Integer> userIds = new HashSet<>(orderToUser.values());
         if (!userIds.isEmpty()) {
             userDAO.findAllById(userIds)
-                    .forEach(u -> userNames.put(u.getId(), u.getFirstName()));
+                    .forEach(u -> userNames.put(u.getId(), buildShortName(u.getLastName(), u.getFirstName())));
         }
 
         return records.stream()
                 .map(v -> {
                     String name = null;
+                    Integer type = v.getOrderType();  // entity-д хадгалсан утга эхэлж
                     if (v.getVehicleOrderId() != null) {
                         Integer uid = orderToUser.get(v.getVehicleOrderId());
                         if (uid != null) name = userNames.get(uid);
+                        if (type == null) type = orderToType.get(v.getVehicleOrderId());  // join fallback
                     }
-                    return toRowDtoFilledFromLegacy(v, name);
+                    return toRowDtoFilledFromLegacy(v, name, type);
                 })
                 .filter(r -> !isAllBlank(r))
                 .toList();
     }
 
-    private VehiclesToOutRowDto toRowDtoFilledFromLegacy(VehiclesToOut v) {
-        return toRowDtoFilledFromLegacy(v, null);
+    private String buildShortName(String lastName, String firstName) {
+        String ln = lastName == null ? "" : lastName.trim();
+        String fn = firstName == null ? "" : firstName.trim();
+        if (ln.isEmpty() && fn.isEmpty()) return null;
+        if (ln.isEmpty()) return fn;
+        return ln.charAt(0) + ". " + fn;
     }
 
-    private VehiclesToOutRowDto toRowDtoFilledFromLegacy(VehiclesToOut v, String orderCreatedByName) {
+    private VehiclesToOutRowDto toRowDtoFilledFromLegacy(VehiclesToOut v) {
+        return toRowDtoFilledFromLegacy(v, null, null);
+    }
+
+    private VehiclesToOutRowDto toRowDtoFilledFromLegacy(VehiclesToOut v, String orderCreatedByName, Integer orderType) {
         JsonNode legacy = parseLegacy(v.getLegacyData());
 
         // Entity талбар эхлэж, байхгүй бол legacy_data-с нөхнө
@@ -153,6 +167,8 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
                 .driverName(normalize(v.getDriverName()))
                 .createdDate(v.getCreatedDate())
                 .orderCreatedByName(orderCreatedByName)
+                .vehicleOrderId(v.getVehicleOrderId())
+                .orderType(orderType)
                 .build();
     }
 

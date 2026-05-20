@@ -46,6 +46,10 @@ public class ReferenceService {
         return list;
     }
 
+    public List<User> getAllByDepId(Integer depId) {
+        List<User> list = userDAO.findByDepartmentId(depId);
+        return list;
+    }
     public void deleteUser(Integer id) {
         userDAO.deleteById(id);
     }

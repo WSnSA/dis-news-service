@@ -42,6 +42,10 @@ public class VehiclesToOut {
     @Column(name = "vehicle_type_id")
     private Integer vehicleTypeId;
 
+    /** 0=механизм, 1=суудлын — vehicle_order.order_type-аас хуулна */
+    @Column(name = "order_type")
+    private Integer orderType;
+
     @Column(name = "qty")
     private Integer count;
 

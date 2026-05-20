@@ -2,12 +2,14 @@ package mn.usug.dis_news_service.Service;
 
 import lombok.RequiredArgsConstructor;
 import mn.usug.dis_news_service.DAO.DepartmentDAO;
+import mn.usug.dis_news_service.DAO.UserDAO;
 import mn.usug.dis_news_service.DAO.VehicleOrderItemRepository;
 import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
 import mn.usug.dis_news_service.DAO.VehicleTypeRepository;
 import mn.usug.dis_news_service.DTO.VehicleItemDto;
 import mn.usug.dis_news_service.DTO.VehicleOrderDto;
 import mn.usug.dis_news_service.Entity.Department;
+import mn.usug.dis_news_service.Entity.User;
 import mn.usug.dis_news_service.Entity.VehicleOrder;
 import mn.usug.dis_news_service.Entity.VehicleType;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ public class VehicleOrderService {
     private final VehicleOrderItemRepository itemRepo;
     private final VehicleTypeRepository typeRepo;
     private final DepartmentDAO departmentRepo;
+    private final UserDAO userRepo;
 
     public List<VehicleOrderDto> getByDate(LocalDate date) {
         return mapOrders(orderRepo.findByDate(date));
@@ -41,14 +44,26 @@ public class VehicleOrderService {
         return mapOrders(orderRepo.findConfirmedByDate(date));
     }
 
+    /** Суудлын машин — албаны баталгаажуулалт хүлээж буй */
+    public List<VehicleOrderDto> getDeptPending(LocalDate date) {
+        return mapOrders(orderRepo.findDeptPendingByDate(date));
+    }
+
     private List<VehicleOrderDto> mapOrders(List<VehicleOrder> orders) {
 
-        Map<Integer, String> depMap =
-                departmentRepo.findAll().stream()
-                        .collect(Collectors.toMap(
-                                Department::getDepId,
-                                Department::getDepName
-                        ));
+        List<Department> deps = departmentRepo.findAll();
+        Map<Integer, String> depMap = deps.stream()
+                .collect(Collectors.toMap(Department::getDepId, Department::getDepName));
+        Map<Integer, Integer> chairmanMap = deps.stream()
+                .filter(d -> d.getChairmanId() != null)
+                .collect(Collectors.toMap(Department::getDepId, Department::getChairmanId));
+
+        Map<Integer, String> userNameMap = userRepo.findAll().stream()
+                .collect(Collectors.toMap(
+                        User::getId,
+                        u -> ((u.getLastName() != null ? u.getLastName().charAt(0) + ". " : "") +
+                              (u.getFirstName() != null ? u.getFirstName() : "")).trim()
+                ));
 
         return orders.stream().map(o -> {
 
@@ -92,6 +107,11 @@ public class VehicleOrderService {
             dto.setDropoffLocation(o.getDropoffLocation());
             dto.setPassengerCount(o.getPassengerCount());
             dto.setRequestedTime(o.getRequestedTime());
+            dto.setDeptApproved(o.getDeptApproved());
+            dto.setDeptApprovedBy(o.getDeptApprovedBy());
+            dto.setCreatedBy(o.getCreatedBy());
+            dto.setCreatedByName(o.getCreatedBy() != null ? userNameMap.get(o.getCreatedBy()) : null);
+            dto.setDepartmentChairmanId(chairmanMap.get(o.getAssignedDepartmentId()));
             dto.setVehicles(vehicles);
 
             return dto;
