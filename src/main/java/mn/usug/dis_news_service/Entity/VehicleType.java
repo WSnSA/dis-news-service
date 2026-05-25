@@ -17,4 +17,8 @@ public class VehicleType {
 
     @Column(name = "parent_id")
     private Integer parentId;
+
+    /** 1=идэвхтэй, 0=идэвхгүй (soft delete). Хуучин түүхэнд нэр хадгалагдахын тулд мөрийг устгахгүй. */
+    @Column(name = "active_flag")
+    private Integer activeFlag = 1;
 }

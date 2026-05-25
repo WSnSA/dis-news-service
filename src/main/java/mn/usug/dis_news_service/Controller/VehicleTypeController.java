@@ -3,6 +3,7 @@ package mn.usug.dis_news_service.Controller;
 import lombok.RequiredArgsConstructor;
 import mn.usug.dis_news_service.DAO.VehicleTypeRepository;
 import mn.usug.dis_news_service.Entity.VehicleType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,24 +13,27 @@ import java.util.List;
 @RequiredArgsConstructor
 public class VehicleTypeController {
 
+    private static final Integer ACTIVE = 1;
+    private static final Integer INACTIVE = 0;
+
     private final VehicleTypeRepository repository;
 
-    /** Бүгд (parent + child) */
+    /** Бүгд идэвхтэй (parent + child). Идэвхгүй болгосон төрлүүд харагдахгүй — мөр нь хуучин түүхэд хэвээр үлдэнэ. */
     @GetMapping("/getAll")
     public List<VehicleType> getAll() {
-        return repository.findAll();
+        return repository.findByActiveFlag(ACTIVE);
     }
 
-    /** Зөвхөн үндсэн (parent_id IS NULL) — жагсаалтад ашиглана */
+    /** Зөвхөн идэвхтэй үндсэн (parent_id IS NULL) — жагсаалтад ашиглана */
     @GetMapping("/getRoots")
     public List<VehicleType> getRoots() {
-        return repository.findByParentIdIsNull();
+        return repository.findByParentIdIsNullAndActiveFlag(ACTIVE);
     }
 
-    /** Дэд төрлүүд parentId-аар */
+    /** Идэвхтэй дэд төрлүүд parentId-аар */
     @GetMapping("/getByParent")
     public List<VehicleType> getByParent(@RequestParam Integer parentId) {
-        return repository.findByParentId(parentId);
+        return repository.findByParentIdAndActiveFlag(parentId, ACTIVE);
     }
 
     @PostMapping("/save")
@@ -47,8 +51,23 @@ public class VehicleTypeController {
         return repository.save(existing);
     }
 
+    /**
+     * Soft delete — мөрийг устгахгүй, зөвхөн идэвхгүй болгоно.
+     * Учир нь машин/захиалга зэрэг хуучин бичлэгүүд vehicle_type_id-аар холбогддог;
+     * мөрийг устгавал foreign key зөрчигдөн алдаа гарна, нэр нь түүхэнд алдагдана.
+     * Үндсэн төрлийг идэвхгүй болгоход дэд төрлүүд нь хамт идэвхгүй болно.
+     */
     @DeleteMapping("/delete/{id}")
-    public void delete(@PathVariable Integer id) {
-        repository.deleteById(id);
+    public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        repository.findById(id).ifPresent(type -> {
+            type.setActiveFlag(INACTIVE);
+            repository.save(type);
+            // Дэд төрлүүдийг хамт идэвхгүй болгоно
+            for (VehicleType child : repository.findByParentId(id)) {
+                child.setActiveFlag(INACTIVE);
+                repository.save(child);
+            }
+        });
+        return ResponseEntity.noContent().build();
     }
 }

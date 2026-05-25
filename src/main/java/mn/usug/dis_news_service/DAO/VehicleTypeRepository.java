@@ -13,4 +13,11 @@ public interface VehicleTypeRepository extends JpaRepository<VehicleType, Intege
     List<VehicleType> findByParentIdIsNull();
 
     List<VehicleType> findByParentId(Integer parentId);
+
+    // Зөвхөн идэвхтэй (active_flag=1) — UI жагсаалт/dropdown-д
+    List<VehicleType> findByActiveFlag(Integer activeFlag);
+
+    List<VehicleType> findByParentIdIsNullAndActiveFlag(Integer activeFlag);
+
+    List<VehicleType> findByParentIdAndActiveFlag(Integer parentId, Integer activeFlag);
 }
