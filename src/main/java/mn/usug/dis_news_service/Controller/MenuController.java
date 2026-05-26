@@ -6,6 +6,8 @@ import mn.usug.dis_news_service.Service.MenuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 
 @RestController
 @RequestMapping("/menu")
@@ -29,6 +31,11 @@ public class MenuController {
     @DeleteMapping("/delete")
     public Menu deleteMenu(@RequestParam("id") Integer id) {
         return menuService.deleteMenu(id);
+    }
+
+    @PostMapping("/reorder")
+    public Iterable<Menu> reorderMenus(@RequestBody List<MenuModel> orders) {
+        return menuService.reorderMenus(orders);
     }
 
 }

@@ -71,6 +71,10 @@ public class User {
     @Column(name = "first_login")
     private Boolean firstLogin = true;
 
+    /** Шуурхай хурлын үүрэг даалгавар өгөх / дүгнэх эрхтэй эсэх */
+    @Column(name = "can_assign_task")
+    private Boolean canAssignTask;
+
     @Transient
     private String depName;
 

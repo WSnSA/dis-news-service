@@ -48,6 +48,18 @@ public interface VehicleOrderRepository extends JpaRepository<VehicleOrder, Long
     """)
     List<VehicleOrder> findDeptPendingByDate(@Param("date") LocalDate date);
 
+    /** Суудлын машин — албаны баталгаажуулалт хүлээж буй БҮХ хүсэлт (огноогоор шүүхгүй, өдрөөр эрэмбэлсэн) */
+    @Query("""
+        select v
+        from VehicleOrder v
+        where v.activeFlag = 1
+          and v.status = 0
+          and v.orderType = 1
+          and (v.deptApproved is null or v.deptApproved = false)
+        order by coalesce(v.startDate, v.orderDate), v.assignedDepartmentId, v.createdDate
+    """)
+    List<VehicleOrder> findAllDeptPending();
+
     @Query("""
         select v
         from VehicleOrder v

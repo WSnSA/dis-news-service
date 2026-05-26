@@ -17,6 +17,7 @@ public class MenuModel {
     private String path;
     private String component;
     private Integer activeFlag;
+    private Integer sortOrder;
     private Date createdDate;
     private Date updatedDate;
 

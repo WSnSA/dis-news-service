@@ -55,6 +55,12 @@ public class VehicleOrderController {
         return service.getDeptPending(date);
     }
 
+    /** Суудлын машин — албаны баталгаажуулалт хүлээж буй БҮХ хүсэлт (огноогоор шүүхгүй) */
+    @GetMapping("/getAllDeptPending")
+    public List<VehicleOrderDto> getAllDeptPending() {
+        return service.getAllDeptPending();
+    }
+
     /**
      * 502 ажилтан захиалгуудыг баталгаажуулна: status 0 → 1
      * Body: захиалгын ID-уудын жагсаалт  [1, 2, 3]

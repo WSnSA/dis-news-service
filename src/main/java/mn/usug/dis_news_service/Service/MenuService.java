@@ -32,9 +32,31 @@ public class MenuService {
         menu.setPath(model.getPath());
         menu.setComponent(model.getComponent());
         menu.setActiveFlag(1);
+        // Шинэ цэс хамгийн төгсгөлд орно
+        Integer maxOrder = menuDAO.findAll().stream()
+                .map(m -> m.getSortOrder() != null ? m.getSortOrder() : m.getId())
+                .max(Integer::compareTo)
+                .orElse(0);
+        menu.setSortOrder(maxOrder + 1);
         menu.setCreatedDate(new Date());
         menu.setUpdatedDate(new Date());
         return menuDAO.save(menu);
+    }
+
+    /**
+     * Цэсний харагдах дарааллыг batch хэлбэрээр шинэчилнэ.
+     * Зөвхөн id + sortOrder утгыг ашиглана.
+     */
+    public Iterable<Menu> reorderMenus(List<MenuModel> orders) {
+        for (MenuModel o : orders) {
+            if (o.getId() == null || o.getSortOrder() == null) continue;
+            Menu menu = menuDAO.findById(o.getId()).orElse(null);
+            if (menu == null) continue;
+            menu.setSortOrder(o.getSortOrder());
+            menu.setUpdatedDate(new Date());
+            menuDAO.save(menu);
+        }
+        return menuDAO.findAll();
     }
 
     public Menu editMenu(MenuModel model) {

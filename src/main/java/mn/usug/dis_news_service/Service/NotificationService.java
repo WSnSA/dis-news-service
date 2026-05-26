@@ -109,6 +109,18 @@ public class NotificationService {
         broadcast(targets, "task", "Шинэ үүрэг даалгавар", msg, "pi-check-square");
     }
 
+    /** Шуурхай хурлын үүрэг даалгавар — холбогдох албадын хэрэглэгчдэд (байхгүй бол depId=9) */
+    public void notifyBriefing(String description, Set<Integer> deptIds) {
+        String msg = truncate(description, 100);
+        Set<Integer> targets = new HashSet<>();
+        if (deptIds != null) {
+            deptIds.stream()
+                    .filter(d -> d != null && d > 0)
+                    .forEach(d -> targets.addAll(userIdsInDept(d)));
+        }
+        broadcast(fallbackDept9(targets), "briefing", "Шуурхай хурлын үүрэг", msg, "pi-megaphone");
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /** Тухайн цонхны canEdit=1 эрхтэй userId-ийн жагсаалт */

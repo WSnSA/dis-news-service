@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface MenuDAO extends JpaRepository<Menu,Integer> {
 
-    @Query("select a from Menu a where a.activeFlag = 1")
+    @Query("select a from Menu a where a.activeFlag = 1 order by coalesce(a.sortOrder, a.id)")
     List<Menu> findAll();
 
     @Query("select a from Menu a where a.activeFlag = 1 and a.path is not null and a.component is not null and a.path like '%ws%'")

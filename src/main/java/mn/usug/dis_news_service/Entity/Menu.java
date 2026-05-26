@@ -32,6 +32,9 @@ public class Menu {
     @Column(name = "active_flag")
     private Integer activeFlag;
 
+    @Column(name = "sort_order")
+    private Integer sortOrder;
+
     @Column(name = "created_date")
     private Date createdDate;
 

@@ -49,6 +49,11 @@ public class VehicleOrderService {
         return mapOrders(orderRepo.findDeptPendingByDate(date));
     }
 
+    /** Суудлын машин — албаны баталгаажуулалт хүлээж буй БҮХ хүсэлт (огноогоор шүүхгүй) */
+    public List<VehicleOrderDto> getAllDeptPending() {
+        return mapOrders(orderRepo.findAllDeptPending());
+    }
+
     private List<VehicleOrderDto> mapOrders(List<VehicleOrder> orders) {
 
         List<Department> deps = departmentRepo.findAll();
