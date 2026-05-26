@@ -70,7 +70,12 @@ public interface HourlyWsStationDAO extends JpaRepository<HourlyWsStation,Intege
     """, nativeQuery = true)
     List<HourlyWsStation> findLatestByMenuIds(@Param("menuIds") List<Integer> menuIds);
 
-    /** Өмнөх ээлжийн (D-1 өдрийн 07:00 – D өдрийн 06:00) сүүлийн бүртгэл станц бүрт — FM baseline */
+    /**
+     * Өмнөх ээлжийн (D-1 өдрийн 07:00 – D өдрийн 06:00) сүүлийн FM ЗААЛТТАЙ бүртгэл станц бүрт — FM baseline.
+     * Ажилтан цаг бүр насосны төлвийг бичдэг ч FM заалтыг ээлжид цөөн удаа бичдэг тул сүүлийн МӨР нь
+     * ихэвчлэн FM=null байдаг. Тиймээс зөвхөн дор хаяж нэг FM заалттай мөрүүдээс хамгийн сүүлийнхийг авна
+     * (frontend findLastStationWithFm-тэй ижил). Эс бөгөөс baseline=null болж ээлжийн эхний заалт алдагдана.
+     */
     @Query(value = """
     SELECT h.*
     FROM hourly_ws_station h
@@ -82,6 +87,7 @@ public interface HourlyWsStationDAO extends JpaRepository<HourlyWsStation,Intege
                 (DATE(date) = :prevDateStr AND hour >= 7)
              OR (DATE(date) = :dateStr     AND hour <= 6)
           )
+          AND (pipe_fm_1 IS NOT NULL OR pipe_fm_7 IS NOT NULL OR pipe_fm_8 IS NOT NULL)
         GROUP BY menu_id
     ) latest ON h.id = latest.max_id
     """, nativeQuery = true)
@@ -90,7 +96,10 @@ public interface HourlyWsStationDAO extends JpaRepository<HourlyWsStation,Intege
             @Param("prevDateStr") String prevDateStr,
             @Param("dateStr") String dateStr);
 
-    /** Тухайн станцын өмнөх ээлжийн (D-1 өдрийн 07:00 – D өдрийн 06:00) хамгийн сүүлийн бүртгэл */
+    /**
+     * Тухайн станцын өмнөх ээлжийн (D-1 өдрийн 07:00 – D өдрийн 06:00) сүүлийн FM ЗААЛТТАЙ бүртгэл — FM baseline.
+     * (findLastByMenuIdsAndPrevShift-тэй ижил шалтгаан: сүүлийн МӨР нь FM=null байж болзошгүй тул шүүнэ.)
+     */
     @Query(value = """
     SELECT * FROM hourly_ws_station
     WHERE menu_id = :menuId
@@ -98,6 +107,7 @@ public interface HourlyWsStationDAO extends JpaRepository<HourlyWsStation,Intege
             (DATE(date) = :prevDateStr AND hour >= 7)
          OR (DATE(date) = :dateStr     AND hour <= 6)
       )
+      AND (pipe_fm_1 IS NOT NULL OR pipe_fm_7 IS NOT NULL OR pipe_fm_8 IS NOT NULL)
     ORDER BY date DESC, id DESC LIMIT 1
     """, nativeQuery = true)
     java.util.Optional<HourlyWsStation> findLastByMenuIdAndPrevShift(
