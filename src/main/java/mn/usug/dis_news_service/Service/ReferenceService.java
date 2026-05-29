@@ -257,6 +257,15 @@ public class ReferenceService {
         user.setMailAddress(model.getMailAddress());
         user.setPhoneNumber(model.getPhoneNumber());
         user.setFirstLogin(true);
+        user.setCanAssignTask(Boolean.TRUE.equals(model.getCanAssignTask()));
+        return userDAO.save(user);
+    }
+
+    /** Шуурхай хурлаар үүрэг өгөх / дүгнэх эрхийг шилжүүлэх */
+    public User setCanAssignTask(Integer userId, Boolean value) {
+        User user = userDAO.findById(userId).orElse(null);
+        if (user == null) return null;
+        user.setCanAssignTask(Boolean.TRUE.equals(value));
         return userDAO.save(user);
     }
 

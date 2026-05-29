@@ -235,4 +235,12 @@ public class ReferenceController {
         User user = refService.getUserByUsername(username);
         return user != null ? List.of(user) : List.of();
     }
+
+    /** Шуурхай хурлаар үүрэг даалгавар өгөх / дүгнэх эрхийг шилжүүлэх */
+    @PutMapping("/user/{id}/can-assign-task")
+    public ResponseEntity<?> setCanAssignTask(@PathVariable Integer id, @RequestParam Boolean value) {
+        User u = refService.setCanAssignTask(id, value);
+        if (u == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        return ResponseEntity.ok(u);
+    }
 }

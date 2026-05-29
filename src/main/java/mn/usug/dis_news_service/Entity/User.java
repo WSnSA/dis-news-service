@@ -71,9 +71,9 @@ public class User {
     @Column(name = "first_login")
     private Boolean firstLogin = true;
 
-    /** Шуурхай хурлын үүрэг даалгавар өгөх / дүгнэх эрхтэй эсэх */
+    /** Шуурхай хурлын үүрэг даалгавар өгөх / дүгнэх эрхтэй эсэх. INSERT-д null оруулахгүйн тулд default=false. */
     @Column(name = "can_assign_task")
-    private Boolean canAssignTask;
+    private Boolean canAssignTask = false;
 
     @Transient
     private String depName;

@@ -18,5 +18,6 @@ public class UserModel {
     private Boolean activeFlag;
     private String status;
 
-
+    /** Шуурхай хурлаар үүрэг даалгавар өгөх / дүгнэх эрхтэй эсэх */
+    private Boolean canAssignTask;
 }
