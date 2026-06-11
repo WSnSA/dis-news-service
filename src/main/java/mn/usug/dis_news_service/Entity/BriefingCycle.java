@@ -22,6 +22,10 @@ public class BriefingCycle {
     @Column(name = "task_id")
     private Integer taskId;
 
+    /** Холбогдох шуурхай хурал (briefing_meeting.id) */
+    @Column(name = "meeting_id")
+    private Integer meetingId;
+
     /** 1, 2, 3 ... сунгалтын дугаар */
     @Column(name = "cycle_no")
     private Integer cycleNo;
@@ -47,6 +51,10 @@ public class BriefingCycle {
 
     @Column(name = "scored_at")
     private LocalDateTime scoredAt;
+
+    /** Дүгнэхэд үлдээсэн тайлбар (§3.3) */
+    @Column(name = "score_comment", length = 2000)
+    private String scoreComment;
 
     /** 0=нээлттэй, 1=дүгнэгдсэн */
     @Column(name = "status")

@@ -186,6 +186,7 @@ public class ReferenceService {
     public ResponseEntity addStation(Station station) {
         return ResponseEntity.ok(stationDAO.save(station));
     }
+
     public ResponseEntity updateStation(Station station) {
         Station oldStation = stationDAO.findById(station.getId()).orElse(null);
         if (oldStation == null) {

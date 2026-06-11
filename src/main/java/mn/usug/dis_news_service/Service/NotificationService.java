@@ -121,6 +121,22 @@ public class NotificationService {
         broadcast(fallbackDept9(targets), "briefing", "Шуурхай хурлын үүрэг", msg, "pi-megaphone");
     }
 
+    /** Шуурхай хурал — холбогдох албадад тусгай гарчиг/мессеж (§3.6 event notif) */
+    public void notifyBriefingDepts(Set<Integer> deptIds, String title, String message) {
+        Set<Integer> targets = new HashSet<>();
+        if (deptIds != null) {
+            deptIds.stream().filter(d -> d != null && d > 0).forEach(d -> targets.addAll(userIdsInDept(d)));
+        }
+        broadcast(targets, "briefing", title, truncate(message, 120), "pi-megaphone");
+    }
+
+    /** Шуурхай хурал — тодорхой хэрэглэгчдэд (ж: үүрэг өгсөн удирдлага) */
+    public void notifyBriefingUsers(Set<Integer> userIds, String title, String message) {
+        Set<Integer> targets = userIds == null ? new HashSet<>()
+                : userIds.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        broadcast(targets, "briefing", title, truncate(message, 120), "pi-megaphone");
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /** Тухайн цонхны canEdit=1 эрхтэй userId-ийн жагсаалт */

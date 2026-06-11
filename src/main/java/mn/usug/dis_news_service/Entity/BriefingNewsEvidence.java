@@ -6,14 +6,13 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * Нотлох баримт — folder доторх нэг файл.
- * Бодит файл нь file service-д (bucket=disnews) хадгалагдана; энд зөвхөн objectName + meta.
- * parent = folder_id ({@link BriefingFulfillment#getFolderId()}).
+ * Шуурхайн мэдээний нотлох баримт (фото/файл эсвэл линк).
+ * evidenceType: FILE (file service objectName) / LINK (видео/cloud холбоос).
  */
 @Entity
-@Table(name = "briefing_evidence")
+@Table(name = "briefing_news_evidence")
 @Data
-public class BriefingEvidence {
+public class BriefingNewsEvidence {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,15 +21,12 @@ public class BriefingEvidence {
     @Column(name = "folder_id", length = 64)
     private String folderId;
 
-    /** file service upload-аас буцсан objectName / UUID (FILE төрөлд) */
     @Column(name = "object_name", length = 255)
     private String objectName;
 
-    /** Видео / Google Drive / Cloud холбоос (LINK төрөлд) */
     @Column(name = "link_url", length = 1000)
     private String linkUrl;
 
-    /** FILE / LINK */
     @Column(name = "evidence_type", length = 20)
     private String evidenceType;
 

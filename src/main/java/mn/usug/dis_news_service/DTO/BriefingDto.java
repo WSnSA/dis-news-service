@@ -26,6 +26,10 @@ public class BriefingDto {
     private List<DepRef> departments;
     private List<Cycle>  cycles;
 
+    /** Газрын даргын өмнөөс дүгнэх эрхтэй хэрэглэгчид (§2 delegation) */
+    private List<Integer> delegateIds;
+    private List<String>  delegateNames;
+
     /** Холбогдох алба */
     @Data
     public static class DepRef {
@@ -38,6 +42,8 @@ public class BriefingDto {
     public static class Cycle {
         private Integer id;
         private Integer cycleNo;
+        private Integer meetingId;
+        private String  meetingNo;
         private LocalDate meetingDate;
         private LocalDateTime submitDeadline;
         private LocalDateTime scoreDeadline;
@@ -45,8 +51,14 @@ public class BriefingDto {
         private Integer scoredBy;
         private String  scoredByName;
         private LocalDateTime scoredAt;
+        private String  scoreComment;
         /** 0=нээлттэй, 1=дүгнэгдсэн */
         private Integer status;
+        /**
+         * Дериватив төлөв (§3.1/§8) — backend now()+score-оор тооцоолно, frontend зөвхөн харуулна:
+         * NEW / REVIEWING / IN_PROGRESS / DONE / NOT_DONE / OVERDUE
+         */
+        private String derivedStatus;
         private List<Fulfillment> fulfillments;
     }
 
@@ -61,14 +73,20 @@ public class BriefingDto {
         private Integer submittedBy;
         private String  submittedByName;
         private LocalDateTime submittedAt;
+        /** 0=ороогүй, 1=илгээгдсэн, 2=буцаагдсан (§3.3) */
+        private Integer status;
+        private String  returnComment;
+        private LocalDateTime returnedAt;
         private List<Evidence> evidence;
     }
 
-    /** Нотлох баримтын файл */
+    /** Нотлох баримтын файл эсвэл линк */
     @Data
     public static class Evidence {
         private Integer id;
         private String  objectName;
+        private String  linkUrl;
+        private String  evidenceType;   // FILE / LINK
         private String  fileName;
         private String  contentType;
         private Long    fileSize;

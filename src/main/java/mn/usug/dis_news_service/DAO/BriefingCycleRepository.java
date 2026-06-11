@@ -17,4 +17,10 @@ public interface BriefingCycleRepository extends JpaRepository<BriefingCycle, In
 
     /** Дүгнэх хугацаа дууссан хэрнээ дүгнээгүй (score=null) cycle-ууд — auto-0 болгох нэр дэвшигч */
     List<BriefingCycle> findByScoreIsNullAndScoreDeadlineBefore(LocalDateTime deadline);
+
+    /** Биелэлт оруулах хугацаа тодорхой завсарт байгаа, дүгнээгүй cycle-ууд (scheduled сануулга) */
+    List<BriefingCycle> findByScoreIsNullAndSubmitDeadlineBetween(LocalDateTime start, LocalDateTime end);
+
+    /** Дүгнэх хугацаа тодорхой завсарт байгаа, дүгнээгүй cycle-ууд (scheduled сануулга) */
+    List<BriefingCycle> findByScoreIsNullAndScoreDeadlineBetween(LocalDateTime start, LocalDateTime end);
 }
