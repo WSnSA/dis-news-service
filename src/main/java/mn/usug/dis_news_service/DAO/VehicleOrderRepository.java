@@ -60,13 +60,19 @@ public interface VehicleOrderRepository extends JpaRepository<VehicleOrder, Long
     """)
     List<VehicleOrder> findAllDeptPending();
 
+    /**
+     * Баталгаажсан (status=1) БОЛОН боломжгүй болгосон (status=3) захиалгыг захиалсан өдрөөр нь буцаана.
+     * Боломжгүй болгосон захиалга захиалсан хугацаандаа хэвээр харагдана — машин сул гарвал
+     * тухайн өдөр нь дахин хуваарилах боломжтой.
+     * Эрэмбэ: эхэлж баталгаажсан (1), дараа нь боломжгүй (3).
+     */
     @Query("""
         select v
         from VehicleOrder v
         where v.activeFlag = 1
-          and v.status = 1
+          and v.status in (1, 3)
           and (v.startDate is null and v.orderDate = :date or v.startDate = :date)
-        order by v.assignedDepartmentId, v.createdDate
+        order by v.status, v.assignedDepartmentId, v.createdDate
     """)
     List<VehicleOrder> findConfirmedByDate(@Param("date") LocalDate date);
 }
