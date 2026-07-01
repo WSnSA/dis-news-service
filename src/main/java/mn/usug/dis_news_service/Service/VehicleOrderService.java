@@ -39,7 +39,7 @@ public class VehicleOrderService {
         return mapOrders(orderRepo.findPendingByDate(date));
     }
 
-    /** Баталгаажсан (status=1) — 507 ажилтан харна */
+    /** Баталгаажсан (status=1) + боломжгүй болгосон (status=3) — 507 ажилтан харна */
     public List<VehicleOrderDto> getConfirmed(LocalDate date) {
         return mapOrders(orderRepo.findConfirmedByDate(date));
     }

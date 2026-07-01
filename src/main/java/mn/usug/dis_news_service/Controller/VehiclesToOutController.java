@@ -149,6 +149,8 @@ public class VehiclesToOutController {
         if (vehicleOrderId == null) return;
         orderRepo.findById(vehicleOrderId.longValue()).ifPresent(order -> {
             order.setStatus(2);
+            // Боломжгүй (status=3) байсан захиалга дахин хуваарилагдвал шалтгааныг цэвэрлэнэ
+            order.setDeclineReason(null);
             orderRepo.save(order);
         });
     }

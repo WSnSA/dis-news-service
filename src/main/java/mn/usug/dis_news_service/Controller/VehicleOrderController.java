@@ -43,7 +43,7 @@ public class VehicleOrderController {
         return service.getPending(date);
     }
 
-    /** Баталгаажсан (status=1) — 507 ажилтан харна */
+    /** Баталгаажсан (status=1) + боломжгүй болгосон (status=3) — 507 ажилтан харна */
     @GetMapping("/getConfirmed")
     public List<VehicleOrderDto> getConfirmed(@RequestParam LocalDate date) {
         return service.getConfirmed(date);
