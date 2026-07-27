@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import mn.usug.dis_news_service.DAO.UserDAO;
 import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
 import mn.usug.dis_news_service.Entity.VehiclesToOut;
+import mn.usug.dis_news_service.Model.DispatchStatsDto;
 import mn.usug.dis_news_service.Model.VehiclesToOutRowDto;
 import mn.usug.dis_news_service.DAO.VehiclesToOutRepository;
 import mn.usug.dis_news_service.Service.VehiclesToOutService;
@@ -13,8 +14,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -113,6 +116,100 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
                     return toRowDtoFilledFromLegacy(v, name, type);
                 })
                 .filter(r -> !isAllBlank(r))
+                .toList();
+    }
+
+    /* ==================== СТАТИСТИК ==================== */
+
+    /** Тухайн жилийн машин хуваарилалтын статистик: сар/улирал/жил + алба бүрээр төрлөөр */
+    public DispatchStatsDto getStats(int year) {
+        // 1) Сар бүрийн тоо
+        long[] months = new long[13]; // index 1..12
+        for (Object[] r : repo.countByMonth(year)) {
+            int m = ((Number) r[0]).intValue();
+            long c = ((Number) r[1]).longValue();
+            if (m >= 1 && m <= 12) months[m] = c;
+        }
+        List<DispatchStatsDto.PeriodCount> byMonth = new ArrayList<>();
+        long yearTotal = 0;
+        for (int m = 1; m <= 12; m++) {
+            byMonth.add(DispatchStatsDto.PeriodCount.builder().period(m).count(months[m]).build());
+            yearTotal += months[m];
+        }
+
+        // 2) Улирал (3 сараар нэгтгэнэ)
+        List<DispatchStatsDto.PeriodCount> byQuarter = new ArrayList<>();
+        for (int q = 1; q <= 4; q++) {
+            long c = months[(q - 1) * 3 + 1] + months[(q - 1) * 3 + 2] + months[(q - 1) * 3 + 3];
+            byQuarter.add(DispatchStatsDto.PeriodCount.builder().period(q).count(c).build());
+        }
+
+        // 3) Алба + төрлөөр
+        Map<String, DispatchStatsDto.DeptDispatch> deptMap = new LinkedHashMap<>();
+        for (Object[] r : repo.countByDeptAndType(year)) {
+            String dep = r[0] != null ? r[0].toString() : "Тодорхойгүй";
+            String type = r[1] != null ? r[1].toString() : "Тодорхойгүй";
+            long c = ((Number) r[2]).longValue();
+            DispatchStatsDto.DeptDispatch d = deptMap.computeIfAbsent(dep, k ->
+                    DispatchStatsDto.DeptDispatch.builder().department(k).total(0).types(new ArrayList<>()).build());
+            d.setTotal(d.getTotal() + c);
+            d.getTypes().add(DispatchStatsDto.TypeCount.builder().typeName(type).count(c).build());
+        }
+        List<DispatchStatsDto.DeptDispatch> byDepartment = new ArrayList<>(deptMap.values());
+        byDepartment.sort((a, b) -> Long.compare(b.getTotal(), a.getTotal()));
+
+        return DispatchStatsDto.builder()
+                .year(year)
+                .yearTotal(yearTotal)
+                .byMonth(byMonth)
+                .byQuarter(byQuarter)
+                .byDepartment(byDepartment)
+                .build();
+    }
+
+    /** Нэг машин (улсын дугаараар) захиалгаар ажилд гарсан түүх */
+    public List<VehiclesToOutRowDto> findRowsByPlate(String plate) {
+        if (plate == null || plate.isBlank()) return List.of();
+        List<VehiclesToOut> records = repo.findByPlate(plate.trim());
+        return enrichRows(records);
+    }
+
+    /** vehicle_order-оос createdBy нэр + orderType-ыг batch-аар нөхөж RowDto болгоно */
+    private List<VehiclesToOutRowDto> enrichRows(List<VehiclesToOut> records) {
+        Set<Long> orderIds = records.stream()
+                .map(VehiclesToOut::getVehicleOrderId)
+                .filter(Objects::nonNull)
+                .map(Integer::longValue)
+                .collect(Collectors.toSet());
+
+        Map<Integer, Integer> orderToUser = new HashMap<>();
+        Map<Integer, Integer> orderToType = new HashMap<>();
+        if (!orderIds.isEmpty()) {
+            vehicleOrderRepo.findAllById(orderIds).forEach(o -> {
+                Integer key = o.getId().intValue();
+                if (o.getCreatedBy() != null) orderToUser.put(key, o.getCreatedBy());
+                if (o.getOrderType() != null) orderToType.put(key, o.getOrderType());
+            });
+        }
+
+        Map<Integer, String> userNames = new HashMap<>();
+        Set<Integer> userIds = new HashSet<>(orderToUser.values());
+        if (!userIds.isEmpty()) {
+            userDAO.findAllById(userIds)
+                    .forEach(u -> userNames.put(u.getId(), buildShortName(u.getLastName(), u.getFirstName())));
+        }
+
+        return records.stream()
+                .map(v -> {
+                    String name = null;
+                    Integer type = v.getOrderType();
+                    if (v.getVehicleOrderId() != null) {
+                        Integer uid = orderToUser.get(v.getVehicleOrderId());
+                        if (uid != null) name = userNames.get(uid);
+                        if (type == null) type = orderToType.get(v.getVehicleOrderId());
+                    }
+                    return toRowDtoFilledFromLegacy(v, name, type);
+                })
                 .toList();
     }
 

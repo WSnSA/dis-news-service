@@ -43,6 +43,18 @@ public class VehiclesToOutController {
         return service.findRowsByOrderId(orderId);
     }
 
+    /** Нэг машины (улсын дугаараар) захиалгаар ажилд гарсан түүх */
+    @GetMapping("/by-vehicle")
+    public List<VehiclesToOutRowDto> getByVehicle(@RequestParam String plate) {
+        return service.findRowsByPlate(plate);
+    }
+
+    /** Машин хуваарилалтын статистик — сар/улирал/жил + алба бүрээр төрлөөр */
+    @GetMapping("/stats")
+    public mn.usug.dis_news_service.Model.DispatchStatsDto stats(@RequestParam int year) {
+        return service.getStats(year);
+    }
+
     @PostMapping
     public VehiclesToOut create(@RequestBody VehiclesToOut vehiclesToOut) {
         vehiclesToOut.setCreatedDate(LocalDateTime.now());
