@@ -55,6 +55,12 @@ public class VehiclesToOutController {
         return service.getStats(year);
     }
 
+    /** Тайлангийн тоо бүрийн ард байгаа дэлгэрэнгүй мөрүүд (нэг жилээр) — frontend талд шүүж экспортолно */
+    @GetMapping("/stats-detail")
+    public List<mn.usug.dis_news_service.Model.DispatchDetailDto> statsDetail(@RequestParam int year) {
+        return service.getStatsDetail(year);
+    }
+
     @PostMapping
     public VehiclesToOut create(@RequestBody VehiclesToOut vehiclesToOut) {
         vehiclesToOut.setCreatedDate(LocalDateTime.now());
