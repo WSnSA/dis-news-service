@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import mn.usug.dis_news_service.DAO.UserDAO;
 import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
 import mn.usug.dis_news_service.Entity.VehiclesToOut;
+import mn.usug.dis_news_service.Model.DispatchDetailDto;
 import mn.usug.dis_news_service.Model.DispatchStatsDto;
 import mn.usug.dis_news_service.Model.VehiclesToOutRowDto;
 import mn.usug.dis_news_service.DAO.VehiclesToOutRepository;
@@ -165,6 +166,29 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
                 .byQuarter(byQuarter)
                 .byDepartment(byDepartment)
                 .build();
+    }
+
+    /** Тайлангийн тоо бүрийн ард байгаа дэлгэрэнгүй мөрүүд (нэг жилээр) */
+    public List<DispatchDetailDto> getStatsDetail(int year) {
+        List<DispatchDetailDto> out = new ArrayList<>();
+        for (Object[] r : repo.statsDetailByYear(year)) {
+            out.add(DispatchDetailDto.builder()
+                    .createdDate(str(r[0]))
+                    .month(r[1] != null ? ((Number) r[1]).intValue() : 0)
+                    .department(str(r[2]))
+                    .typeName(str(r[3]))
+                    .workDescription(str(r[4]))
+                    .vehicleMechanism(str(r[5]))
+                    .vehicleRegistration(str(r[6]))
+                    .driverName(str(r[7]))
+                    .phone(str(r[8]))
+                    .build());
+        }
+        return out;
+    }
+
+    private static String str(Object o) {
+        return o == null ? null : o.toString();
     }
 
     /** Нэг машин (улсын дугаараар) захиалгаар ажилд гарсан түүх */
