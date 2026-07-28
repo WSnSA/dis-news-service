@@ -75,5 +75,25 @@ public interface VehicleOrderRepository extends JpaRepository<VehicleOrder, Long
         order by v.status, v.assignedDepartmentId, v.createdDate
     """)
     List<VehicleOrder> findConfirmedByDate(@Param("date") LocalDate date);
+
+    /**
+     * Суудлын машины (order_type=1) захиалгыг өдрөөр нь бүлэглэн статус тус бүрийн тоог буцаана.
+     * Өдрийг start_date (байхгүй бол order_date)-аар авна.
+     * → [date, total, dispatched(2), pending(0), confirmed(1), declined(3)]
+     */
+    @Query(value = """
+        SELECT DATE(COALESCE(v.start_date, v.order_date)) AS d,
+               COUNT(*) AS total,
+               SUM(v.status = 2) AS dispatched,
+               SUM(v.status = 0) AS pending,
+               SUM(v.status = 1) AS confirmed,
+               SUM(v.status = 3) AS declined
+        FROM vehicle_order v
+        WHERE v.active_flag = 1 AND v.order_type = 1
+          AND DATE(COALESCE(v.start_date, v.order_date)) BETWEEN :from AND :to
+        GROUP BY DATE(COALESCE(v.start_date, v.order_date))
+        ORDER BY d
+    """, nativeQuery = true)
+    List<Object[]> carDispatchStats(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }
 
