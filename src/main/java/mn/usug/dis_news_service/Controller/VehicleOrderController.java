@@ -61,6 +61,13 @@ public class VehicleOrderController {
         return service.getAllDeptPending();
     }
 
+    /** Суудлын машины өдөр тутмын хувиарлалтын статистик */
+    @GetMapping("/dispatch-stats")
+    public List<mn.usug.dis_news_service.Model.CarDispatchStatDto> dispatchStats(
+            @RequestParam LocalDate from, @RequestParam LocalDate to) {
+        return service.getCarDispatchStats(from, to);
+    }
+
     /**
      * 502 ажилтан захиалгуудыг баталгаажуулна: status 0 → 1
      * Body: захиалгын ID-уудын жагсаалт  [1, 2, 3]

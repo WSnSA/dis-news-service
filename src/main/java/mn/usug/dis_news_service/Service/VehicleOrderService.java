@@ -54,6 +54,26 @@ public class VehicleOrderService {
         return mapOrders(orderRepo.findAllDeptPending());
     }
 
+    /** Суудлын машины өдөр тутмын хувиарлалтын статистик (from..to хооронд) */
+    public List<mn.usug.dis_news_service.Model.CarDispatchStatDto> getCarDispatchStats(LocalDate from, LocalDate to) {
+        List<mn.usug.dis_news_service.Model.CarDispatchStatDto> out = new java.util.ArrayList<>();
+        for (Object[] r : orderRepo.carDispatchStats(from, to)) {
+            out.add(mn.usug.dis_news_service.Model.CarDispatchStatDto.builder()
+                    .date(r[0] != null ? r[0].toString() : null)
+                    .total(num(r[1]))
+                    .dispatched(num(r[2]))
+                    .pending(num(r[3]))
+                    .confirmed(num(r[4]))
+                    .declined(num(r[5]))
+                    .build());
+        }
+        return out;
+    }
+
+    private long num(Object o) {
+        return o == null ? 0L : ((Number) o).longValue();
+    }
+
     private List<VehicleOrderDto> mapOrders(List<VehicleOrder> orders) {
 
         List<Department> deps = departmentRepo.findAll();
