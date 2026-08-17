@@ -3,17 +3,21 @@ package mn.usug.dis_news_service.Controller;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import mn.usug.dis_news_service.DAO.UserDAO;
 import mn.usug.dis_news_service.DAO.VehicleOrderItemRepository;
 import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
 import mn.usug.dis_news_service.DAO.VehicleTypeRepository;
 import mn.usug.dis_news_service.DTO.VehicleOrderDto;
 import mn.usug.dis_news_service.DTO.VehicleOrderItemSaveDto;
 import mn.usug.dis_news_service.DTO.VehicleOrderSaveDto;
+import mn.usug.dis_news_service.Entity.User;
 import mn.usug.dis_news_service.Entity.VehicleOrder;
 import mn.usug.dis_news_service.Entity.VehicleOrderItem;
 import mn.usug.dis_news_service.Entity.VehicleType;
 import mn.usug.dis_news_service.Service.NotificationService;
+import mn.usug.dis_news_service.Service.UserContext;
 import mn.usug.dis_news_service.Service.VehicleOrderService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -31,6 +35,29 @@ public class VehicleOrderController {
     private final VehicleOrderRepository orderRepo;
     private final VehicleOrderItemRepository itemRepo;
     private final VehicleTypeRepository vehicleTypeRepo;
+    private final UserDAO userDAO;
+
+    /**
+     * Албаны баталгаажуулалтыг алгасах хэрэглэгчийн id-ууд (таслалаар).
+     * Эдгээр хэрэглэгчийн суудлын машины хүсэлт шууд автобаазын хуваарилалтын
+     * жагсаалтад орно — автобаазын дарга баталгаажуулаад хувиарлана.
+     */
+    @Value("${vehicle-order.dept-approval-skip.user-ids:258}")
+    private List<Integer> deptApprovalSkipUserIds;
+
+    /** Мөн адил, албан тушаалын id-аар алгасах шаардлагатай бол (таслалаар) */
+    @Value("${vehicle-order.dept-approval-skip.position-ids:}")
+    private List<Integer> deptApprovalSkipPositionIds;
+
+    /** Тухайн хэрэглэгч албаны баталгаажуулалтыг алгасах эрхтэй эсэх */
+    private boolean skipsDeptApproval(Integer userId) {
+        if (userId == null) return false;
+        if (deptApprovalSkipUserIds != null && deptApprovalSkipUserIds.contains(userId)) return true;
+        if (deptApprovalSkipPositionIds == null || deptApprovalSkipPositionIds.isEmpty()) return false;
+        User u = userDAO.findById(userId).orElse(null);
+        return u != null && u.getPositionId() != null
+                && deptApprovalSkipPositionIds.contains(u.getPositionId());
+    }
 
     @GetMapping("/getByDate")
     public List<VehicleOrderDto> getByDate(@RequestParam LocalDate date) {
@@ -203,7 +230,10 @@ public class VehicleOrderController {
         order.setStatus(0);
         // Суудлын машин (orderType=1) — албаны баталгаажуулалт шаардлагатай
         // Механизм (orderType=0) — шууд автобаазад орно
-        order.setDeptApproved(orderType == 1 ? Boolean.FALSE : Boolean.TRUE);
+        // Тусгай зөвшөөрөлтэй хэрэглэгч (vehicle-order.dept-approval-skip.*) —
+        // албаны баталгаажуулалтыг алгасаж шууд автобаазын хуваарилалт руу орно
+        boolean skipDeptApproval = orderType == 1 && skipsDeptApproval(UserContext.getUserId());
+        order.setDeptApproved(orderType == 1 && !skipDeptApproval ? Boolean.FALSE : Boolean.TRUE);
         order.setActiveFlag(1);
         order.setCreatedDate(LocalDateTime.now());
 
