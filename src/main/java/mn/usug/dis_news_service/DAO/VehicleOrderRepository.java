@@ -2,6 +2,7 @@ package mn.usug.dis_news_service.DAO;
 
 import mn.usug.dis_news_service.Entity.VehicleOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -95,5 +96,22 @@ public interface VehicleOrderRepository extends JpaRepository<VehicleOrder, Long
         ORDER BY d
     """, nativeQuery = true)
     List<Object[]> carDispatchStats(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /**
+     * Албаны баталгаажуулалт алгасах эрхтэй хэрэглэгчдийн ХУУЧИН, хүлээгдэж буй
+     * (status=0) суудлын машины хүсэлтийг шууд автобаазын жагсаалт руу шилжүүлнэ.
+     * Идэмхий биш (idempotent) — аль хэдийн deptApproved=true болсныг дахин хөндөхгүй.
+     */
+    @Modifying
+    @Query("""
+        update VehicleOrder v
+        set v.deptApproved = true
+        where v.activeFlag = 1
+          and v.status = 0
+          and v.orderType = 1
+          and (v.deptApproved is null or v.deptApproved = false)
+          and v.createdBy in :userIds
+    """)
+    int promoteDeptApproval(@Param("userIds") List<Integer> userIds);
 }
 
