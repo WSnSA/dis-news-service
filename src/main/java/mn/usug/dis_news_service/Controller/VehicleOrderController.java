@@ -13,6 +13,8 @@ import mn.usug.dis_news_service.Entity.VehicleOrder;
 import mn.usug.dis_news_service.Entity.VehicleOrderItem;
 import mn.usug.dis_news_service.Entity.VehicleType;
 import mn.usug.dis_news_service.Service.NotificationService;
+import mn.usug.dis_news_service.Service.UserContext;
+import mn.usug.dis_news_service.Service.VehicleOrderApprovalPolicy;
 import mn.usug.dis_news_service.Service.VehicleOrderService;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +33,8 @@ public class VehicleOrderController {
     private final VehicleOrderRepository orderRepo;
     private final VehicleOrderItemRepository itemRepo;
     private final VehicleTypeRepository vehicleTypeRepo;
+    /** Албаны баталгаажуулалт алгасах бодлого (тохиргоо: vehicle-order.dept-approval-skip.*) */
+    private final VehicleOrderApprovalPolicy approvalPolicy;
 
     @GetMapping("/getByDate")
     public List<VehicleOrderDto> getByDate(@RequestParam LocalDate date) {
@@ -203,7 +207,10 @@ public class VehicleOrderController {
         order.setStatus(0);
         // Суудлын машин (orderType=1) — албаны баталгаажуулалт шаардлагатай
         // Механизм (orderType=0) — шууд автобаазад орно
-        order.setDeptApproved(orderType == 1 ? Boolean.FALSE : Boolean.TRUE);
+        // Тусгай зөвшөөрөлтэй хэрэглэгч (vehicle-order.dept-approval-skip.*) —
+        // албаны баталгаажуулалтыг алгасаж шууд автобаазын хуваарилалт руу орно
+        boolean skipDeptApproval = orderType == 1 && approvalPolicy.skipsDeptApproval(UserContext.getUserId());
+        order.setDeptApproved(orderType == 1 && !skipDeptApproval ? Boolean.FALSE : Boolean.TRUE);
         order.setActiveFlag(1);
         order.setCreatedDate(LocalDateTime.now());
 
