@@ -39,6 +39,9 @@ public class VehicleOrderDto {
     private Integer createdBy;
     private String createdByName;
 
+    /** Анх захиалга өгсөн огноо, цаг */
+    private java.time.LocalDateTime createdDate;
+
     /** Тухайн албаны даргын userId — frontend "дарга-н хүсэлт мөн үү" гэдгийг таних */
     private Integer departmentChairmanId;
 
