@@ -83,7 +83,10 @@ public class VehicleOrderService {
                 .filter(d -> d.getChairmanId() != null)
                 .collect(Collectors.toMap(Department::getDepId, Department::getChairmanId));
 
-        Map<Integer, String> userNameMap = userRepo.findAll().stream()
+        Map<Integer, User> userMap = userRepo.findAll().stream()
+                .collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
+
+        Map<Integer, String> userNameMap = userMap.values().stream()
                 .collect(Collectors.toMap(
                         User::getId,
                         u -> ((u.getLastName() != null ? u.getLastName().charAt(0) + ". " : "") +
@@ -127,6 +130,21 @@ public class VehicleOrderService {
             dto.setAssignedDepartmentName(depMap.get(o.getAssignedDepartmentId()));
             dto.setStatus(o.getStatus());
             dto.setDeclineReason(o.getDeclineReason());
+
+            /* Боломжгүй болгосон (status=3) — хэн, хэзээ болгосныг audit талбараас авна */
+            if (o.getStatus() != null && o.getStatus() == 3) {
+                dto.setDeclinedAt(o.getUpdatedDate());
+                Integer declinedBy = o.getUpdatedBy();
+                if (declinedBy != null) {
+                    dto.setDeclinedBy(declinedBy);
+                    dto.setDeclinedByName(userNameMap.get(declinedBy));
+                    User du = userMap.get(declinedBy);
+                    if (du != null) {
+                        dto.setDeclinedByDepartment(depMap.get(du.getDepartmentId()));
+                        dto.setDeclinedByPhone(du.getPhoneNumber());
+                    }
+                }
+            }
             dto.setOrderType(o.getOrderType() != null ? o.getOrderType() : 0);
             dto.setPickupLocation(o.getPickupLocation());
             dto.setDropoffLocation(o.getDropoffLocation());

@@ -126,6 +126,9 @@ public class VehicleOrderController {
         }
         order.setStatus(3);
         order.setDeclineReason(body.getOrDefault("reason", ""));
+        // Хэн, хэзээ боломжгүй болгосныг бүртгэнэ (UI-д "i" tooltip дээр харагдана)
+        order.setUpdatedBy(UserContext.getUserId());
+        order.setUpdatedDate(LocalDateTime.now());
         orderRepo.save(order);
         notificationService.notifyVehicleOrder("Захиалга боломжгүй болов", order.getAssignedDepartmentId());
     }
