@@ -154,6 +154,7 @@ public class VehicleOrderService {
             dto.setDeptApprovedBy(o.getDeptApprovedBy());
             dto.setCreatedBy(o.getCreatedBy());
             dto.setCreatedByName(o.getCreatedBy() != null ? userNameMap.get(o.getCreatedBy()) : null);
+            dto.setCreatedDate(o.getCreatedDate());
             dto.setDepartmentChairmanId(chairmanMap.get(o.getAssignedDepartmentId()));
             dto.setVehicles(vehicles);
 
