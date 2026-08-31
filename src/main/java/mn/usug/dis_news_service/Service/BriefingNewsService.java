@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 /**
  * Шуурхайн мэдээ (§3.4).
- *  - Нэгж бүр хурлаас өмнө (Даваа 16:00 хүртэл) 7 хоногийн онцлох ажлаа оруулна.
+ *  - Нэгж бүр хурлаас өмнө (Даваа 17:00 хүртэл) 7 хоногийн онцлох ажлаа оруулна.
  *  - Танилцуулга нь briefing_unit.sort_order-оор автоматаар жагсана (§4.1.3).
  *  - Фото/файл нь file service-ээр, видео/cloud линк нь шууд хадгалагдана.
  */
@@ -36,9 +36,9 @@ public class BriefingNewsService {
     private final BriefingAccessService access;
     private final BriefingAuditService audit;
 
-    /** Мэдээ оруулах эцсийн хугацаа — хурлаас өмнөх өдөр (Даваа) 16:00 */
+    /** Мэдээ оруулах эцсийн хугацаа — хурлаас өмнөх өдөр (Даваа) 17:00 */
     private LocalDateTime newsDeadlineOf(LocalDate meetingDate) {
-        return meetingDate.minusDays(1).atTime(16, 0);
+        return meetingDate.minusDays(1).atTime(17, 0);
     }
 
     // ── Нэгжүүд ──────────────────────────────────────────────────────────────────
@@ -98,7 +98,7 @@ public class BriefingNewsService {
         BriefingMeeting meeting = meetingRepo.findById(meetingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Хурал олдсонгүй"));
         if (now().isAfter(newsDeadlineOf(meeting.getMeetingDate())))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Шуурхайн мэдээ оруулах хугацаа дууссан (Даваа 16:00)");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Шуурхайн мэдээ оруулах хугацаа дууссан (Даваа 17:00)");
 
         BriefingNews n = newsRepo.findByMeetingIdAndUnitId(meetingId, unitId).orElseGet(() -> {
             BriefingNews nn = new BriefingNews();
@@ -124,7 +124,7 @@ public class BriefingNewsService {
         BriefingMeeting meeting = meetingRepo.findById(meetingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Хурал олдсонгүй"));
         if (now().isAfter(newsDeadlineOf(meeting.getMeetingDate())))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Шуурхайн мэдээ илгээх хугацаа дууссан (Даваа 16:00)");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Шуурхайн мэдээ илгээх хугацаа дууссан (Даваа 17:00)");
         BriefingNews n = newsRepo.findByMeetingIdAndUnitId(meetingId, unitId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Эхлээд мэдээгээ хадгална уу"));
         if (n.getSummaryText() == null || n.getSummaryText().isBlank())
@@ -147,7 +147,7 @@ public class BriefingNewsService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Мэдээ олдсонгүй"));
         BriefingMeeting meeting = meetingRepo.findById(n.getMeetingId()).orElse(null);
         if (meeting != null && now().isAfter(newsDeadlineOf(meeting.getMeetingDate())))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Хавсаргах хугацаа дууссан (Даваа 16:00)");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Хавсаргах хугацаа дууссан (Даваа 17:00)");
 
         String type = (evidenceType == null || evidenceType.isBlank()) ? "FILE" : evidenceType.toUpperCase();
         if ("LINK".equals(type)) {

@@ -34,7 +34,7 @@ public class BriefingCycle {
     @Column(name = "meeting_date")
     private LocalDate meetingDate;
 
-    /** Биелэлт оруулах эцсийн хугацаа — Баасан 16:00 */
+    /** Биелэлт оруулах эцсийн хугацаа — Баасан 17:00 */
     @Column(name = "submit_deadline")
     private LocalDateTime submitDeadline;
 

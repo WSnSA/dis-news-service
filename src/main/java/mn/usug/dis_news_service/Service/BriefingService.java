@@ -51,9 +51,9 @@ public class BriefingService {
         return LocalDate.now(UB).with(ChronoField.DAY_OF_WEEK, 2);
     }
 
-    /** Биелэлт оруулах эцсийн хугацаа — тухайн долоо хоногийн Баасан 16:00 (Мягмар + 3 өдөр) */
+    /** Биелэлт оруулах эцсийн хугацаа — тухайн долоо хоногийн Баасан 17:00 (Мягмар + 3 өдөр) */
     private LocalDateTime submitDeadlineOf(LocalDate meetingDate) {
-        return meetingDate.plusDays(3).atTime(16, 0);
+        return meetingDate.plusDays(3).atTime(17, 0);
     }
 
     /** Дүгнэх эцсийн хугацаа — дараа долоо хоногийн Даваа 14:00 (Мягмар + 6 өдөр) */
@@ -293,10 +293,10 @@ public class BriefingService {
     public BriefingDto submitFulfillment(Integer cycleId, Integer departmentId, String workText) {
         BriefingCycle cycle = cycleRepo.findById(cycleId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Мөчлөг олдсонгүй"));
-        // Хатуу хугацаа: Баасан 16:00
+        // Хатуу хугацаа: Баасан 17:00
         if (now().isAfter(cycle.getSubmitDeadline()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Биелэлт оруулах хугацаа дууссан (Баасан 16:00)");
+                    "Биелэлт оруулах хугацаа дууссан (Баасан 17:00)");
         access.requireNotViewer(UserContext.getUserId());
         requireSameDepartment(departmentId);
 
@@ -361,7 +361,7 @@ public class BriefingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Мөчлөг олдсонгүй"));
         if (now().isAfter(cycle.getSubmitDeadline()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Нотлох баримт хавсаргах хугацаа дууссан (Баасан 16:00)");
+                    "Нотлох баримт хавсаргах хугацаа дууссан (Баасан 17:00)");
         access.requireNotViewer(UserContext.getUserId());
         requireSameDepartment(f.getDepartmentId());
 
