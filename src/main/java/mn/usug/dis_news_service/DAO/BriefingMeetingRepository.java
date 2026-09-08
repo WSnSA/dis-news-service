@@ -11,6 +11,13 @@ public interface BriefingMeetingRepository extends JpaRepository<BriefingMeeting
 
     Optional<BriefingMeeting> findByMeetingDate(LocalDate meetingDate);
 
+    /**
+     * Нэг өдөрт санамсаргүй 2 мөр үүссэн тохиолдолд findByMeetingDate нь
+     * IncorrectResultSizeDataAccessException (500) шидэж, UI-д "тодорхойгүй алдаа"
+     * харагддаг байсан. Жагсаалтаар авч хамгийн эртнийг нь сонгож найдвартай болгов.
+     */
+    List<BriefingMeeting> findAllByMeetingDateOrderByIdAsc(LocalDate meetingDate);
+
     List<BriefingMeeting> findByActiveFlagOrderByMeetingDateDesc(Integer activeFlag);
 
     BriefingMeeting findTopByOrderByMeetingDateDesc();
