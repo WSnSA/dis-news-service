@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -222,9 +223,15 @@ public class BriefingService {
 
     // ── Шуурхай зөвлөгөөн (§3.1) ─────────────────────────────────────────────────
 
+    /** Огноогоор хурлыг найдвартай хайна (давхардсан мөр байсан ч алдаа өгөхгүй) */
+    private Optional<BriefingMeeting> findMeetingByDate(LocalDate meetingDate) {
+        List<BriefingMeeting> found = meetingRepo.findAllByMeetingDateOrderByIdAsc(meetingDate);
+        return found.isEmpty() ? Optional.empty() : Optional.of(found.get(0));
+    }
+
     /** Тухайн Мягмарын хурлыг олж эсвэл (байхгүй бол) автоматаар үүсгэнэ */
     private BriefingMeeting getOrCreateMeeting(LocalDate meetingDate) {
-        return meetingRepo.findByMeetingDate(meetingDate).orElseGet(() -> {
+        return findMeetingByDate(meetingDate).orElseGet(() -> {
             BriefingMeeting m = new BriefingMeeting();
             m.setMeetingDate(meetingDate);
             m.setMeetingNo(defaultMeetingNo(meetingDate));
@@ -249,7 +256,7 @@ public class BriefingService {
 
     /** Тухайн долоо хоногийн хурал (байхгүй бол үүсгэлгүйгээр null) */
     public BriefingMeeting currentMeeting() {
-        return meetingRepo.findByMeetingDate(currentMeetingTuesday()).orElse(null);
+        return findMeetingByDate(currentMeetingTuesday()).orElse(null);
     }
 
     /** Хурал бүртгэх/засах (зөвхөн нарийн бичиг). meetingDate байхгүй бол энэ долоо хоногийн Мягмар. */
@@ -262,7 +269,12 @@ public class BriefingService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Хурал олдсонгүй"));
         } else {
             LocalDate date = meetingDate != null ? meetingDate : currentMeetingTuesday();
-            m = meetingRepo.findByMeetingDate(date).orElseGet(() -> {
+            // Модуль бүхэлдээ Мягмарын хурал дээр тулгуурладаг — өөр гараг сонговол
+            // хурал бүртгэгдсэн ч жагсаалтад харагдахгүй тул эхэнд нь ойлгомжтой хэлнэ
+            if (date.getDayOfWeek() != DayOfWeek.TUESDAY)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Хуралдааны огноо Мягмар гараг байх ёстой (сонгосон: " + date + ")");
+            m = findMeetingByDate(date).orElseGet(() -> {
                 BriefingMeeting nm = new BriefingMeeting();
                 nm.setMeetingDate(date);
                 nm.setActiveFlag(1);
