@@ -85,9 +85,38 @@ public class ApiExceptionHandler {
                                                                HttpServletRequest req) {
         String traceId = newTraceId();
         log.error("Data integrity violation [{}] {}", traceId, req.getRequestURI(), ex);
-        return build(HttpStatus.CONFLICT,
-                "Өгөгдлийн бүрэн бүтэн байдал зөрчигдлөө — давхардсан эсвэл дутуу утга байна",
-                req, traceId);
+        // Зөрчлийн шалтгааныг (багана/түлхүүрийн нэр) хэлж өгснөөр админ шууд засах боломжтой
+        return build(HttpStatus.CONFLICT, integrityMessage(ex), req, traceId);
+    }
+
+    /** SQL-ийн зөрчлийн мессежийг хүнд ойлгомжтой болгоно (багана/түлхүүрийн нэрийг хадгална) */
+    private String integrityMessage(DataIntegrityViolationException ex) {
+        Throwable cause = ex.getMostSpecificCause();
+        String raw = cause != null && cause.getMessage() != null ? cause.getMessage().trim() : "";
+        if (raw.isEmpty())
+            return "Өгөгдлийн бүрэн бүтэн байдал зөрчигдлөө — давхардсан эсвэл дутуу утга байна";
+
+        java.util.regex.Matcher m;
+        if ((m = java.util.regex.Pattern
+                .compile("Duplicate entry '(.*?)' for key '(.*?)'").matcher(raw)).find())
+            return "Давхардсан утга: '" + m.group(1) + "' (түлхүүр: " + m.group(2) + ")";
+
+        if ((m = java.util.regex.Pattern
+                .compile("Field '(.*?)' doesn't have a default value").matcher(raw)).find())
+            return "'" + m.group(1) + "' талбар дутуу байна (өгөгдлийн сангийн багана заавал утгатай)";
+
+        if ((m = java.util.regex.Pattern
+                .compile("Column '(.*?)' cannot be null").matcher(raw)).find())
+            return "'" + m.group(1) + "' талбар хоосон байж болохгүй";
+
+        if ((m = java.util.regex.Pattern
+                .compile("Data too long for column '(.*?)'").matcher(raw)).find())
+            return "'" + m.group(1) + "' талбарын утга хэт урт байна";
+
+        if (raw.contains("foreign key constraint fails"))
+            return "Холбоотой бичлэг олдсонгүй (foreign key зөрчил)";
+
+        return "Өгөгдлийн зөрчил: " + (raw.length() > 300 ? raw.substring(0, 300) + "…" : raw);
     }
 
     /** Гэнэтийн алдаа — дотоод мэдээллийг задлахгүй, log-той холбох код буцаана */

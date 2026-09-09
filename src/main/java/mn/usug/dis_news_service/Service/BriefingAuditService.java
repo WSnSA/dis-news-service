@@ -6,6 +6,8 @@ import mn.usug.dis_news_service.DAO.BriefingAuditLogRepository;
 import mn.usug.dis_news_service.Entity.BriefingAuditLog;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -27,6 +29,15 @@ public class BriefingAuditService {
     private final BriefingAuditLogRepository repo;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Аудит бичлэгийг ТУСДАА гүйлгээнд бичнэ (REQUIRES_NEW).
+     *
+     * Өмнө нь дуудагчийн гүйлгээнд хамт бичигддэг байсан тул аудитын INSERT амжилтгүй
+     * болбол (ж: багана дутуу, утга хэт урт) try/catch барьсан ч гүйлгээ бүхэлдээ
+     * rollback болж, үүрэг бүртгэх үндсэн үйлдэл унадаг байв. Одоо аудит унасан ч
+     * үндсэн ажил хэвийн үргэлжилнэ.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void log(String action, String entityType, Integer entityId, Object oldVal, Object newVal) {
         try {
             BriefingAuditLog a = new BriefingAuditLog();
