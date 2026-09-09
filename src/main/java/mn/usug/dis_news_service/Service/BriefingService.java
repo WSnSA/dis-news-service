@@ -294,6 +294,9 @@ public class BriefingService {
         BriefingFulfillment f = new BriefingFulfillment();
         f.setCycleId(cycleId);
         f.setDepartmentId(departmentId);
+        // status нь NOT NULL багана. Тавихгүй орхивол Hibernate NULL бичиж
+        // "Column 'status' cannot be null" алдаа өгдөг (DB-ийн DEFAULT 0 ажиллахгүй).
+        f.setStatus(0);                       // 0 = ороогүй (draft)
         f.setFolderId(UUID.randomUUID().toString());
         f.setUpdatedAt(now());
         fulRepo.save(f);
