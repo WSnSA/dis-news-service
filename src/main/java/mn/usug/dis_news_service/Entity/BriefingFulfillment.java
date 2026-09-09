@@ -28,9 +28,13 @@ public class BriefingFulfillment {
     @Column(name = "work_text", length = 2000)
     private String workText;
 
-    /** 0=ороогүй(draft), 1=илгээгдсэн(шалгаж байгаа), 2=буцаагдсан (§3.3) */
-    @Column(name = "status")
-    private Integer status;
+    /**
+     * 0=ороогүй(draft), 1=илгээгдсэн(шалгаж байгаа), 2=буцаагдсан (§3.3).
+     * DB-д NOT NULL багана тул анхдагч утгыг энд өгнө — шинэ мөр үүсгэхэд
+     * санамсаргүй null үлдэж INSERT унахаас сэргийлнэ.
+     */
+    @Column(name = "status", nullable = false)
+    private Integer status = 0;
 
     /** Буцаах тайлбар (удирдлага) */
     @Column(name = "return_comment", length = 2000)
