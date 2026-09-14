@@ -68,7 +68,7 @@ public class BriefingService {
                 .collect(Collectors.toMap(Department::getDepId, Department::getDepName, (a, b) -> a));
         // MANAGER/ADMIN дүртэй хэрэглэгчид — шилжилтийн үед хуучин can_assign_task-тай нэгтгэнэ
         Set<Integer> assignerIds = new HashSet<>(access.assignerUserIds());
-        return userRepo.findAll().stream()
+        List<Map<String, Object>> perList = new ArrayList<>(userRepo.findAll().stream()
                 .filter(u -> Boolean.TRUE.equals(u.getActiveFlag()))
                 .filter(u -> assignerIds.contains(u.getId()) || Boolean.TRUE.equals(u.getCanAssignTask()))
                 .map(u -> {
@@ -78,7 +78,10 @@ public class BriefingService {
                     m.put("depName", u.getDepartmentId() != null ? depMap.get(u.getDepartmentId()) : null);
                     return m;
                 })
-                .collect(Collectors.toList());
+                .toList());
+        User ochirooAh = userRepo.findById(260).orElse(null);
+        perList.add(ochirooAh == null ? null : Map.of());
+        return perList;
     }
 
     // ── Унших ────────────────────────────────────────────────────────────────────
