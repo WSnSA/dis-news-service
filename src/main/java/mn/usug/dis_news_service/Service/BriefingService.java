@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -52,14 +51,14 @@ public class BriefingService {
         return LocalDate.now(UB).with(ChronoField.DAY_OF_WEEK, 2);
     }
 
-    /** Биелэлт оруулах эцсийн хугацаа — тухайн долоо хоногийн Баасан 17:00 (Мягмар + 3 өдөр) */
+    /** Биелэлт оруулах эцсийн хугацаа — тухайн долоо хоногийн Баасан 16:00 (Мягмар + 3 өдөр) */
     private LocalDateTime submitDeadlineOf(LocalDate meetingDate) {
-        return meetingDate.plusDays(10).atTime(17, 0);
+        return meetingDate.plusDays(3).atTime(16, 0);
     }
 
-    /** Дүгнэх эцсийн хугацаа — дараа долоо хоногийн Даваа 17:00 (Мягмар + 6 өдөр) */
+    /** Дүгнэх эцсийн хугацаа — дараа долоо хоногийн Даваа 14:00 (Мягмар + 6 өдөр) */
     private LocalDateTime scoreDeadlineOf(LocalDate meetingDate) {
-        return meetingDate.plusDays(6).atTime(17, 0);
+        return meetingDate.plusDays(6).atTime(14, 0);
     }
 
     // ── Assigner жагсаалт (can_assign_task=1) ────────────────────────────────────
@@ -80,7 +79,7 @@ public class BriefingService {
                     return m;
                 })
                 .toList());
-        User ochirooAh = userRepo.findById(260).orElse(null);
+        Optional<User> ochirooAh = userRepo.findById(260);
         perList.add(ochirooAh == null ? null : Map.of());
         return perList;
     }
@@ -226,15 +225,9 @@ public class BriefingService {
 
     // ── Шуурхай зөвлөгөөн (§3.1) ─────────────────────────────────────────────────
 
-    /** Огноогоор хурлыг найдвартай хайна (давхардсан мөр байсан ч алдаа өгөхгүй) */
-    private Optional<BriefingMeeting> findMeetingByDate(LocalDate meetingDate) {
-        List<BriefingMeeting> found = meetingRepo.findAllByMeetingDateOrderByIdAsc(meetingDate);
-        return found.isEmpty() ? Optional.empty() : Optional.of(found.get(0));
-    }
-
     /** Тухайн Мягмарын хурлыг олж эсвэл (байхгүй бол) автоматаар үүсгэнэ */
     private BriefingMeeting getOrCreateMeeting(LocalDate meetingDate) {
-        return findMeetingByDate(meetingDate).orElseGet(() -> {
+        return meetingRepo.findByMeetingDate(meetingDate).orElseGet(() -> {
             BriefingMeeting m = new BriefingMeeting();
             m.setMeetingDate(meetingDate);
             m.setMeetingNo(defaultMeetingNo(meetingDate));
@@ -259,7 +252,7 @@ public class BriefingService {
 
     /** Тухайн долоо хоногийн хурал (байхгүй бол үүсгэлгүйгээр null) */
     public BriefingMeeting currentMeeting() {
-        return findMeetingByDate(currentMeetingTuesday()).orElse(null);
+        return meetingRepo.findByMeetingDate(currentMeetingTuesday()).orElse(null);
     }
 
     /** Хурал бүртгэх/засах (зөвхөн нарийн бичиг). meetingDate байхгүй бол энэ долоо хоногийн Мягмар. */
@@ -272,12 +265,7 @@ public class BriefingService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Хурал олдсонгүй"));
         } else {
             LocalDate date = meetingDate != null ? meetingDate : currentMeetingTuesday();
-            // Модуль бүхэлдээ Мягмарын хурал дээр тулгуурладаг — өөр гараг сонговол
-            // хурал бүртгэгдсэн ч жагсаалтад харагдахгүй тул эхэнд нь ойлгомжтой хэлнэ
-            if (date.getDayOfWeek() != DayOfWeek.TUESDAY)
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Хуралдааны огноо Мягмар гараг байх ёстой (сонгосон: " + date + ")");
-            m = findMeetingByDate(date).orElseGet(() -> {
+            m = meetingRepo.findByMeetingDate(date).orElseGet(() -> {
                 BriefingMeeting nm = new BriefingMeeting();
                 nm.setMeetingDate(date);
                 nm.setActiveFlag(1);
@@ -297,9 +285,6 @@ public class BriefingService {
         BriefingFulfillment f = new BriefingFulfillment();
         f.setCycleId(cycleId);
         f.setDepartmentId(departmentId);
-        // status нь NOT NULL багана. Тавихгүй орхивол Hibernate NULL бичиж
-        // "Column 'status' cannot be null" алдаа өгдөг (DB-ийн DEFAULT 0 ажиллахгүй).
-        f.setStatus(0);                       // 0 = ороогүй (draft)
         f.setFolderId(UUID.randomUUID().toString());
         f.setUpdatedAt(now());
         fulRepo.save(f);
