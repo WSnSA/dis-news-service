@@ -54,12 +54,12 @@ public class BriefingService {
 
     /** Биелэлт оруулах эцсийн хугацаа — тухайн долоо хоногийн Баасан 17:00 (Мягмар + 3 өдөр) */
     private LocalDateTime submitDeadlineOf(LocalDate meetingDate) {
-        return meetingDate.plusDays(3).atTime(17, 0);
+        return meetingDate.plusDays(10).atTime(17, 0);
     }
 
-    /** Дүгнэх эцсийн хугацаа — дараа долоо хоногийн Даваа 14:00 (Мягмар + 6 өдөр) */
+    /** Дүгнэх эцсийн хугацаа — дараа долоо хоногийн Даваа 17:00 (Мягмар + 6 өдөр) */
     private LocalDateTime scoreDeadlineOf(LocalDate meetingDate) {
-        return meetingDate.plusDays(6).atTime(14, 0);
+        return meetingDate.plusDays(6).atTime(17, 0);
     }
 
     // ── Assigner жагсаалт (can_assign_task=1) ────────────────────────────────────
