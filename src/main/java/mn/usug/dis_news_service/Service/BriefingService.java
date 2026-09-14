@@ -91,7 +91,6 @@ public class BriefingService {
 
             perList.add(m);
         });
-        perList.add(ochirooAh.isEmpty() ? null : Map.of());
         return perList;
     }
 
