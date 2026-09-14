@@ -80,7 +80,18 @@ public class BriefingService {
                 })
                 .toList());
         Optional<User> ochirooAh = userRepo.findById(260);
-        perList.add(ochirooAh == null ? null : Map.of());
+
+        ochirooAh.ifPresent(u -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", u.getId());
+            m.put("name", fullName(u));
+            m.put("depName", u.getDepartmentId() != null
+                    ? depMap.get(u.getDepartmentId())
+                    : null);
+
+            perList.add(m);
+        });
+        perList.add(ochirooAh.isEmpty() ? null : Map.of());
         return perList;
     }
 
