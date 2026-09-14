@@ -67,7 +67,7 @@ public class BriefingScheduler {
             Set<Integer> depts = pendingDepts(c);
             if (!depts.isEmpty())
                 notificationService.notifyBriefingDepts(depts, "Биелэлт оруулах сануулга",
-                        "Биелэлт оруулах хугацаа өнөөдөр 16:00 цагт дуусах гэж байна: " + t.getDescription());
+                        "Биелэлт оруулах хугацаа өнөөдөр 17:00 цагт дуусах гэж байна: " + t.getDescription());
         }
     }
 

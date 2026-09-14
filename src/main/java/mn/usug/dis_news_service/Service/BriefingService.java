@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -51,9 +52,9 @@ public class BriefingService {
         return LocalDate.now(UB).with(ChronoField.DAY_OF_WEEK, 2);
     }
 
-    /** Биелэлт оруулах эцсийн хугацаа — тухайн долоо хоногийн Баасан 16:00 (Мягмар + 3 өдөр) */
+    /** Биелэлт оруулах эцсийн хугацаа — тухайн долоо хоногийн Баасан 17:00 (Мягмар + 3 өдөр) */
     private LocalDateTime submitDeadlineOf(LocalDate meetingDate) {
-        return meetingDate.plusDays(3).atTime(16, 0);
+        return meetingDate.plusDays(3).atTime(17, 0);
     }
 
     /** Дүгнэх эцсийн хугацаа — дараа долоо хоногийн Даваа 14:00 (Мягмар + 6 өдөр) */
@@ -225,9 +226,15 @@ public class BriefingService {
 
     // ── Шуурхай зөвлөгөөн (§3.1) ─────────────────────────────────────────────────
 
+    /** Огноогоор хурлыг найдвартай хайна (давхардсан мөр байсан ч алдаа өгөхгүй) */
+    private Optional<BriefingMeeting> findMeetingByDate(LocalDate meetingDate) {
+        List<BriefingMeeting> found = meetingRepo.findAllByMeetingDateOrderByIdAsc(meetingDate);
+        return found.isEmpty() ? Optional.empty() : Optional.of(found.get(0));
+    }
+
     /** Тухайн Мягмарын хурлыг олж эсвэл (байхгүй бол) автоматаар үүсгэнэ */
     private BriefingMeeting getOrCreateMeeting(LocalDate meetingDate) {
-        return meetingRepo.findByMeetingDate(meetingDate).orElseGet(() -> {
+        return findMeetingByDate(meetingDate).orElseGet(() -> {
             BriefingMeeting m = new BriefingMeeting();
             m.setMeetingDate(meetingDate);
             m.setMeetingNo(defaultMeetingNo(meetingDate));
@@ -252,7 +259,7 @@ public class BriefingService {
 
     /** Тухайн долоо хоногийн хурал (байхгүй бол үүсгэлгүйгээр null) */
     public BriefingMeeting currentMeeting() {
-        return meetingRepo.findByMeetingDate(currentMeetingTuesday()).orElse(null);
+        return findMeetingByDate(currentMeetingTuesday()).orElse(null);
     }
 
     /** Хурал бүртгэх/засах (зөвхөн нарийн бичиг). meetingDate байхгүй бол энэ долоо хоногийн Мягмар. */
@@ -265,7 +272,12 @@ public class BriefingService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Хурал олдсонгүй"));
         } else {
             LocalDate date = meetingDate != null ? meetingDate : currentMeetingTuesday();
-            m = meetingRepo.findByMeetingDate(date).orElseGet(() -> {
+            // Модуль бүхэлдээ Мягмарын хурал дээр тулгуурладаг — өөр гараг сонговол
+            // хурал бүртгэгдсэн ч жагсаалтад харагдахгүй тул эхэнд нь ойлгомжтой хэлнэ
+            if (date.getDayOfWeek() != DayOfWeek.TUESDAY)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Хуралдааны огноо Мягмар гараг байх ёстой (сонгосон: " + date + ")");
+            m = findMeetingByDate(date).orElseGet(() -> {
                 BriefingMeeting nm = new BriefingMeeting();
                 nm.setMeetingDate(date);
                 nm.setActiveFlag(1);
@@ -285,6 +297,9 @@ public class BriefingService {
         BriefingFulfillment f = new BriefingFulfillment();
         f.setCycleId(cycleId);
         f.setDepartmentId(departmentId);
+        // status нь NOT NULL багана. Тавихгүй орхивол Hibernate NULL бичиж
+        // "Column 'status' cannot be null" алдаа өгдөг (DB-ийн DEFAULT 0 ажиллахгүй).
+        f.setStatus(0);                       // 0 = ороогүй (draft)
         f.setFolderId(UUID.randomUUID().toString());
         f.setUpdatedAt(now());
         fulRepo.save(f);
@@ -296,10 +311,10 @@ public class BriefingService {
     public BriefingDto submitFulfillment(Integer cycleId, Integer departmentId, String workText) {
         BriefingCycle cycle = cycleRepo.findById(cycleId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Мөчлөг олдсонгүй"));
-        // Хатуу хугацаа: Баасан 16:00
+        // Хатуу хугацаа: Баасан 17:00
         if (now().isAfter(cycle.getSubmitDeadline()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Биелэлт оруулах хугацаа дууссан (Баасан 16:00)");
+                    "Биелэлт оруулах хугацаа дууссан (Баасан 17:00)");
         access.requireNotViewer(UserContext.getUserId());
         requireSameDepartment(departmentId);
 
@@ -364,7 +379,7 @@ public class BriefingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Мөчлөг олдсонгүй"));
         if (now().isAfter(cycle.getSubmitDeadline()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Нотлох баримт хавсаргах хугацаа дууссан (Баасан 16:00)");
+                    "Нотлох баримт хавсаргах хугацаа дууссан (Баасан 17:00)");
         access.requireNotViewer(UserContext.getUserId());
         requireSameDepartment(f.getDepartmentId());
 

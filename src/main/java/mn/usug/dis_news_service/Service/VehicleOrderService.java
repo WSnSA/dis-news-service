@@ -39,7 +39,7 @@ public class VehicleOrderService {
         return mapOrders(orderRepo.findPendingByDate(date));
     }
 
-    /** Баталгаажсан (status=1) — 507 ажилтан харна */
+    /** Баталгаажсан (status=1) + боломжгүй болгосон (status=3) — 507 ажилтан харна */
     public List<VehicleOrderDto> getConfirmed(LocalDate date) {
         return mapOrders(orderRepo.findConfirmedByDate(date));
     }
@@ -54,6 +54,26 @@ public class VehicleOrderService {
         return mapOrders(orderRepo.findAllDeptPending());
     }
 
+    /** Суудлын машины өдөр тутмын хувиарлалтын статистик (from..to хооронд) */
+    public List<mn.usug.dis_news_service.Model.CarDispatchStatDto> getCarDispatchStats(LocalDate from, LocalDate to) {
+        List<mn.usug.dis_news_service.Model.CarDispatchStatDto> out = new java.util.ArrayList<>();
+        for (Object[] r : orderRepo.carDispatchStats(from, to)) {
+            out.add(mn.usug.dis_news_service.Model.CarDispatchStatDto.builder()
+                    .date(r[0] != null ? r[0].toString() : null)
+                    .total(num(r[1]))
+                    .dispatched(num(r[2]))
+                    .pending(num(r[3]))
+                    .confirmed(num(r[4]))
+                    .declined(num(r[5]))
+                    .build());
+        }
+        return out;
+    }
+
+    private long num(Object o) {
+        return o == null ? 0L : ((Number) o).longValue();
+    }
+
     private List<VehicleOrderDto> mapOrders(List<VehicleOrder> orders) {
 
         List<Department> deps = departmentRepo.findAll();
@@ -63,7 +83,10 @@ public class VehicleOrderService {
                 .filter(d -> d.getChairmanId() != null)
                 .collect(Collectors.toMap(Department::getDepId, Department::getChairmanId));
 
-        Map<Integer, String> userNameMap = userRepo.findAll().stream()
+        Map<Integer, User> userMap = userRepo.findAll().stream()
+                .collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
+
+        Map<Integer, String> userNameMap = userMap.values().stream()
                 .collect(Collectors.toMap(
                         User::getId,
                         u -> ((u.getLastName() != null ? u.getLastName().charAt(0) + ". " : "") +
@@ -107,6 +130,21 @@ public class VehicleOrderService {
             dto.setAssignedDepartmentName(depMap.get(o.getAssignedDepartmentId()));
             dto.setStatus(o.getStatus());
             dto.setDeclineReason(o.getDeclineReason());
+
+            /* Боломжгүй болгосон (status=3) — хэн, хэзээ болгосныг audit талбараас авна */
+            if (o.getStatus() != null && o.getStatus() == 3) {
+                dto.setDeclinedAt(o.getUpdatedDate());
+                Integer declinedBy = o.getUpdatedBy();
+                if (declinedBy != null) {
+                    dto.setDeclinedBy(declinedBy);
+                    dto.setDeclinedByName(userNameMap.get(declinedBy));
+                    User du = userMap.get(declinedBy);
+                    if (du != null) {
+                        dto.setDeclinedByDepartment(depMap.get(du.getDepartmentId()));
+                        dto.setDeclinedByPhone(du.getPhoneNumber());
+                    }
+                }
+            }
             dto.setOrderType(o.getOrderType() != null ? o.getOrderType() : 0);
             dto.setPickupLocation(o.getPickupLocation());
             dto.setDropoffLocation(o.getDropoffLocation());
@@ -116,6 +154,7 @@ public class VehicleOrderService {
             dto.setDeptApprovedBy(o.getDeptApprovedBy());
             dto.setCreatedBy(o.getCreatedBy());
             dto.setCreatedByName(o.getCreatedBy() != null ? userNameMap.get(o.getCreatedBy()) : null);
+            dto.setCreatedDate(o.getCreatedDate());
             dto.setDepartmentChairmanId(chairmanMap.get(o.getAssignedDepartmentId()));
             dto.setVehicles(vehicles);
 

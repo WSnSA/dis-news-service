@@ -43,6 +43,24 @@ public class VehiclesToOutController {
         return service.findRowsByOrderId(orderId);
     }
 
+    /** Нэг машины (улсын дугаараар) захиалгаар ажилд гарсан түүх */
+    @GetMapping("/by-vehicle")
+    public List<VehiclesToOutRowDto> getByVehicle(@RequestParam String plate) {
+        return service.findRowsByPlate(plate);
+    }
+
+    /** Машин хуваарилалтын статистик — сар/улирал/жил + алба бүрээр төрлөөр */
+    @GetMapping("/stats")
+    public mn.usug.dis_news_service.Model.DispatchStatsDto stats(@RequestParam int year) {
+        return service.getStats(year);
+    }
+
+    /** Тайлангийн тоо бүрийн ард байгаа дэлгэрэнгүй мөрүүд (нэг жилээр) — frontend талд шүүж экспортолно */
+    @GetMapping("/stats-detail")
+    public List<mn.usug.dis_news_service.Model.DispatchDetailDto> statsDetail(@RequestParam int year) {
+        return service.getStatsDetail(year);
+    }
+
     @PostMapping
     public VehiclesToOut create(@RequestBody VehiclesToOut vehiclesToOut) {
         vehiclesToOut.setCreatedDate(LocalDateTime.now());
@@ -149,6 +167,8 @@ public class VehiclesToOutController {
         if (vehicleOrderId == null) return;
         orderRepo.findById(vehicleOrderId.longValue()).ifPresent(order -> {
             order.setStatus(2);
+            // Боломжгүй (status=3) байсан захиалга дахин хуваарилагдвал шалтгааныг цэвэрлэнэ
+            order.setDeclineReason(null);
             orderRepo.save(order);
         });
     }

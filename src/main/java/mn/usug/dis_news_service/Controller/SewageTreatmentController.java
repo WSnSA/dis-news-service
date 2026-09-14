@@ -25,7 +25,8 @@ public class SewageTreatmentController {
     public List<SewageTreatmentSummaryDto> summary(
             @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
             @RequestParam(value = "hour", defaultValue = "0") int hour) {
-        return service.getSummary(date, hour);
+        // Шинэ цэвэрлэх байгууламжийн өдрийн бүртгэл ээлжийн эхний цагт (07) нэмэгдэнэ
+        return service.getSummaryWithFacility(date, hour);
     }
 
     /** Цэвэрлэх станцуудын жагсаалт (dropdown-д ашиглана) */

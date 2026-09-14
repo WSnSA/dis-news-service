@@ -21,6 +21,13 @@ public class VehicleOrderDto {
     /** status=3 үед автобаазаас ирсэн шалтгаан */
     private String declineReason;
 
+    /* ── status=3 — боломжгүй болгосон ажилтны мэдээлэл (updatedBy/updatedDate-аас) ── */
+    private Integer declinedBy;
+    private String declinedByName;
+    private String declinedByDepartment;
+    private String declinedByPhone;
+    private java.time.LocalDateTime declinedAt;
+
     /** 0=механизм  1=суудлын машин */
     private Integer orderType;
 
@@ -31,6 +38,9 @@ public class VehicleOrderDto {
     /** Хэн үүсгэсэн */
     private Integer createdBy;
     private String createdByName;
+
+    /** Анх захиалга өгсөн огноо, цаг */
+    private java.time.LocalDateTime createdDate;
 
     /** Тухайн албаны даргын userId — frontend "дарга-н хүсэлт мөн үү" гэдгийг таних */
     private Integer departmentChairmanId;
