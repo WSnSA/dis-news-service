@@ -55,9 +55,6 @@ public class VehicleOrderDto {
     private Integer passengerCount;
     private String  requestedTime;
 
-    /** Ээлж: 1=Өглөө, 2=Өдөр, 3=Бүтэн өдөр */
-    private Integer timeSlot;
-
     private List<VehicleItemDto> vehicles;
 }
 

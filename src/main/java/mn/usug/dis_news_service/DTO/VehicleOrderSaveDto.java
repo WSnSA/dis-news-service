@@ -27,9 +27,6 @@ public class VehicleOrderSaveDto {
     private Integer passengerCount;
     private String  requestedTime;
 
-    /** Ээлж: 1=Өглөө, 2=Өдөр, 3=Бүтэн өдөр. Хоосон бол бүтэн өдөр гэж үзнэ. */
-    private Integer timeSlot;
-
     private List<VehicleOrderItemSaveDto> vehicles;
 }
 

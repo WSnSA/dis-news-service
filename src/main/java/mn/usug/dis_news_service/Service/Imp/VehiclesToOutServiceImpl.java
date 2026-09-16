@@ -6,13 +6,10 @@ import lombok.RequiredArgsConstructor;
 import mn.usug.dis_news_service.DAO.UserDAO;
 import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
 import mn.usug.dis_news_service.Entity.VehiclesToOut;
-import mn.usug.dis_news_service.Entity.VehicleOrder;
-import mn.usug.dis_news_service.Model.BusyVehicleDto;
 import mn.usug.dis_news_service.Model.DispatchDetailDto;
 import mn.usug.dis_news_service.Model.DispatchStatsDto;
 import mn.usug.dis_news_service.Model.VehiclesToOutRowDto;
 import mn.usug.dis_news_service.DAO.VehiclesToOutRepository;
-import mn.usug.dis_news_service.Service.TimeSlot;
 import mn.usug.dis_news_service.Service.VehiclesToOutService;
 import org.springframework.stereotype.Service;
 
@@ -50,62 +47,6 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
     @Override
     public VehiclesToOut save(VehiclesToOut vehiclesToOut) {
         return repo.save(vehiclesToOut);
-    }
-
-    /* ==================== ДАВХАР ХУВААРИЛАЛТ ==================== */
-
-    @Override
-    public String plateKey(String plate) {
-        return plate == null ? "" : plate.replace(" ", "").toUpperCase();
-    }
-
-    @Override
-    public List<BusyVehicleDto> findBusyVehicles(Long vehicleOrderId) {
-        if (vehicleOrderId == null) return List.of();
-        VehicleOrder order = vehicleOrderRepo.findById(vehicleOrderId).orElse(null);
-        if (order == null) return List.of();
-
-        LocalDate start = order.getStartDate() != null ? order.getStartDate() : order.getOrderDate();
-        LocalDate end   = order.getEndDate()   != null ? order.getEndDate()   : start;
-        if (start == null) return List.of();
-        if (end == null || end.isBefore(start)) end = start;
-
-        return repo.findBusyVehicles(start, end, TimeSlot.normalize(order.getTimeSlot()), vehicleOrderId.longValue())
-                .stream()
-                .map(this::toBusyDto)
-                .toList();
-    }
-
-    @Override
-    public Map<Long, List<BusyVehicleDto>> findBusyVehicles(List<Long> vehicleOrderIds) {
-        Map<Long, List<BusyVehicleDto>> out = new LinkedHashMap<>();
-        if (vehicleOrderIds == null) return out;
-        for (Long id : vehicleOrderIds) {
-            if (id == null || out.containsKey(id)) continue;
-            out.put(id, findBusyVehicles(id));
-        }
-        return out;
-    }
-
-    private BusyVehicleDto toBusyDto(Object[] r) {
-        Integer slot = r[6] == null ? TimeSlot.FULL_DAY : ((Number) r[6]).intValue();
-        return new BusyVehicleDto(
-                str(r[0]),
-                r[1] == null ? null : ((Number) r[1]).intValue(),
-                str(r[2]),
-                str(r[3]),
-                toLocalDate(r[4]),
-                toLocalDate(r[5]),
-                slot,
-                TimeSlot.label(slot)
-        );
-    }
-
-    private LocalDate toLocalDate(Object o) {
-        if (o == null) return null;
-        if (o instanceof java.sql.Date d) return d.toLocalDate();
-        if (o instanceof LocalDate d) return d;
-        return LocalDate.parse(o.toString());
     }
 
     @Override

@@ -57,13 +57,6 @@ public class VehicleOrder {
     @Column(name = "requested_time", length = 20)
     private String requestedTime;
 
-    /**
-     * Ээлж bitmask: 1=Өглөө, 2=Өдөр, 3=Бүтэн өдөр.
-     * Хоёр захиалга мөргөлдөж буй эсэхийг (a & b) != 0 гэж шалгана.
-     */
-    @Column(name = "time_slot")
-    private Integer timeSlot;
-
     /** 0=хүлээгдэж байна  1=баталгаажсан  2=хуваарилагдсан  3=боломжгүй */
     private Integer status;
 

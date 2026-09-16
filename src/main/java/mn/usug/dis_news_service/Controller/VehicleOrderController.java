@@ -15,7 +15,6 @@ import mn.usug.dis_news_service.Entity.VehicleType;
 import mn.usug.dis_news_service.Service.NotificationService;
 import mn.usug.dis_news_service.Service.UserContext;
 import mn.usug.dis_news_service.Service.VehicleOrderApprovalPolicy;
-import mn.usug.dis_news_service.Service.TimeSlot;
 import mn.usug.dis_news_service.Service.VehicleOrderService;
 import org.springframework.web.bind.annotation.*;
 
@@ -151,7 +150,6 @@ public class VehicleOrderController {
         order.setDropoffLocation(dto.getDropoffLocation());
         order.setPassengerCount(dto.getPassengerCount());
         order.setRequestedTime(dto.getRequestedTime());
-        order.setTimeSlot(TimeSlot.normalize(dto.getTimeSlot()));
         order.setUpdatedDate(LocalDateTime.now());
         orderRepo.save(order);
 
@@ -209,10 +207,6 @@ public class VehicleOrderController {
         order.setDropoffLocation(dto.getDropoffLocation());
         order.setPassengerCount(dto.getPassengerCount());
         order.setRequestedTime(dto.getRequestedTime());
-        // Олон өдрийн захиалга үргэлж бүтэн өдрөөр тооцогдоно
-        boolean multiDay = order.getEndDate() != null && order.getStartDate() != null
-                && order.getEndDate().isAfter(order.getStartDate());
-        order.setTimeSlot(multiDay ? TimeSlot.FULL_DAY : TimeSlot.normalize(dto.getTimeSlot()));
         order.setStatus(0);
         // Суудлын машин (orderType=1) — албаны баталгаажуулалт шаардлагатай
         // Механизм (orderType=0) — шууд автобаазад орно
