@@ -12,6 +12,10 @@ public interface StFacilityDailyRepository extends JpaRepository<StFacilityDaily
     Optional<StFacilityDaily> findFirstByStationIdAndRecordDateAndActiveFlag(
             Integer stationId, LocalDate recordDate, Integer activeFlag);
 
+    /** Цаг тус бүрийн бүртгэл (station + өдөр + цаг) */
+    Optional<StFacilityDaily> findFirstByStationIdAndRecordDateAndRecordHourAndActiveFlag(
+            Integer stationId, LocalDate recordDate, Integer recordHour, Integer activeFlag);
+
     List<StFacilityDaily> findByStationIdAndRecordDateBetweenAndActiveFlagOrderByRecordDate(
             Integer stationId, LocalDate from, LocalDate to, Integer activeFlag);
 
