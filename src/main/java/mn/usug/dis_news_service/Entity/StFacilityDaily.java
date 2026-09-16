@@ -26,6 +26,13 @@ public class StFacilityDaily {
     @Column(name = "record_date")
     private LocalDate recordDate;
 
+    /**
+     * Бүртгэлийн цаг (0–23). Цаг тус бүрийн бүртгэлийг тусад нь хадгална.
+     * Хуучин (өдрөөр) бүртгэлүүд NULL — тэдгээртэй давхцахгүй.
+     */
+    @Column(name = "record_hour")
+    private Integer recordHour;
+
     @Column(name = "data_json", columnDefinition = "json")
     private String dataJson;
 

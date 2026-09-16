@@ -103,10 +103,18 @@ public class SewageTreatmentService {
         List<StFacilityDaily> recs = facilityRepo.findByRecordDateAndActiveFlag(date, 1);
         if (recs.isEmpty()) return rows;
 
-        Map<Integer, FacilityAgg> byStation = new LinkedHashMap<>();
+        // Цаг тус бүрийн бүртгэл нэвтэрсэн тул станц бүрд хамгийн сүүлийн цагийн (эсвэл
+        // хуучин өдрийн, hour=NULL) мөрийг сонгож нэгтгэнэ — олон мөр давхцахаас сэргийлнэ.
+        Map<Integer, StFacilityDaily> latest = new LinkedHashMap<>();
         for (StFacilityDaily rec : recs) {
             if (rec.getStationId() == null) continue;
-            byStation.put(rec.getStationId(), aggregate(rec.getDataJson()));
+            StFacilityDaily cur = latest.get(rec.getStationId());
+            if (cur == null || hourOf(rec) >= hourOf(cur)) latest.put(rec.getStationId(), rec);
+        }
+
+        Map<Integer, FacilityAgg> byStation = new LinkedHashMap<>();
+        for (Map.Entry<Integer, StFacilityDaily> e : latest.entrySet()) {
+            byStation.put(e.getKey(), aggregate(e.getValue().getDataJson()));
         }
 
         List<SewageTreatmentSummaryDto> out = new ArrayList<>();
@@ -200,6 +208,11 @@ public class SewageTreatmentService {
 
     private static double nz(Double d) {
         return d == null ? 0d : d;
+    }
+
+    /** Эрэмбэлэхэд: цаггүй (хуучин өдрийн) бүртгэлийг хамгийн бага гэж үзнэ */
+    private static int hourOf(StFacilityDaily rec) {
+        return rec.getRecordHour() == null ? -1 : rec.getRecordHour();
     }
 
     /** Нэг станцын өдрийн дүн */
