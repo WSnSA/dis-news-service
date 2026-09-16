@@ -12,6 +12,7 @@ import mn.usug.dis_news_service.Entity.Department;
 import mn.usug.dis_news_service.Entity.User;
 import mn.usug.dis_news_service.Entity.VehicleOrder;
 import mn.usug.dis_news_service.Entity.VehicleType;
+import mn.usug.dis_news_service.Service.TimeSlot;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -150,6 +151,7 @@ public class VehicleOrderService {
             dto.setDropoffLocation(o.getDropoffLocation());
             dto.setPassengerCount(o.getPassengerCount());
             dto.setRequestedTime(o.getRequestedTime());
+            dto.setTimeSlot(o.getTimeSlot() != null ? o.getTimeSlot() : TimeSlot.FULL_DAY);
             dto.setDeptApproved(o.getDeptApproved());
             dto.setDeptApprovedBy(o.getDeptApprovedBy());
             dto.setCreatedBy(o.getCreatedBy());

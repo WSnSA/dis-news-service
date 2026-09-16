@@ -23,4 +23,13 @@ public interface VehiclesToOutService {
 
     /** vehicleOrderId-аар бүх машины жагсаалт буцаана */
     List<VehiclesToOutRowDto> findRowsByOrderId(Integer vehicleOrderId);
+
+    /** Тухайн захиалгын хугацаа+ээлжид аль хэдийн оногдсон машинууд */
+    List<mn.usug.dis_news_service.Model.BusyVehicleDto> findBusyVehicles(Long vehicleOrderId);
+
+    /** Олон захиалгын завгүй машиныг нэг дуудлагаар — { orderId: [BusyVehicleDto…] } */
+    java.util.Map<Long, List<mn.usug.dis_news_service.Model.BusyVehicleDto>> findBusyVehicles(List<Long> vehicleOrderIds);
+
+    /** Улсын дугаарыг харьцуулах хэлбэрт оруулна (том үсэг, зайгүй) */
+    String plateKey(String plate);
 }

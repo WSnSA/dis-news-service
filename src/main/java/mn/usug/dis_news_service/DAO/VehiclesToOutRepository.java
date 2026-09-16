@@ -32,6 +32,47 @@ public interface VehiclesToOutRepository extends JpaRepository<VehiclesToOut, In
 
     List<VehiclesToOut> findAllByVehicleOrderIdOrderByIdAsc(Integer vehicleOrderId);
 
+    /* ==================== ДАВХАР ХУВААРИЛАЛТ ==================== */
+
+    /**
+     * Өгөгдсөн хугацаа + ээлжид аль хэдийн оногдсон машинуудыг буцаана.
+     *
+     * Мөргөлдөөний дүрэм:
+     *   - огнооны муж огтлолцсон  (o.start_date <= :endDate AND o.end_date >= :startDate)
+     *   - ээлж огтлолцсон         ((o.time_slot & :timeSlot) <> 0 — 1=Өглөө, 2=Өдөр, 3=Бүтэн өдөр)
+     *
+     * :excludeOrderId нь тухайн засаж буй захиалга өөрөө (өөрийнхөө машиныг завгүй гэж үзэхгүй).
+     * Хасах захиалга байхгүй бол -1 дамжуулна — MySQL native query null параметрийн
+     * төрлийг тодорхойлж чаддаггүй тул NULL ашиглахгүй.
+     * Хоосон/NULL огноог order_date-аар нөхнө (хуучин бичлэгүүд).
+     *
+     * → [plate, orderId, department, workDescription, startDate, endDate, timeSlot]
+     */
+    @Query(value = """
+        SELECT v.vehicle_registration_number                                  AS plate,
+               o.id                                                           AS order_id,
+               COALESCE(NULLIF(TRIM(v.department), ''), '')                   AS dep,
+               COALESCE(NULLIF(TRIM(v.work_description), ''), o.work_description) AS work,
+               COALESCE(o.start_date, o.order_date)                           AS s_date,
+               COALESCE(o.end_date, o.start_date, o.order_date)               AS e_date,
+               COALESCE(o.time_slot, 3)                                       AS slot
+        FROM vehicles_to_out v
+        JOIN vehicle_order o ON v.vehicle_order_id = o.id
+        WHERE v.active_flag = 1
+          AND o.active_flag = 1
+          AND v.vehicle_registration_number IS NOT NULL
+          AND TRIM(v.vehicle_registration_number) <> ''
+          AND o.id <> :excludeOrderId
+          AND COALESCE(o.start_date, o.order_date) <= :endDate
+          AND COALESCE(o.end_date, o.start_date, o.order_date) >= :startDate
+          AND (COALESCE(o.time_slot, 3) & :timeSlot) <> 0
+        ORDER BY s_date, plate
+    """, nativeQuery = true)
+    List<Object[]> findBusyVehicles(@Param("startDate") LocalDate startDate,
+                                    @Param("endDate") LocalDate endDate,
+                                    @Param("timeSlot") int timeSlot,
+                                    @Param("excludeOrderId") long excludeOrderId);
+
     /* ==================== СТАТИСТИК ==================== */
 
     /** Тухайн жилд сар бүрээр хэдэн машин хуваарилсан → [month, count] */
