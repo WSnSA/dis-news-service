@@ -32,6 +32,9 @@ INSERT IGNORE INTO repair_category (name, code, description, sort_order, active_
     ('Сервис үйлчилгээ',     'SERVICE', 'Тосны солилт зэрэг ээлжит сервис',                           4, 1, NOW());
 
 -- ── Цэсний мөр ──────────────────────────────────────────────────────────────
+-- path нь sidebar-ийн routerLink болно (app.menu.ts normalizePath → '/' + path),
+-- бусад хуудастай ижилхэн 'pages/...' хэлбэртэй. icon нь 'pi pi-fw' дээр нэмэгддэг
+-- тул зөвхөн icon-ы нэрийг хадгална.
 -- Автобааз бүлгийг "Машин бүртгэл" (autopark) мөрөөс нь тодорхойлно —
 -- ингэснээр бүлгийн нэр/id орчин бүрт өөр байсан ч зөв байрандаа орно.
 SET @autopark_parent = (SELECT parent_id  FROM (SELECT parent_id  FROM menu WHERE component = 'pages/autopark/autopark.component' LIMIT 1) t);
@@ -51,7 +54,7 @@ UPDATE menu
    AND sort_order > @autopark_sort;
 
 INSERT INTO menu (parent_id, name, icon, path, component, active_flag, sort_order, created_date)
-SELECT @autopark_parent, 'Засварын бүртгэл', 'pi pi-wrench', 'repair-registration',
+SELECT @autopark_parent, 'Засварын бүртгэл', 'pi-wrench', 'pages/repair-registration',
        'pages/repair-registration/repair-registration.component', 1,
        COALESCE(@autopark_sort, 0) + 1, NOW()
   FROM DUAL
