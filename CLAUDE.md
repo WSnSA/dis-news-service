@@ -21,6 +21,7 @@ Spring Boot 3.5.6 · Java 21 · Lombok · JPA · Spring Security (JWT) · WebSoc
 | WaterHourlyController | `/ws` | GET /water-hourly |
 | VehicleOrderController | `/ref/vehicle-order` | GET /getByDate, POST /save, POST /bulk-confirm |
 | RepairCategoryController | `/repair/category` | GET /getAll, POST /save, PUT /update/{id}, DELETE /delete/{id} |
+| VehicleRepairController | `/repair/vehicle` | GET /getAll, GET /active, GET /by-vehicle?plate=, POST /save, PUT /update/{id}, PUT /finish/{id}, DELETE /delete/{id} |
 | ServertimeController | `/server-time` | GET (returns current server time) |
 | NotificationController | `/notifications` | GET, PUT /read-all |
 
@@ -54,6 +55,21 @@ Spring Boot 3.5.6 · Java 21 · Lombok · JPA · Spring Security (JWT) · WebSoc
 | `activeFlag` | 1=идэвхтэй, 0=устгасан (soft delete) |
 
 Migration: `db_migration_repair_category.sql` (хүснэгт + үндсэн 4 мөр + цэсний мөр).
+
+### VehicleRepair (`vehicle_repair`)
+| Field | Meaning |
+|---|---|
+| `vehicleId` / `plateNumber` | Машин. Дугаарыг давхар хадгална — `ref/vehicle/delete` нь hard delete тул түүх үлдээхэд хэрэгтэй |
+| `repairCategoryId` | `repair_category`-ийн мөр |
+| `startDate` / `endDate` | Засварын хугацаа. `endDate` NULL = тодорхойгүй |
+| `status` | 0=засварт байна, 1=дууссан |
+| `activeFlag` | 1=идэвхтэй, 0=устгасан (soft delete) |
+
+**Дүрэм**: нэг машинд нэг л нээлттэй (status=0) засвар байна — `save()` давхардлыг хориглоно.
+`GET /active` нээлттэй бүх бичлэгийг буцаана; frontend `assign-form` үүнийг уншаад захиалгын
+хугацаатай давхцаж буй машиныг сонголтоос хасна (давхцал: `start <= өдөр` ба `end IS NULL OR end >= өдөр`).
+
+Migration: `db_migration_vehicle_repair.sql` (`db_migration_repair_category.sql`-ийн дараа).
 
 ### Task (`tasks`)
 | Field | Meaning |
