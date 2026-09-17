@@ -20,6 +20,7 @@ Spring Boot 3.5.6 · Java 21 · Lombok · JPA · Spring Security (JWT) · WebSoc
 | SewageTreatmentController | `/sewage-treatment` | GET /summary, GET /stations, POST /save |
 | WaterHourlyController | `/ws` | GET /water-hourly |
 | VehicleOrderController | `/ref/vehicle-order` | GET /getByDate, POST /save, POST /bulk-confirm |
+| RepairCategoryController | `/repair/category` | GET /getAll, POST /save, PUT /update/{id}, DELETE /delete/{id} |
 | ServertimeController | `/server-time` | GET (returns current server time) |
 | NotificationController | `/notifications` | GET, PUT /read-all |
 
@@ -43,6 +44,16 @@ Spring Boot 3.5.6 · Java 21 · Lombok · JPA · Spring Security (JWT) · WebSoc
 | `departmentId` | Гүйцэтгэгч алба |
 | `status` | 0=хүлээгдэж байна, 1=гүйцэтгэж байна, 2=дууссан |
 | `activeFlag` | 1=идэвхтэй, 0=устгасан (soft delete) |
+
+### RepairCategory (`repair_category`)
+| Field | Meaning |
+|---|---|
+| `name` | Ангиллын нэр (Их засвар, Урсгал засвар, Техникийн үйлчилгээ, Сервис үйлчилгээ) |
+| `code` | Системийн түлхүүр — үндсэн 4 ангилалд л утгатай, UI-аас нэмсэнд NULL. Сервер эзэмшинэ, update-аар өөрчлөгдөхгүй |
+| `sortOrder` | Жагсаалтын дараалал |
+| `activeFlag` | 1=идэвхтэй, 0=устгасан (soft delete) |
+
+Migration: `db_migration_repair_category.sql` (хүснэгт + үндсэн 4 мөр + цэсний мөр).
 
 ### Task (`tasks`)
 | Field | Meaning |
