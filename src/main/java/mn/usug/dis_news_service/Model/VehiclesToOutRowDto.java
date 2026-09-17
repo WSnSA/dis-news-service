@@ -24,4 +24,15 @@ public class VehiclesToOutRowDto {
     private Integer vehicleOrderId;
     /** 0=механизм, 1=суудлын — frontend дээр төрлөөр шүүхэд хэрэгтэй */
     private Integer orderType;
+
+    /* ── Захиалгын хамрах хугацаа (устгах диалогт "хэзээнээс хэзээ" харуулна) ── */
+    private java.time.LocalDate startDate;
+    private java.time.LocalDate endDate;
+
+    /* ── Хүссэн өдрийн цуцлалт (нэг өдрөөр чөлөөлсөн эсэх) ── */
+    /** Тухайн өдөр цуцлагдсан эсэх — true бол машин тэр өдөр сул гэж тооцогдоно */
+    private boolean cancelled;
+    private String cancelReason;
+    private String cancelledByName;
+    private LocalDateTime cancelledAt;
 }

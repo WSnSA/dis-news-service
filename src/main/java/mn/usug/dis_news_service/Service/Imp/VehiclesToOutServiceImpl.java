@@ -5,10 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import mn.usug.dis_news_service.DAO.UserDAO;
 import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
+import mn.usug.dis_news_service.Entity.VehicleOrder;
 import mn.usug.dis_news_service.Entity.VehiclesToOut;
+import mn.usug.dis_news_service.Entity.VehiclesToOutCancel;
 import mn.usug.dis_news_service.Model.DispatchDetailDto;
 import mn.usug.dis_news_service.Model.DispatchStatsDto;
 import mn.usug.dis_news_service.Model.VehiclesToOutRowDto;
+import mn.usug.dis_news_service.DAO.VehiclesToOutCancelRepository;
 import mn.usug.dis_news_service.DAO.VehiclesToOutRepository;
 import mn.usug.dis_news_service.Service.VehiclesToOutService;
 import org.springframework.stereotype.Service;
@@ -31,6 +34,7 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
 
     private final VehiclesToOutRepository repo;
     private final VehicleOrderRepository vehicleOrderRepo;
+    private final VehiclesToOutCancelRepository cancelRepo;
     private final UserDAO userDAO;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -90,16 +94,27 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
 
         Map<Integer, Integer> orderToUser = new HashMap<>();
         Map<Integer, Integer> orderToType = new HashMap<>();
+        Map<Integer, VehicleOrder> orderById = new HashMap<>();
         if (!orderIds.isEmpty()) {
             vehicleOrderRepo.findAllById(orderIds).forEach(o -> {
                 Integer key = o.getId().intValue();
+                orderById.put(key, o);
                 if (o.getCreatedBy() != null) orderToUser.put(key, o.getCreatedBy());
                 if (o.getOrderType() != null) orderToType.put(key, o.getOrderType());
             });
         }
 
+        // Тухайн өдөр цуцлагдсан хуваарилалтууд — мөр нь жагсаалтад үлдэнэ (саарлаар),
+        // харин машин нь тэр өдөр сул гэж тооцогдоно.
+        Map<Integer, VehiclesToOutCancel> cancelById = cancelRepo.findByCancelDate(date).stream()
+                .collect(Collectors.toMap(VehiclesToOutCancel::getVehiclesToOutId, c -> c, (a, b) -> a));
+
         Map<Integer, String> userNames = new HashMap<>();
         Set<Integer> userIds = new HashSet<>(orderToUser.values());
+        cancelById.values().stream()
+                .map(VehiclesToOutCancel::getCreatedBy)
+                .filter(Objects::nonNull)
+                .forEach(userIds::add);
         if (!userIds.isEmpty()) {
             userDAO.findAllById(userIds)
                     .forEach(u -> userNames.put(u.getId(), buildShortName(u.getLastName(), u.getFirstName())));
@@ -114,7 +129,24 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
                         if (uid != null) name = userNames.get(uid);
                         if (type == null) type = orderToType.get(v.getVehicleOrderId());  // join fallback
                     }
-                    return toRowDtoFilledFromLegacy(v, name, type);
+                    VehiclesToOutRowDto dto = toRowDtoFilledFromLegacy(v, name, type);
+
+                    VehicleOrder order = v.getVehicleOrderId() == null ? null : orderById.get(v.getVehicleOrderId());
+                    if (order != null) {
+                        dto.setStartDate(order.getStartDate() != null ? order.getStartDate() : order.getOrderDate());
+                        dto.setEndDate(order.getEndDate() != null ? order.getEndDate() : dto.getStartDate());
+                    }
+
+                    VehiclesToOutCancel cancel = cancelById.get(v.getId());
+                    if (cancel != null) {
+                        dto.setCancelled(true);
+                        dto.setCancelReason(cancel.getReason());
+                        dto.setCancelledAt(cancel.getCreatedDate());
+                        if (cancel.getCreatedBy() != null) {
+                            dto.setCancelledByName(userNames.get(cancel.getCreatedBy()));
+                        }
+                    }
+                    return dto;
                 })
                 .filter(r -> !isAllBlank(r))
                 .toList();
