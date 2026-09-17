@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
 import mn.usug.dis_news_service.DAO.VehiclesToOutCancelRepository;
+import mn.usug.dis_news_service.DAO.VehiclesToOutRepository;
 import mn.usug.dis_news_service.DTO.VehiclesToOutSaveDto;
 import mn.usug.dis_news_service.Entity.VehiclesToOut;
 import mn.usug.dis_news_service.Entity.VehiclesToOutCancel;
@@ -30,6 +31,7 @@ public class VehiclesToOutController {
     private final NotificationService notificationService;
     private final VehicleOrderRepository orderRepo;
     private final VehiclesToOutCancelRepository cancelRepo;
+    private final VehiclesToOutRepository vehiclesToOutRepo;
 
     @GetMapping
     public List<VehiclesToOutRowDto> getByDate(
@@ -139,9 +141,41 @@ public class VehiclesToOutController {
     @DeleteMapping("/{id}")
     @Transactional
     public void delete(@PathVariable Integer id) {
+        VehiclesToOut row = service.findById(id);
+        Integer orderId = row != null ? row.getVehicleOrderId() : null;
+
         // Хуваарилалт устахад түүний өдрийн цуцлалтууд утгагүй болно
         cancelRepo.deleteByVehiclesToOutId(id);
         service.deleteById(id);
+
+        releaseOrderIfUnassigned(orderId);
+    }
+
+    /**
+     * Захиалгын СҮҮЛЧИЙН хуваарилалт устсан бол захиалгыг "баталгаажсан" (status=1)
+     * төлөвт буцаана.
+     *
+     * Ингэхгүй бол захиалга status=2 хэвээр үлдэж, "Баталгаажсан" табад
+     * харагдахгүй болохоор дахин машин хуваарилах боломжгүй болдог байсан.
+     * Захиалгад өөр машин үлдсэн бол хэсэгчлэн хуваарилагдсан хэвээр тул хөндөхгүй.
+     */
+    private void releaseOrderIfUnassigned(Integer vehicleOrderId) {
+        if (vehicleOrderId == null) return;
+
+        // deleteById-ийн дараа шууд асуух тул устгалыг эхлээд бичүүлнэ
+        vehiclesToOutRepo.flush();
+        if (!vehiclesToOutRepo.findAllByVehicleOrderIdOrderByIdAsc(vehicleOrderId).isEmpty()) return;
+
+        orderRepo.findById(vehicleOrderId.longValue()).ifPresent(order -> {
+            if (order.getStatus() == null || order.getStatus() != 2) return;
+            order.setStatus(1);
+            order.setUpdatedBy(UserContext.getUserId());
+            order.setUpdatedDate(LocalDateTime.now());
+            orderRepo.save(order);
+            notificationService.notifyVehicleOrder(
+                    "Машины хуваарилалт цуцлагдлаа — дахин хуваарилах шаардлагатай",
+                    order.getAssignedDepartmentId());
+        });
     }
 
     /* ===== нэг өдрийн цуцлалт ===== */
