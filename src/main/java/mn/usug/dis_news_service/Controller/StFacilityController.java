@@ -28,17 +28,23 @@ public class StFacilityController {
     private final StFacilityDailyRepository repo;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    /** Тухайн станцын тухайн өдрийн бүртгэл (засах/дүүргэхэд) */
+    /**
+     * Тухайн станцын тухайн өдрийн (цаг өгсөн бол цагийн) бүртгэл — засах/дүүргэхэд.
+     * hour өгөгдвөл цаг тус бүрийн бүртгэлийг, эс бол хуучин (өдрийн) бүртгэлийг буцаана.
+     */
     @GetMapping("/get")
     public Map<String, Object> get(
             @RequestParam Integer stationId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) Integer hour) {
 
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("stationId", stationId);
         res.put("date", date.toString());
-        StFacilityDaily rec = repo
-                .findFirstByStationIdAndRecordDateAndActiveFlag(stationId, date, 1)
+        res.put("hour", hour);
+        StFacilityDaily rec = (hour != null
+                ? repo.findFirstByStationIdAndRecordDateAndRecordHourAndActiveFlag(stationId, date, hour, 1)
+                : repo.findFirstByStationIdAndRecordDateAndActiveFlag(stationId, date, 1))
                 .orElse(null);
         res.put("exists", rec != null);
         res.put("data", parse(rec != null ? rec.getDataJson() : null));
@@ -57,21 +63,24 @@ public class StFacilityController {
                 .findByStationIdAndRecordDateBetweenAndActiveFlagOrderByRecordDate(stationId, from, to, 1)) {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("date", rec.getRecordDate() != null ? rec.getRecordDate().toString() : null);
+            row.put("hour", rec.getRecordHour());
             row.put("data", parse(rec.getDataJson()));
             out.add(row);
         }
         return out;
     }
 
-    /** Хадгалах (upsert: station + өдөр). Body: { stationId, date, data:{...} } */
+    /** Хадгалах (upsert: station + өдөр + цаг). Body: { stationId, date, hour?, data:{...} } */
     @PostMapping("/save")
     public Map<String, Object> save(@RequestBody Map<String, Object> body) {
         Integer stationId = ((Number) body.get("stationId")).intValue();
         LocalDate date = LocalDate.parse((String) body.get("date"));
+        Integer hour = body.get("hour") == null ? null : ((Number) body.get("hour")).intValue();
         String dataJson = write(body.get("data"));
 
-        StFacilityDaily rec = repo
-                .findFirstByStationIdAndRecordDateAndActiveFlag(stationId, date, 1)
+        StFacilityDaily rec = (hour != null
+                ? repo.findFirstByStationIdAndRecordDateAndRecordHourAndActiveFlag(stationId, date, hour, 1)
+                : repo.findFirstByStationIdAndRecordDateAndActiveFlag(stationId, date, 1))
                 .orElse(null);
 
         LocalDateTime now = LocalDateTime.now();
@@ -79,6 +88,7 @@ public class StFacilityController {
             rec = new StFacilityDaily();
             rec.setStationId(stationId);
             rec.setRecordDate(date);
+            rec.setRecordHour(hour);
             rec.setActiveFlag(1);
             rec.setCreatedBy(UserContext.getUserId());
             rec.setCreatedDate(now);
@@ -93,6 +103,7 @@ public class StFacilityController {
         res.put("id", saved.getId());
         res.put("stationId", saved.getStationId());
         res.put("date", saved.getRecordDate().toString());
+        res.put("hour", saved.getRecordHour());
         return res;
     }
 
