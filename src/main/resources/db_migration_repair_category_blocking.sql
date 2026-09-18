@@ -4,10 +4,26 @@
 -- Одоогоор засварт байгаа БҮХ машин захиалгад сонгогдох боломжгүй байсан.
 -- Гэвч тос тосолгоо шиг богино үйлчилгээний үед машин ажилд гарч чадна.
 -- blocks_dispatch = 0 бол тухайн ангилалд байгаа машин захиалгад хэвээр гарна.
+--
+-- ДАХИН АЖИЛЛУУЛАХАД АЮУЛГҮЙ: MySQL-д "ADD COLUMN IF NOT EXISTS" байхгүй тул
+-- багана байгаа эсэхийг information_schema-аас шалгаж, байхгүй үед л нэмнэ.
 
-ALTER TABLE repair_category
-    ADD COLUMN blocks_dispatch TINYINT NOT NULL DEFAULT 1
-        COMMENT '1=засварт байхад захиалгад сонгогдохгүй, 0=сонгогдож болно';
+SET @col_exists := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME   = 'repair_category'
+      AND COLUMN_NAME  = 'blocks_dispatch'
+);
+
+SET @ddl := IF(@col_exists = 0,
+    'ALTER TABLE repair_category
+        ADD COLUMN blocks_dispatch TINYINT NOT NULL DEFAULT 1
+            COMMENT ''1=засварт байхад захиалгад сонгогдохгүй, 0=сонгогдож болно''',
+    'DO 0');
+
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Тос тосолгоо — машиныг захиалгаас хасахгүй
 INSERT INTO repair_category (name, code, description, sort_order, blocks_dispatch, active_flag, created_at)
