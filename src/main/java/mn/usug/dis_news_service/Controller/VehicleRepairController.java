@@ -156,6 +156,7 @@ public class VehicleRepairController {
             if (c != null) {
                 r.setCategoryName(c.getName());
                 r.setCategoryCode(c.getCode());
+                r.setBlocksDispatch(c.getBlocksDispatch());
             }
             if (r.getResponsibleWorkerId() != null) {
                 r.setResponsibleWorkerName(workerMap.get(r.getResponsibleWorkerId()));

@@ -116,4 +116,6 @@ public class VehicleRepair {
     @Transient private String categoryName;
     @Transient private String categoryCode;
     @Transient private String responsibleWorkerName;
+    /** Ангилал нь машиныг захиалгаас хасах эсэх — frontend шүүхэд */
+    @Transient private Integer blocksDispatch;
 }

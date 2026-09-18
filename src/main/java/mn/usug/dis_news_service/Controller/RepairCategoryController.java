@@ -38,6 +38,9 @@ public class RepairCategoryController {
         category.setId(null);
         category.setCode(null);
         category.setActiveFlag(ACTIVE);
+        if (category.getBlocksDispatch() == null) {
+            category.setBlocksDispatch(1);   // анхдагчаар захиалгаас хасна
+        }
         if (category.getSortOrder() == null) {
             category.setSortOrder(nextSortOrder());
         }
@@ -51,6 +54,9 @@ public class RepairCategoryController {
                 .orElseThrow(() -> new RuntimeException("RepairCategory not found: " + id));
         existing.setName(category.getName());
         existing.setDescription(category.getDescription());
+        if (category.getBlocksDispatch() != null) {
+            existing.setBlocksDispatch(category.getBlocksDispatch());
+        }
         if (category.getSortOrder() != null) {
             existing.setSortOrder(category.getSortOrder());
         }

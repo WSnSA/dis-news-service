@@ -41,6 +41,13 @@ public class RepairCategory {
     @Column(name = "sort_order")
     private Integer sortOrder;
 
+    /**
+     * Энэ ангилалд засварт байгаа машиныг захиалгад сонгуулахгүй эсэх.
+     * 1 = сонгогдохгүй (их засвар гэх мэт), 0 = сонгогдож болно (тос тосолгоо).
+     */
+    @Column(name = "blocks_dispatch", nullable = false)
+    private Integer blocksDispatch = 1;
+
     /** 1=идэвхтэй, 0=идэвхгүй (soft delete) */
     @Column(name = "active_flag", nullable = false)
     private Integer activeFlag = 1;
