@@ -59,7 +59,10 @@ public class VehicleRepair {
     @Column(name = "odometer_km")
     private Integer odometerKm;
 
-    /** Дараагийн ТҮ хийх гүйлт — тос тосолгооны мөчлөг тооцоход */
+    /**
+     * Дараагийн үйлчилгээ хийх одометрийн заалт.
+     * Жишээ: 125000 км-д тос сольсон, 10000 км тутам солих бол энд 135000.
+     */
     @Column(name = "next_service_km")
     private Integer nextServiceKm;
 
