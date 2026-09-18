@@ -58,8 +58,9 @@ public class VehiclesToOutController {
     }
 
     /**
-     * Машины хуваарь — өгөгдсөн өдрөөс хойшхи бүх захиалга, машинаар нь.
-     * GET /api/vehicles-to-out/upcoming?from=2026-09-18
+     * Машины хуваарь — машин тус бүрийн бүх захиалга, огноогоор эрэмбэлсэн.
+     * GET /api/vehicles-to-out/upcoming            → эхнээс нь бүгд (түүх + ирээдүй)
+     * GET /api/vehicles-to-out/upcoming?from=2026-09-18 → тэр өдрөөс хойш
      *
      * "Ажилд гарах" таб нэг өдрөөр шүүдэг тул 15-19-нд захиалсан машиныг олохын
      * тулд өдөр бүрийг гүйлгэх шаардлагатай байсныг орлоно.
@@ -69,7 +70,8 @@ public class VehiclesToOutController {
             @RequestParam(value = "from", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from
     ) {
-        return service.findUpcoming(from != null ? from : LocalDate.now());
+        // from байхгүй бол хязгаарлахгүй — түүхийг нь ч харуулна
+        return service.findUpcoming(from != null ? from : LocalDate.of(1900, 1, 1));
     }
 
     /** Машин хуваарилалтын статистик — сар/улирал/жил + алба бүрээр төрлөөр */
