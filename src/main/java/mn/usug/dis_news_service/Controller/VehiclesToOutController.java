@@ -57,6 +57,21 @@ public class VehiclesToOutController {
         return service.findRowsByPlate(plate);
     }
 
+    /**
+     * Машины хуваарь — өгөгдсөн өдрөөс хойшхи бүх захиалга, машинаар нь.
+     * GET /api/vehicles-to-out/upcoming?from=2026-09-18
+     *
+     * "Ажилд гарах" таб нэг өдрөөр шүүдэг тул 15-19-нд захиалсан машиныг олохын
+     * тулд өдөр бүрийг гүйлгэх шаардлагатай байсныг орлоно.
+     */
+    @GetMapping("/upcoming")
+    public List<mn.usug.dis_news_service.Model.VehicleScheduleDto> upcoming(
+            @RequestParam(value = "from", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from
+    ) {
+        return service.findUpcoming(from != null ? from : LocalDate.now());
+    }
+
     /** Машин хуваарилалтын статистик — сар/улирал/жил + алба бүрээр төрлөөр */
     @GetMapping("/stats")
     public mn.usug.dis_news_service.Model.DispatchStatsDto stats(@RequestParam int year) {

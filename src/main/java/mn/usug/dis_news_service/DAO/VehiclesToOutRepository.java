@@ -32,6 +32,38 @@ public interface VehiclesToOutRepository extends JpaRepository<VehiclesToOut, In
 
     List<VehiclesToOut> findAllByVehicleOrderIdOrderByIdAsc(Integer vehicleOrderId);
 
+    /* ==================== МАШИНЫ ХУВААРЬ ==================== */
+
+    /**
+     * Өгөгдсөн өдрөөс хойш үргэлжлэх бүх хуваарилалт — машинаар нь эрэмбэлсэн.
+     * "Ажилд гарах" таб нэг өдрөөр шүүдэг тул 15-19-нд захиалсан машиныг олоход
+     * өдөр бүрийг гүйлгэх шаардлагатай байсныг орлоно.
+     *
+     * → [id, plate, mechanism, driver, phone, orderId, dep, work, startDate, endDate, orderType]
+     */
+    @Query(value = """
+        SELECT v.id                                                            AS id,
+               v.vehicle_registration_number                                   AS plate,
+               v.vehicle_mechanism                                             AS mechanism,
+               v.driver_name                                                   AS driver,
+               v.driver_phone_number                                           AS phone,
+               o.id                                                            AS order_id,
+               COALESCE(NULLIF(TRIM(v.department), ''), '')                    AS dep,
+               COALESCE(NULLIF(TRIM(v.work_description), ''), o.work_description) AS work,
+               COALESCE(o.start_date, o.order_date)                            AS s_date,
+               COALESCE(o.end_date, o.start_date, o.order_date)                AS e_date,
+               COALESCE(o.order_type, 0)                                       AS o_type
+        FROM vehicles_to_out v
+        JOIN vehicle_order o ON v.vehicle_order_id = o.id
+        WHERE v.active_flag = 1
+          AND o.active_flag = 1
+          AND v.vehicle_registration_number IS NOT NULL
+          AND TRIM(v.vehicle_registration_number) <> ''
+          AND COALESCE(o.end_date, o.start_date, o.order_date) >= :from
+        ORDER BY plate, s_date
+    """, nativeQuery = true)
+    List<Object[]> findUpcoming(@Param("from") LocalDate from);
+
     /* ==================== СТАТИСТИК ==================== */
 
     /** Тухайн жилд сар бүрээр хэдэн машин хуваарилсан → [month, count] */

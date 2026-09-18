@@ -15,6 +15,9 @@ public interface VehiclesToOutCancelRepository extends JpaRepository<VehiclesToO
 
     Optional<VehiclesToOutCancel> findByVehiclesToOutIdAndCancelDate(Integer vehiclesToOutId, LocalDate cancelDate);
 
+    /** Хуваарийн жагсаалтад цуцлагдсан өдрүүдийг нэг дуудлагаар нөхөхөд */
+    List<VehiclesToOutCancel> findByVehiclesToOutIdIn(Collection<Integer> vehiclesToOutIds);
+
     /** Хуваарилалт устгагдахад түүний бүх цуцлалтыг цэвэрлэнэ */
     void deleteByVehiclesToOutId(Integer vehiclesToOutId);
 

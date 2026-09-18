@@ -9,6 +9,7 @@ import mn.usug.dis_news_service.Entity.VehicleOrder;
 import mn.usug.dis_news_service.Entity.VehiclesToOut;
 import mn.usug.dis_news_service.Entity.VehiclesToOutCancel;
 import mn.usug.dis_news_service.Model.DispatchDetailDto;
+import mn.usug.dis_news_service.Model.VehicleScheduleDto;
 import mn.usug.dis_news_service.Model.DispatchStatsDto;
 import mn.usug.dis_news_service.Model.VehiclesToOutRowDto;
 import mn.usug.dis_news_service.DAO.VehiclesToOutCancelRepository;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -152,6 +154,51 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
                 .toList();
     }
 
+    /* ==================== МАШИНЫ ХУВААРЬ ==================== */
+
+    /**
+     * Өгөгдсөн өдрөөс хойшхи бүх хуваарилалтыг машинаар нь буцаана.
+     * Цуцлагдсан өдрүүдийг мөр тус бүрт нь нөхнө — тэр өдрүүдэд машин сул.
+     */
+    public List<VehicleScheduleDto> findUpcoming(LocalDate from) {
+        List<Object[]> rows = repo.findUpcoming(from);
+        if (rows.isEmpty()) return List.of();
+
+        Set<Integer> ids = rows.stream()
+                .map(r -> r[0] == null ? null : ((Number) r[0]).intValue())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // Цуцлагдсан өдрүүд — vehicles_to_out.id тутамд
+        Map<Integer, List<LocalDate>> cancelledByRow = new HashMap<>();
+        if (!ids.isEmpty()) {
+            cancelRepo.findByVehiclesToOutIdIn(ids).forEach(c ->
+                    cancelledByRow.computeIfAbsent(c.getVehiclesToOutId(), k -> new ArrayList<>())
+                            .add(c.getCancelDate()));
+        }
+        cancelledByRow.values().forEach(Collections::sort);
+
+        List<VehicleScheduleDto> out = new ArrayList<>();
+        for (Object[] r : rows) {
+            Integer id = r[0] == null ? null : ((Number) r[0]).intValue();
+            out.add(VehicleScheduleDto.builder()
+                    .id(id)
+                    .plate(str(r[1]))
+                    .mechanism(str(r[2]))
+                    .driverName(str(r[3]))
+                    .phone(str(r[4]))
+                    .vehicleOrderId(r[5] == null ? null : ((Number) r[5]).intValue())
+                    .department(str(r[6]))
+                    .workDescription(str(r[7]))
+                    .startDate(toLocalDate(r[8]))
+                    .endDate(toLocalDate(r[9]))
+                    .orderType(r[10] == null ? 0 : ((Number) r[10]).intValue())
+                    .cancelledDates(cancelledByRow.getOrDefault(id, List.of()))
+                    .build());
+        }
+        return out;
+    }
+
     /* ==================== СТАТИСТИК ==================== */
 
     /** Тухайн жилийн машин хуваарилалтын статистик: сар/улирал/жил + алба бүрээр төрлөөр */
@@ -217,6 +264,18 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
                     .build());
         }
         return out;
+    }
+
+    /** Native query-ийн огноог LocalDate болгоно (java.sql.Date эсвэл текст байж болно) */
+    private static LocalDate toLocalDate(Object o) {
+        if (o == null) return null;
+        if (o instanceof java.sql.Date d) return d.toLocalDate();
+        if (o instanceof LocalDate d) return d;
+        try {
+            return LocalDate.parse(o.toString().substring(0, 10));
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
 
     private static String str(Object o) {
