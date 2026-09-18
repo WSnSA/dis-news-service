@@ -55,6 +55,34 @@ public class VehicleRepair {
     @Column(name = "status", nullable = false)
     private Integer status = STATUS_IN_REPAIR;
 
+    /** Засварт орох үеийн гүйлт (км) */
+    @Column(name = "odometer_km")
+    private Integer odometerKm;
+
+    /** Дараагийн ТҮ хийх гүйлт — тос тосолгооны мөчлөг тооцоход */
+    @Column(name = "next_service_km")
+    private Integer nextServiceKm;
+
+    /** repair_worker.id — засварыг хариуцаж буй хүн */
+    @Column(name = "responsible_worker_id")
+    private Long responsibleWorkerId;
+
+    /** Байршил — гараж, талбай, гадны сервис */
+    @Column(name = "location", length = 200)
+    private String location;
+
+    /** Гадны байгууллагаар хийлгэсэн бол нэр */
+    @Column(name = "external_org", length = 200)
+    private String externalOrg;
+
+    /** Гэмтлийн шалтгаан / хийгдэх ажлын тайлбар */
+    @Column(name = "fault_description", columnDefinition = "TEXT")
+    private String faultDescription;
+
+    /** Хүлээлгэн өгсөн жолооч */
+    @Column(name = "driver_name", length = 150)
+    private String driverName;
+
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
@@ -84,4 +112,5 @@ public class VehicleRepair {
     @Transient private String model;
     @Transient private String categoryName;
     @Transient private String categoryCode;
+    @Transient private String responsibleWorkerName;
 }

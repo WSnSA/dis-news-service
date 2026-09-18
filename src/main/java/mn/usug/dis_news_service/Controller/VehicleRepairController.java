@@ -31,6 +31,7 @@ public class VehicleRepairController {
     private final VehicleRepairRepository  repository;
     private final VehicleRepository        vehicleRepository;
     private final RepairCategoryRepository categoryRepository;
+    private final mn.usug.dis_news_service.DAO.RepairWorkerRepository workerRepository;
 
     /** Бүх засварын бүртгэл. `status` өгвөл (0=засварт, 1=дууссан) шүүнэ. */
     @GetMapping("/getAll")
@@ -98,6 +99,13 @@ public class VehicleRepairController {
         if (body.getStartDate() != null)        existing.setStartDate(body.getStartDate());
         existing.setEndDate(body.getEndDate());
         existing.setNote(body.getNote());
+        existing.setOdometerKm(body.getOdometerKm());
+        existing.setNextServiceKm(body.getNextServiceKm());
+        existing.setResponsibleWorkerId(body.getResponsibleWorkerId());
+        existing.setLocation(body.getLocation());
+        existing.setExternalOrg(body.getExternalOrg());
+        existing.setFaultDescription(body.getFaultDescription());
+        existing.setDriverName(body.getDriverName());
         return ResponseEntity.ok(repository.save(existing));
     }
 
@@ -134,6 +142,10 @@ public class VehicleRepairController {
         Map<Long, RepairCategory> categoryMap = categoryRepository.findAll().stream()
                 .collect(Collectors.toMap(RepairCategory::getId, c -> c, (a, b) -> a));
 
+        Map<Long, String> workerMap = workerRepository.findAll().stream()
+                .collect(Collectors.toMap(mn.usug.dis_news_service.Entity.RepairWorker::getId,
+                        mn.usug.dis_news_service.Entity.RepairWorker::getName, (a, b) -> a));
+
         rows.forEach(r -> {
             Vehicle v = vehicleMap.get(r.getVehicleId());
             if (v != null) {
@@ -144,6 +156,9 @@ public class VehicleRepairController {
             if (c != null) {
                 r.setCategoryName(c.getName());
                 r.setCategoryCode(c.getCode());
+            }
+            if (r.getResponsibleWorkerId() != null) {
+                r.setResponsibleWorkerName(workerMap.get(r.getResponsibleWorkerId()));
             }
         });
         return rows;
