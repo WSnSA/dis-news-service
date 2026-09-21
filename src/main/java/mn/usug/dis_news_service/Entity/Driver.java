@@ -21,4 +21,11 @@ public class Driver {
     /** "A,B,C,D" хэлбэрээр хадгална */
     @Column(name = "license_categories", length = 30)
     private String licenseCategories;
+
+    /**
+     * 1=идэвхтэй, 0=устгасан (soft delete).
+     * Хуваарилалтын түүхэд жолоочийн нэр үлдэх ёстой тул мөр устахгүй.
+     */
+    @Column(name = "active_flag", nullable = false)
+    private Integer activeFlag = 1;
 }

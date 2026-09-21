@@ -5,10 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import mn.usug.dis_news_service.DAO.UserDAO;
 import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
+import mn.usug.dis_news_service.Entity.VehicleOrder;
 import mn.usug.dis_news_service.Entity.VehiclesToOut;
+import mn.usug.dis_news_service.Entity.VehiclesToOutCancel;
 import mn.usug.dis_news_service.Model.DispatchDetailDto;
+import mn.usug.dis_news_service.Model.VehicleScheduleDto;
 import mn.usug.dis_news_service.Model.DispatchStatsDto;
 import mn.usug.dis_news_service.Model.VehiclesToOutRowDto;
+import mn.usug.dis_news_service.DAO.VehiclesToOutCancelRepository;
 import mn.usug.dis_news_service.DAO.VehiclesToOutRepository;
 import mn.usug.dis_news_service.Service.VehiclesToOutService;
 import org.springframework.stereotype.Service;
@@ -16,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -31,6 +36,7 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
 
     private final VehiclesToOutRepository repo;
     private final VehicleOrderRepository vehicleOrderRepo;
+    private final VehiclesToOutCancelRepository cancelRepo;
     private final UserDAO userDAO;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -90,16 +96,27 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
 
         Map<Integer, Integer> orderToUser = new HashMap<>();
         Map<Integer, Integer> orderToType = new HashMap<>();
+        Map<Integer, VehicleOrder> orderById = new HashMap<>();
         if (!orderIds.isEmpty()) {
             vehicleOrderRepo.findAllById(orderIds).forEach(o -> {
                 Integer key = o.getId().intValue();
+                orderById.put(key, o);
                 if (o.getCreatedBy() != null) orderToUser.put(key, o.getCreatedBy());
                 if (o.getOrderType() != null) orderToType.put(key, o.getOrderType());
             });
         }
 
+        // Тухайн өдөр цуцлагдсан хуваарилалтууд — мөр нь жагсаалтад үлдэнэ (саарлаар),
+        // харин машин нь тэр өдөр сул гэж тооцогдоно.
+        Map<Integer, VehiclesToOutCancel> cancelById = cancelRepo.findByCancelDate(date).stream()
+                .collect(Collectors.toMap(VehiclesToOutCancel::getVehiclesToOutId, c -> c, (a, b) -> a));
+
         Map<Integer, String> userNames = new HashMap<>();
         Set<Integer> userIds = new HashSet<>(orderToUser.values());
+        cancelById.values().stream()
+                .map(VehiclesToOutCancel::getCreatedBy)
+                .filter(Objects::nonNull)
+                .forEach(userIds::add);
         if (!userIds.isEmpty()) {
             userDAO.findAllById(userIds)
                     .forEach(u -> userNames.put(u.getId(), buildShortName(u.getLastName(), u.getFirstName())));
@@ -114,10 +131,72 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
                         if (uid != null) name = userNames.get(uid);
                         if (type == null) type = orderToType.get(v.getVehicleOrderId());  // join fallback
                     }
-                    return toRowDtoFilledFromLegacy(v, name, type);
+                    VehiclesToOutRowDto dto = toRowDtoFilledFromLegacy(v, name, type);
+
+                    VehicleOrder order = v.getVehicleOrderId() == null ? null : orderById.get(v.getVehicleOrderId());
+                    if (order != null) {
+                        dto.setStartDate(order.getStartDate() != null ? order.getStartDate() : order.getOrderDate());
+                        dto.setEndDate(order.getEndDate() != null ? order.getEndDate() : dto.getStartDate());
+                    }
+
+                    VehiclesToOutCancel cancel = cancelById.get(v.getId());
+                    if (cancel != null) {
+                        dto.setCancelled(true);
+                        dto.setCancelReason(cancel.getReason());
+                        dto.setCancelledAt(cancel.getCreatedDate());
+                        if (cancel.getCreatedBy() != null) {
+                            dto.setCancelledByName(userNames.get(cancel.getCreatedBy()));
+                        }
+                    }
+                    return dto;
                 })
                 .filter(r -> !isAllBlank(r))
                 .toList();
+    }
+
+    /* ==================== МАШИНЫ ХУВААРЬ ==================== */
+
+    /**
+     * Өгөгдсөн өдрөөс хойшхи бүх хуваарилалтыг машинаар нь буцаана.
+     * Цуцлагдсан өдрүүдийг мөр тус бүрт нь нөхнө — тэр өдрүүдэд машин сул.
+     */
+    public List<VehicleScheduleDto> findUpcoming(LocalDate from) {
+        List<Object[]> rows = repo.findUpcoming(from);
+        if (rows.isEmpty()) return List.of();
+
+        Set<Integer> ids = rows.stream()
+                .map(r -> r[0] == null ? null : ((Number) r[0]).intValue())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // Цуцлагдсан өдрүүд — vehicles_to_out.id тутамд
+        Map<Integer, List<LocalDate>> cancelledByRow = new HashMap<>();
+        if (!ids.isEmpty()) {
+            cancelRepo.findByVehiclesToOutIdIn(ids).forEach(c ->
+                    cancelledByRow.computeIfAbsent(c.getVehiclesToOutId(), k -> new ArrayList<>())
+                            .add(c.getCancelDate()));
+        }
+        cancelledByRow.values().forEach(Collections::sort);
+
+        List<VehicleScheduleDto> out = new ArrayList<>();
+        for (Object[] r : rows) {
+            Integer id = r[0] == null ? null : ((Number) r[0]).intValue();
+            out.add(VehicleScheduleDto.builder()
+                    .id(id)
+                    .plate(str(r[1]))
+                    .mechanism(str(r[2]))
+                    .driverName(str(r[3]))
+                    .phone(str(r[4]))
+                    .vehicleOrderId(r[5] == null ? null : ((Number) r[5]).intValue())
+                    .department(str(r[6]))
+                    .workDescription(str(r[7]))
+                    .startDate(toLocalDate(r[8]))
+                    .endDate(toLocalDate(r[9]))
+                    .orderType(r[10] == null ? 0 : ((Number) r[10]).intValue())
+                    .cancelledDates(cancelledByRow.getOrDefault(id, List.of()))
+                    .build());
+        }
+        return out;
     }
 
     /* ==================== СТАТИСТИК ==================== */
@@ -185,6 +264,18 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
                     .build());
         }
         return out;
+    }
+
+    /** Native query-ийн огноог LocalDate болгоно (java.sql.Date эсвэл текст байж болно) */
+    private static LocalDate toLocalDate(Object o) {
+        if (o == null) return null;
+        if (o instanceof java.sql.Date d) return d.toLocalDate();
+        if (o instanceof LocalDate d) return d;
+        try {
+            return LocalDate.parse(o.toString().substring(0, 10));
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
 
     private static String str(Object o) {

@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -117,6 +119,25 @@ public class ApiExceptionHandler {
             return "Холбоотой бичлэг олдсонгүй (foreign key зөрчил)";
 
         return "Өгөгдлийн зөрчил: " + (raw.length() > 300 ? raw.substring(0, 300) + "…" : raw);
+    }
+
+    /**
+     * Байхгүй хаяг руу хүсэлт илгээсэн.
+     *
+     * Spring Boot 3.2-оос хойш `spring.mvc.throw-exception-if-no-handler-found`
+     * нь анхдагчаар true болсон тул бүртгэлгүй зам NoHandlerFoundException
+     * шиднэ. Үүнийг доорх Exception.class handler барьж 500 + traceId болгодог
+     * байв — өөрөөр хэлбэл "backend дээр энэ endpoint байхгүй" гэдэг нь
+     * "системд алдаа гарлаа" мэт харагдаж, хөгжүүлэгчийг төөрөгдүүлж байсан.
+     * Одоо 404-ийг шууд, ойлгомжтой буцаана.
+     */
+    @ExceptionHandler({ NoHandlerFoundException.class, NoResourceFoundException.class })
+    public ResponseEntity<Map<String, Object>> handleNotFound(Exception ex, HttpServletRequest req) {
+        log.warn("No handler for {} {}", req.getMethod(), req.getRequestURI());
+        return build(HttpStatus.NOT_FOUND,
+                "Ийм хаяг серверт алга: " + req.getMethod() + " " + req.getRequestURI()
+                        + ". Backend-ийн хувилбар хуучирсан байж болзошгүй — дахин байрлуулна уу.",
+                req, null);
     }
 
     /** Гэнэтийн алдаа — дотоод мэдээллийг задлахгүй, log-той холбох код буцаана */

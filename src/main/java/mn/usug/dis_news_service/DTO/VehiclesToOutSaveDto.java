@@ -23,4 +23,7 @@ public class VehiclesToOutSaveDto {
     private String phone;
 
     private String driverName;
+
+    /** driver.id — хуваарилах үед сонгосон жолоочийн холбоос (заавал биш) */
+    private Long driverId;
 }
