@@ -29,7 +29,7 @@ Spring Boot 3.5.6 · Java 21 · Lombok · JPA · Spring Security (JWT) · WebSoc
 | RepairAttendanceController | `/repair/attendance` | GET ?date=, POST ?date= |
 | VehicleRepairPhotoController | `/repair/photo` | GET /{repairId}, POST, DELETE /{id} |
 | RepairReportController | `/repair/report` | GET /daily, /weekly, /period, /preview (Word .docx) |
-| DriverController | `/ref/driver` | GET /getAll?includeInactive=, GET /search?q=, POST /save, PUT /update/{id}, DELETE /delete/{id} (**soft delete**) |
+| DriverController | `/ref/driver` | GET /getAll?includeInactive=, GET /search?q=, GET /history?from=&to=, POST /save, PUT /update/{id}, DELETE /delete/{id} (**soft delete**) |
 | ServertimeController | `/server-time` | GET (returns current server time) |
 | NotificationController | `/notifications` | GET, PUT /read-all |
 
@@ -87,6 +87,12 @@ Migration: `db_migration_vehicle_repair.sql` (`db_migration_repair_category.sql`
 | `activeFlag` | 1=идэвхтэй, 0=устгасан. **Өмнө нь hard delete байсан** — хуваарилалтын түүхэд нэр үлдэх ёстой тул soft delete болгов |
 
 Migration: `db_migration_employee_menu.sql` (active_flag + "Ажилтан" цэсний мөр).
+
+**Ажлын түүх**: `vehicles_to_out.driver_id` нь `driver.id`-тэй холбогдоно (нэр нь мөн
+хэвээр үлдэнэ). `GET /ref/driver/history` нь `vehicle_order`-той JOIN хийж огноо авна,
+`vehicles_to_out_cancel`-аас цуцалсан өдрийг хасна. **Захиалгагүй (`vehicle_order_id`
+NULL) болон `driver_id` нөхөгдөөгүй мөрүүд түүхэнд орохгүй.**
+Migration: `db_migration_dispatch_driver_id.sql`.
 
 ### Task (`tasks`)
 | Field | Meaning |

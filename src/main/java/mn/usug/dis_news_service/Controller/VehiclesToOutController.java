@@ -143,6 +143,7 @@ public class VehiclesToOutController {
         existing.setVehicleRegistrationNumber(vehiclesToOut.getVehicleRegistrationNumber());
         existing.setDriverPhoneNumber(vehiclesToOut.getDriverPhoneNumber());
         existing.setDriverName(vehiclesToOut.getDriverName());
+        existing.setDriverId(vehiclesToOut.getDriverId());
         existing.setUpdatedDate(LocalDateTime.now());
         existing.setUpdatedBy(UserContext.getUserId());
         VehiclesToOut saved = service.save(existing);
@@ -289,6 +290,7 @@ public class VehiclesToOutController {
         e.setVehicleRegistrationNumber(dto.getVehicleRegistration());
         e.setDriverPhoneNumber(dto.getPhone());
         e.setDriverName(dto.getDriverName());
+        e.setDriverId(dto.getDriverId());
         e.setActiveFlag(1);
         e.setStatus(1);
 

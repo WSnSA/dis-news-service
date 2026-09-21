@@ -33,6 +33,13 @@ public class VehiclesToOut {
     @Column(name = "driver_name")
     private String driverName;
 
+    /**
+     * driver.id — нэрнээс гадна холбоос. Нэр нь бичлэгийн хэвээр үлдэнэ
+     * (хуучин мөр, ХУР-аас орсон мөрүүдэд ID байхгүй байж болно).
+     */
+    @Column(name = "driver_id")
+    private Long driverId;
+
     @Column(name = "driver_phone_number", length = 30)
     private String driverPhoneNumber;
 
