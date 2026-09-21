@@ -114,6 +114,7 @@ public class AuthController {
         if (model.getMailAddress() != null) user.setMailAddress(model.getMailAddress());
         if (model.getDepartmentId() != null) user.setDepartmentId(model.getDepartmentId());
         if (model.getPositionId() != null) user.setPositionId(model.getPositionId());
+        if (model.getCanAssignTask() != null) user.setCanAssignTask(model.getCanAssignTask());
         refService.saveUser(user);
         return ResponseEntity.ok().build();
     }
