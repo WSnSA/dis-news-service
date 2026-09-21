@@ -40,6 +40,18 @@ public class VehicleRepairPart {
     @Column(name = "unit_price", precision = 15, scale = 2)
     private BigDecimal unitPrice;
 
+    /** Бүртгэсэн үеийн нэр — лавлах хожим өөрчлөгдсөн ч түүх хэвээр үлдэнэ */
+    @Column(name = "part_name", length = 200)
+    private String partName;
+
+    /** Бүртгэсэн үеийн төрөл */
+    @Column(name = "part_type_name", length = 200)
+    private String partTypeName;
+
+    /** Бүртгэсэн үеийн хэмжих нэгж */
+    @Column(name = "part_unit", length = 30)
+    private String partUnit;
+
     @Column(name = "note", length = 300)
     private String note;
 

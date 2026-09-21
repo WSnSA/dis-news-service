@@ -54,6 +54,12 @@ public class RepairWorkerHistoryDto {
         private Integer status;
         /** Тухайн ажилтны бүртгүүлсэн цаг */
         private BigDecimal hours;
+
+        /**
+         * Энэ ажлыг бүртгэх үед ажилтан ямар нэрээр бичигдсэн бэ.
+         * Лавлах дээрх одоогийн нэрээс зөрвөл UI-д тэмдэглэгдэнэ.
+         */
+        private String recordedName;
         /** Засварын бүх сэлбэг */
         private List<PartUse> parts;
     }

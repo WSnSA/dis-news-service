@@ -68,9 +68,11 @@ public class RepairUsageController {
                     return RepairUsageDto.PartLine.builder()
                             .id(line.getId())
                             .repairPartId(line.getRepairPartId())
-                            .partName(ref != null ? ref.getName() : "—")
-                            .partTypeName(ref != null ? partTypes.getOrDefault(ref.getPartTypeId(), "") : "")
-                            .unit(ref != null ? ref.getUnit() : null)
+                            // Бүртгэсэн үеийн нэр нь тэргүүн эх сурвалж; хуучин мөрөнд л лавлах руу орно
+                            .partName(firstNonBlank(line.getPartName(), ref != null ? ref.getName() : null, "—"))
+                            .partTypeName(firstNonBlank(line.getPartTypeName(),
+                                    ref != null ? partTypes.get(ref.getPartTypeId()) : null, ""))
+                            .unit(firstNonBlank(line.getPartUnit(), ref != null ? ref.getUnit() : null, null))
                             .qty(qty)
                             .unitPrice(price)
                             .amount(qty.multiply(price))
@@ -87,8 +89,9 @@ public class RepairUsageController {
                     return RepairUsageDto.WorkerLine.builder()
                             .id(line.getId())
                             .repairWorkerId(line.getRepairWorkerId())
-                            .workerName(ref != null ? ref.getName() : "—")
-                            .specialtyName(ref != null ? specialties.getOrDefault(ref.getSpecialtyId(), "") : "")
+                            .workerName(firstNonBlank(line.getWorkerName(), ref != null ? ref.getName() : null, "—"))
+                            .specialtyName(firstNonBlank(line.getSpecialtyName(),
+                                    ref != null ? specialties.get(ref.getSpecialtyId()) : null, ""))
                             .hours(line.getHours())
                             .note(line.getNote())
                             .build();
@@ -132,6 +135,11 @@ public class RepairUsageController {
         if (line.getUnitPrice() == null) {
             line.setUnitPrice(ref.getUnitPrice() != null ? ref.getUnitPrice() : BigDecimal.ZERO);
         }
+        // Нэрийг мөрөнд царцаана — лавлах дараа нь өөрчлөгдсөн ч түүх хөдлөхгүй
+        line.setPartName(ref.getName());
+        line.setPartUnit(ref.getUnit());
+        line.setPartTypeName(partTypeRepo.findById(ref.getPartTypeId())
+                .map(RepairPartType::getName).orElse(null));
 
         if (ref.getStockQty() != null) {
             BigDecimal left = ref.getStockQty().subtract(line.getQty());
@@ -173,10 +181,14 @@ public class RepairUsageController {
         if (line.getVehicleRepairId() == null || line.getRepairWorkerId() == null) {
             throw new IllegalArgumentException("Засвар болон ажилтнаа сонгоно уу");
         }
-        workerRepo.findById(line.getRepairWorkerId())
+        RepairWorker ref = workerRepo.findById(line.getRepairWorkerId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ажилтан олдсонгүй"));
         line.setId(null);
         line.setActiveFlag(ACTIVE);
+        // Нэрийг мөрөнд царцаана — сэргээгээд нэр солиход түүх хөдлөхгүй
+        line.setWorkerName(ref.getName());
+        line.setSpecialtyName(specialtyRepo.findById(ref.getSpecialtyId())
+                .map(RepairSpecialty::getName).orElse(null));
         return workerLineRepo.save(line);
     }
 
@@ -240,10 +252,11 @@ public class RepairUsageController {
 
             partsByRepair.computeIfAbsent(line.getVehicleRepairId(), k -> new ArrayList<>())
                     .add(RepairWorkerHistoryDto.PartUse.builder()
-                            .partName(ref != null ? ref.getName() : "—")
-                            .partTypeName(ref != null ? partTypes.getOrDefault(ref.getPartTypeId(), "") : "")
+                            .partName(firstNonBlank(line.getPartName(), ref != null ? ref.getName() : null, "—"))
+                            .partTypeName(firstNonBlank(line.getPartTypeName(),
+                                    ref != null ? partTypes.get(ref.getPartTypeId()) : null, ""))
                             .qty(qty)
-                            .unit(ref != null ? ref.getUnit() : null)
+                            .unit(firstNonBlank(line.getPartUnit(), ref != null ? ref.getUnit() : null, null))
                             .amount(amount)
                             .build());
             partsAmountByRepair.merge(line.getVehicleRepairId(), amount, BigDecimal::add);
@@ -274,6 +287,7 @@ public class RepairUsageController {
                             .endDate(r.getEndDate())
                             .status(r.getStatus())
                             .hours(line.getHours())
+                            .recordedName(line.getWorkerName())
                             .parts(partsByRepair.getOrDefault(r.getId(), List.of()))
                             .build());
 
@@ -301,9 +315,15 @@ public class RepairUsageController {
                     .map(id -> partsAmountByRepair.getOrDefault(id, BigDecimal.ZERO))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+            // Лавлахаас бүрмөсөн устсан бол сүүлд бүртгэсэн нэрээр нь нэрлэнэ
+            String fallbackName = jobs.stream()
+                    .map(RepairWorkerHistoryDto.Job::getRecordedName)
+                    .filter(n -> n != null && !n.isBlank())
+                    .findFirst().orElse("—");
+
             out.add(RepairWorkerHistoryDto.builder()
                     .workerId(e.getKey())
-                    .workerName(w != null ? w.getName() : "—")
+                    .workerName(w != null ? w.getName() : fallbackName)
                     .specialtyName(w != null ? specialties.getOrDefault(w.getSpecialtyId(), "") : "")
                     .activeFlag(w != null ? w.getActiveFlag() : 1)
                     .repairCount(jobs.size())
@@ -316,6 +336,14 @@ public class RepairUsageController {
 
         out.sort((a, b) -> b.getTotalHours().compareTo(a.getTotalHours()));
         return out;
+    }
+
+    /** Эхний хоосон биш утгыг буцаана — snapshot → лавлах → анхдагч */
+    private static String firstNonBlank(String... values) {
+        for (String v : values) {
+            if (v != null && !v.isBlank()) return v;
+        }
+        return null;
     }
 
     private LocalDate parseDate(String s) {

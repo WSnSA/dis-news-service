@@ -28,6 +28,17 @@ public class VehicleRepairWorker {
     @Column(name = "repair_worker_id", nullable = false)
     private Long repairWorkerId;
 
+    /**
+     * Бүртгэсэн үеийн нэр. Лавлах дээрх ажилтныг сэргээгээд нэрийг нь
+     * өөрчилсөн ч энд бичигдсэн нэр хэвээр үлдэнэ — нэгж үнэтэй ижил зарчим.
+     */
+    @Column(name = "worker_name", length = 200)
+    private String workerName;
+
+    /** Бүртгэсэн үеийн мэргэжил */
+    @Column(name = "specialty_name", length = 200)
+    private String specialtyName;
+
     /** Ажилласан цаг */
     @Column(name = "hours", precision = 10, scale = 2)
     private BigDecimal hours;
