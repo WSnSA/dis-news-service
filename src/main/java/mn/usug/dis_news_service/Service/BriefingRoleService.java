@@ -113,9 +113,10 @@ public class BriefingRoleService {
     }
 
     private String fullName(User u) {
-        String ln = u.getLastName() != null && !u.getLastName().isBlank()
-                ? u.getLastName().charAt(0) + ". " : "";
-        String fn = u.getFirstName() != null ? u.getFirstName() : "";
+        // Овгийн эхний үсэг — урд/хойд зайг эхэлж цэвэрлэнэ (зай байвал эхний үсэг унана)
+        String last = u.getLastName() != null ? u.getLastName().trim() : "";
+        String ln = !last.isEmpty() ? last.charAt(0) + ". " : "";
+        String fn = u.getFirstName() != null ? u.getFirstName().trim() : "";
         return (ln + fn).trim();
     }
 }
