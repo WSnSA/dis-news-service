@@ -68,11 +68,12 @@ public class RepairUsageController {
                     return RepairUsageDto.PartLine.builder()
                             .id(line.getId())
                             .repairPartId(line.getRepairPartId())
-                            // Бүртгэсэн үеийн нэр нь тэргүүн эх сурвалж; хуучин мөрөнд л лавлах руу орно
-                            .partName(firstNonBlank(line.getPartName(), ref != null ? ref.getName() : null, "—"))
-                            .partTypeName(firstNonBlank(line.getPartTypeName(),
-                                    ref != null ? partTypes.get(ref.getPartTypeId()) : null, ""))
-                            .unit(firstNonBlank(line.getPartUnit(), ref != null ? ref.getUnit() : null, null))
+                            // Лавлах дээрх одоогийн нэр гол; мөрөнд хуулсан нэр нь
+                            // лавлахаас бүрмөсөн алга болсон үеийн нөөц
+                            .partName(firstNonBlank(ref != null ? ref.getName() : null, line.getPartName(), "—"))
+                            .partTypeName(firstNonBlank(ref != null ? partTypes.get(ref.getPartTypeId()) : null,
+                                    line.getPartTypeName(), ""))
+                            .unit(firstNonBlank(ref != null ? ref.getUnit() : null, line.getPartUnit(), null))
                             .qty(qty)
                             .unitPrice(price)
                             .amount(qty.multiply(price))
@@ -89,9 +90,9 @@ public class RepairUsageController {
                     return RepairUsageDto.WorkerLine.builder()
                             .id(line.getId())
                             .repairWorkerId(line.getRepairWorkerId())
-                            .workerName(firstNonBlank(line.getWorkerName(), ref != null ? ref.getName() : null, "—"))
-                            .specialtyName(firstNonBlank(line.getSpecialtyName(),
-                                    ref != null ? specialties.get(ref.getSpecialtyId()) : null, ""))
+                            .workerName(firstNonBlank(ref != null ? ref.getName() : null, line.getWorkerName(), "—"))
+                            .specialtyName(firstNonBlank(ref != null ? specialties.get(ref.getSpecialtyId()) : null,
+                                    line.getSpecialtyName(), ""))
                             .hours(line.getHours())
                             .note(line.getNote())
                             .build();
@@ -252,11 +253,11 @@ public class RepairUsageController {
 
             partsByRepair.computeIfAbsent(line.getVehicleRepairId(), k -> new ArrayList<>())
                     .add(RepairWorkerHistoryDto.PartUse.builder()
-                            .partName(firstNonBlank(line.getPartName(), ref != null ? ref.getName() : null, "—"))
-                            .partTypeName(firstNonBlank(line.getPartTypeName(),
-                                    ref != null ? partTypes.get(ref.getPartTypeId()) : null, ""))
+                            .partName(firstNonBlank(ref != null ? ref.getName() : null, line.getPartName(), "—"))
+                            .partTypeName(firstNonBlank(ref != null ? partTypes.get(ref.getPartTypeId()) : null,
+                                    line.getPartTypeName(), ""))
                             .qty(qty)
-                            .unit(firstNonBlank(line.getPartUnit(), ref != null ? ref.getUnit() : null, null))
+                            .unit(firstNonBlank(ref != null ? ref.getUnit() : null, line.getPartUnit(), null))
                             .amount(amount)
                             .build());
             partsAmountByRepair.merge(line.getVehicleRepairId(), amount, BigDecimal::add);
@@ -338,7 +339,7 @@ public class RepairUsageController {
         return out;
     }
 
-    /** Эхний хоосон биш утгыг буцаана — snapshot → лавлах → анхдагч */
+    /** Эхний хоосон биш утгыг буцаана — лавлах → мөрөнд хуулсан нэр → анхдагч */
     private static String firstNonBlank(String... values) {
         for (String v : values) {
             if (v != null && !v.isBlank()) return v;

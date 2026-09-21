@@ -40,7 +40,7 @@ public class VehicleRepairPart {
     @Column(name = "unit_price", precision = 15, scale = 2)
     private BigDecimal unitPrice;
 
-    /** Бүртгэсэн үеийн нэр — лавлах хожим өөрчлөгдсөн ч түүх хэвээр үлдэнэ */
+    /** Бүртгэсэн үеийн нэр — лавлахаас устсан үеийн нөөц */
     @Column(name = "part_name", length = 200)
     private String partName;
 
