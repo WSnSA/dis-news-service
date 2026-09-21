@@ -130,7 +130,7 @@ public class BriefingService {
 
     @Transactional
     public BriefingDto save(BriefingSaveDto dto) {
-        access.requireSecretary(UserContext.getUserId());
+        Integer actorId = UserContext.getUserId();
         if (dto.getAssignerId() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Үүрэг өгөх албан тушаалтан заавал сонгоно");
         if (dto.getDescription() == null || dto.getDescription().isBlank())
@@ -144,14 +144,22 @@ public class BriefingService {
         boolean isNew = dto.getId() == null;
         BriefingTask task;
         if (isNew) {
+            // Шинэ үүрэг зөвхөн нарийн бичиг/админ бүртгэнэ
+            access.requireSecretary(actorId);
             task = new BriefingTask();
             task.setStatus(0);
             task.setActiveFlag(1);
-            task.setCreatedBy(UserContext.getUserId());
+            task.setCreatedBy(actorId);
             task.setCreatedDate(now());
         } else {
             task = taskRepo.findById(dto.getId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Үүрэг олдсонгүй"));
+            // Засах эрх: нарийн бичиг/админ ЭСВЭЛ уг үүргийг өгсөн удирдлага (assigner)
+            boolean canEdit = access.isSecretary(actorId)
+                    || Objects.equals(actorId, task.getAssignerId());
+            if (!canEdit)
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Энэ үүрэг даалгаврыг засах эрхгүй байна (нарийн бичиг эсвэл үүрэг өгсөн удирдлага л засна)");
         }
         task.setAssignerId(dto.getAssignerId());
         task.setDescription(dto.getDescription());
@@ -617,9 +625,15 @@ public class BriefingService {
 
     @Transactional
     public void delete(Integer id) {
-        access.requireSecretary(UserContext.getUserId());
+        Integer actorId = UserContext.getUserId();
         BriefingTask task = taskRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Үүрэг олдсонгүй"));
+        // Устгах эрх: нарийн бичиг/админ ЭСВЭЛ уг үүргийг өгсөн удирдлага (assigner)
+        boolean canDelete = access.isSecretary(actorId)
+                || Objects.equals(actorId, task.getAssignerId());
+        if (!canDelete)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Энэ үүрэг даалгаврыг устгах эрхгүй байна (нарийн бичиг эсвэл үүрэг өгсөн удирдлага л устгана)");
         task.setActiveFlag(0);
         task.setUpdatedDate(now());
         taskRepo.save(task);
