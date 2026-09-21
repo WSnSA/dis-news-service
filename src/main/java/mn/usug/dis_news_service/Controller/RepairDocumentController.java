@@ -100,6 +100,17 @@ public class RepairDocumentController {
         existing.setPurpose(document.getPurpose());
         existing.setReceiverName(document.getReceiverName());
         existing.setIssuerName(document.getIssuerName());
+        existing.setFormNo(document.getFormNo());
+        existing.setApproverTitle(document.getApproverTitle());
+        existing.setApproverName(document.getApproverName());
+        existing.setCity(document.getCity());
+        existing.setCommission(document.getCommission());
+        existing.setCommissionDriver(document.getCommissionDriver());
+        existing.setNormKm(document.getNormKm());
+        existing.setActualKm(document.getActualKm());
+        existing.setFinding(document.getFinding());
+        existing.setLiability(document.getLiability());
+        existing.setVehicleBrand(document.getVehicleBrand());
         RepairDocument saved = repository.save(existing);
         replaceItems(saved, document.getItems());
         return withItems(saved);

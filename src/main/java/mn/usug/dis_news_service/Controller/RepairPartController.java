@@ -7,7 +7,9 @@ import mn.usug.dis_news_service.Entity.RepairPart;
 import mn.usug.dis_news_service.Entity.RepairPartType;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import mn.usug.dis_news_service.Service.RepairPartImportService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,6 +28,7 @@ public class RepairPartController {
     private static final Integer INACTIVE = 0;
 
     private final RepairPartRepository repository;
+    private final RepairPartImportService importService;
     private final RepairPartTypeRepository typeRepository;
 
     /** Шүүлтүүрийн төрлүүд */
@@ -46,6 +49,25 @@ public class RepairPartController {
         return includeInactive
                 ? repository.findAll(Sort.by(Sort.Direction.ASC, "name"))
                 : repository.findByActiveFlagOrderByNameAsc(ACTIVE);
+    }
+
+    /**
+     * Нягтлан бодохын "Бараа материалын дэлгэрэнгүй" Excel-ээс лавлахыг шинэчилнэ.
+     *
+     * Кодоор нь тааруулж, байхгүйг нь нэмж, байгааг нь (нэр, нэгж, үнэ,
+     * үлдэгдэл) шинэчилнэ. dryRun=true үед юу ч хадгалахгүй, зөвхөн юу
+     * өөрчлөгдөхийг буцаана — оруулахаасаа өмнө шалгах.
+     */
+    @PostMapping("/import")
+    public RepairPartImportService.Result importExcel(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "partTypeId", required = false) Long partTypeId,
+            @RequestParam(value = "dryRun", required = false, defaultValue = "false") boolean dryRun
+    ) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Файлаа сонгоно уу");
+        }
+        return importService.importFile(file, partTypeId, dryRun);
     }
 
     @PostMapping("/save")

@@ -80,6 +80,49 @@ public class RepairDocument {
     @Column(name = "issuer_name", length = 200)
     private String issuerName;
 
+    /* ── Техникийн комиссын акт (ДМYА маягт) ── */
+
+    /** "УСУГ ДМYА № 12" — маягтын дугаар */
+    @Column(name = "form_no", length = 60)
+    private String formNo;
+
+    /** БАТЛАВ — баталсан хүн */
+    @Column(name = "approver_title", length = 200)
+    private String approverTitle;
+
+    @Column(name = "approver_name", length = 200)
+    private String approverName;
+
+    @Column(name = "city", length = 100)
+    private String city;
+
+    /** Комиссын гишүүд — JSON [{title,name}] */
+    @Column(name = "commission", columnDefinition = "TEXT")
+    private String commission;
+
+    /** Зөвшөөрсөн жолооч */
+    @Column(name = "commission_driver", length = 200)
+    private String commissionDriver;
+
+    /** Гүйлтийн норм (км) */
+    @Column(name = "norm_km")
+    private Integer normKm;
+
+    /** Ашиглалтад орсноос хойш явсан (км) */
+    @Column(name = "actual_km")
+    private Integer actualKm;
+
+    /** Комиссоос тогтоосон нь — 1 дүгээр зүйл */
+    @Column(name = "finding", columnDefinition = "TEXT")
+    private String finding;
+
+    /** Эвдрэлийн шалтгаан, хариуцах эзэн, төлбөр — 2 дугаар зүйл */
+    @Column(name = "liability", columnDefinition = "TEXT")
+    private String liability;
+
+    @Column(name = "vehicle_brand", length = 150)
+    private String vehicleBrand;
+
     /** Хариуд мөрүүдийг хамт буцаана — DB-д хадгалагдахгүй */
     @Transient
     private java.util.List<RepairDocumentItem> items;

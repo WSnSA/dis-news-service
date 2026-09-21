@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -102,75 +103,171 @@ public class RepairFormDocxWriter {
         }
     }
 
-    /* ══════════════ Акт ══════════════ */
+    /* ══════════════ Техникийн комиссын акт ══════════════ */
 
+    /**
+     * ДМYА маягтын акт. Элэгдсэн эд ангийг комисс шалгаж, гүйлтийн норм
+     * хэдэн км байснаас хэд явсныг тэмдэглэн, дутууг хэн хариуцахыг
+     * тогтоодог. Цаасан хувилбарын бүтцийг дагана.
+     */
     public void act(RepairDocument doc, OutputStream out) throws IOException {
         try (XWPFDocument d = new XWPFDocument()) {
+            // Баруун дээд булан — "УСУГ  ДМYА № 12"
+            right(d, "УСУГ   ДМYА № " + nz(doc.getFormNo()), 11);
+            blank(d);
+
+            // БАТЛАВ блок — баруун гар талд
+            right(d, "БАТЛАВ:", 11);
+            right(d, nz(doc.getApproverTitle()).isBlank()
+                    ? "УС СУВГИЙН УДИРДАХ ГАЗРЫН АВТО БААЗЫН ДАРГА"
+                    : doc.getApproverTitle().toUpperCase(), 11);
+            right(d, nz(doc.getApproverName()), 11);
+            blank(d);
+
             XWPFParagraph title = d.createParagraph();
             title.setAlignment(ParagraphAlignment.CENTER);
-            run(title, "АКТ №" + nz(doc.getDocNo()), true, 14);
+            run(title, "ТЕХНИКИЙН КОМИССЫН АКТ № " + nz(doc.getDocNo()), true, 13);
+            blank(d);
 
+            // Огноо зүүн, хот баруун талд
             LocalDate date = doc.getDocDate() != null ? doc.getDocDate() : LocalDate.now();
             XWPFParagraph dp = d.createParagraph();
-            dp.setAlignment(ParagraphAlignment.RIGHT);
-            run(dp, "%d оны %d сарын %d өдөр".formatted(date.getYear(), date.getMonthValue(), date.getDayOfMonth()),
-                    false, 10);
-
-            field(d, "Машин", nz(doc.getPlateNumber()), null);
-            field(d, "Хэнээс", nz(doc.getFromPerson()), "(Овог нэр, албан тушаал)");
-            field(d, "Зориулалт", nz(doc.getPurpose()), null);
-
+            dp.setAlignment(ParagraphAlignment.BOTH);
+            run(dp, "%d оны %02d дүгээр сарын %d".formatted(
+                    date.getYear(), date.getMonthValue(), date.getDayOfMonth()), false, 11);
+            run(dp, "\t\t\t\t\t", false, 11);
+            run(dp, nz(doc.getCity()).isBlank() ? "Улаанбаатар хот" : doc.getCity(), false, 11);
             blank(d);
 
-            List<RepairDocumentItem> items = doc.getItems() != null ? doc.getItems() : List.of();
-            if (!items.isEmpty()) {
-                XWPFTable t = table(d, 6);
-                header(t.getRow(0), List.of("№", "Нэр", "Код", "Хэмжих нэгж", "Тоо", "Дүн (₮)"));
+            // Комиссын бүрэлдэхүүн + шалгасан машин — нэг догол мөр
+            List<String[]> members = parseCommission(doc.getCommission());
+            String people = members.stream()
+                    .map(m -> (m[0].isBlank() ? "" : m[0] + " ") + m[1])
+                    .filter(x -> !x.isBlank())
+                    .reduce((a, b) -> a + ", " + b)
+                    .orElse("");
 
-                BigDecimal total = BigDecimal.ZERO;
-                int i = 1;
-                for (RepairDocumentItem it : items) {
-                    BigDecimal qty   = it.getQtyIssued() != null ? it.getQtyIssued() : it.getQtyRequested();
-                    BigDecimal price = it.getUnitPrice() != null ? it.getUnitPrice() : BigDecimal.ZERO;
-                    BigDecimal sum   = (qty != null ? qty : BigDecimal.ZERO).multiply(price);
-                    total = total.add(sum);
+            StringBuilder intro = new StringBuilder();
+            if (!people.isBlank()) intro.append(people).append(" нарын ");
+            intro.append("техник, эдийн засгийн байнгын комиссоос ");
+            if (!nz(doc.getCommissionDriver()).isBlank()) {
+                intro.append("жолооч ").append(doc.getCommissionDriver()).append(" оролцуулан ");
+            }
+            intro.append(nz(doc.getPlateNumber())).append(" улсын дугаартай ");
+            if (!nz(doc.getVehicleBrand()).isBlank()) {
+                intro.append(doc.getVehicleBrand()).append(" маркийн ");
+            }
+            intro.append("автомашины техникийн байдлыг шалгаж үзлээ.");
+            justify(d, intro.toString());
+            blank(d);
 
-                    XWPFTableRow row = t.createRow();
-                    cell(row, 0, String.valueOf(i++));
-                    cell(row, 1, nz(it.getItemName()));
-                    cell(row, 2, nz(it.getItemCode()));
-                    cell(row, 3, nz(it.getUnit()));
-                    cell(row, 4, num(qty));
-                    cell(row, 5, num(sum));
+            // 1. Эд ангийн гүйлтийн харьцуулалт
+            justify(d, "1. " + wearText(doc));
+            blank(d);
+
+            XWPFParagraph verdict = d.createParagraph();
+            verdict.setAlignment(ParagraphAlignment.CENTER);
+            run(verdict, "КОМИССООС ТОГТООСОН НЬ :", false, 11);
+            blank(d);
+
+            if (!nz(doc.getFinding()).isBlank()) {
+                justify(d, "1. " + doc.getFinding());
+            }
+            justify(d, "2. Эвдрэлийн шалтгаан, хариуцах эзэн, төлбөрийн хэмжээг бич:");
+            if (!nz(doc.getLiability()).isBlank()) {
+                justify(d, "   " + doc.getLiability());
+            }
+            blank(d);
+            blank(d);
+
+            // Гарын үсгийн блок
+            if (members.isEmpty()) {
+                signRow(d, "КОМИССЫН ДАРГА :", "");
+            } else {
+                String[] head = members.get(0);
+                signRow(d, "КОМИССЫН ДАРГА :", "");
+                signRow(d, "   " + head[0].toUpperCase(), head[1].toUpperCase());
+                if (members.size() > 1) {
+                    para(d, "ГИШҮҮД:", false, 11);
+                    for (int i = 1; i < members.size(); i++) {
+                        signRow(d, "   " + members.get(i)[0].toUpperCase(),
+                                members.get(i)[1].toUpperCase());
+                    }
                 }
-
-                XWPFTableRow sumRow = t.createRow();
-                cell(sumRow, 0, "");
-                cell(sumRow, 1, "Нийт");
-                cell(sumRow, 2, "");
-                cell(sumRow, 3, "");
-                cell(sumRow, 4, "");
-                cell(sumRow, 5, num(doc.getAmount() != null ? doc.getAmount() : total));
-                blank(d);
-            } else if (doc.getAmount() != null) {
-                para(d, "Нийт дүн: " + num(doc.getAmount()) + "₮", true, 11);
-                blank(d);
             }
-
-            if (!nz(doc.getContent()).isBlank()) {
-                para(d, nz(doc.getContent()), false, 10);
-                blank(d);
+            if (!nz(doc.getCommissionDriver()).isBlank()) {
+                signRow(d, "ЗӨВШӨӨРСӨН ЖОЛООЧ", doc.getCommissionDriver().toUpperCase());
             }
-
-            para(d, "Зөвшөөрсөн:", true, 10);
-            signLine(d, "Дарга");
-            signLine(d, "Нягтлан бодогч");
-            blank(d);
-            signLine(d, "Актыг бичсэн", nz(doc.getIssuerName()));
-            signLine(d, "Хүлээн авсан", nz(doc.getReceiverName()));
 
             d.write(out);
         }
+    }
+
+    /**
+     * "2 ширхэг резинэн дугуй 50000 км яваахаас нь, ашиглалтад орсноос хойш
+     * 43478 км явсан байна. Дутуу 6522 км." гэсэн мөрийг бүрдүүлнэ.
+     */
+    private String wearText(RepairDocument doc) {
+        StringBuilder sb = new StringBuilder("Уг тээврийн хэрэгслийн хувийн хэргээс үзэхэд ");
+
+        List<RepairDocumentItem> items = doc.getItems() != null ? doc.getItems() : List.of();
+        if (!items.isEmpty()) {
+            RepairDocumentItem it = items.get(0);
+            BigDecimal qty = it.getQtyIssued() != null ? it.getQtyIssued() : it.getQtyRequested();
+            if (qty != null && qty.signum() > 0) {
+                sb.append(num(qty)).append(" ").append(nz(it.getUnit()).isBlank() ? "ширхэг" : it.getUnit())
+                  .append(" ");
+            }
+            sb.append(nz(it.getItemName())).append(" ");
+        }
+
+        if (doc.getNormKm() != null) {
+            sb.append(doc.getNormKm()).append(" км яваахаас нь, ");
+        }
+        if (doc.getActualKm() != null) {
+            sb.append("ашиглалтад орсноос хойш ").append(doc.getActualKm()).append(" км явсан байна. ");
+        }
+        if (doc.getNormKm() != null && doc.getActualKm() != null) {
+            int short_ = doc.getNormKm() - doc.getActualKm();
+            sb.append(short_ >= 0 ? "Дутуу " : "Илүү ").append(Math.abs(short_)).append(" км.");
+        }
+        return sb.toString().trim();
+    }
+
+    /** commission нь [{"title":"АХЛАХ ИНЖЕНЕР","name":"Д.ЧАГНААДОРЖ"}] JSON */
+    private List<String[]> parseCommission(String json) {
+        List<String[]> out = new ArrayList<>();
+        if (json == null || json.isBlank()) return out;
+        try {
+            com.fasterxml.jackson.databind.JsonNode node =
+                    new com.fasterxml.jackson.databind.ObjectMapper().readTree(json);
+            if (!node.isArray()) return out;
+            for (var n : node) {
+                String t = n.path("title").asText("").trim();
+                String nm = n.path("name").asText("").trim();
+                if (t.isBlank() && nm.isBlank()) continue;
+                out.add(new String[]{ t, nm });
+            }
+        } catch (Exception ignored) {
+            // Гэмтэлтэй JSON — гарын үсгийн блокгүйгээр үргэлжилнэ
+        }
+        return out;
+    }
+
+    /** Зүүн талд албан тушаал, баруун талд нэр */
+    private void signRow(XWPFDocument d, String left, String rightText) {
+        XWPFParagraph p = d.createParagraph();
+        run(p, left, false, 11);
+        if (!rightText.isBlank()) {
+            run(p, "\t\t\t\t", false, 11);
+            run(p, rightText, false, 11);
+        }
+    }
+
+    private void justify(XWPFDocument d, String text) {
+        XWPFParagraph p = d.createParagraph();
+        p.setAlignment(ParagraphAlignment.BOTH);
+        run(p, text, false, 11);
     }
 
     /* ══════════════ helpers ══════════════ */
