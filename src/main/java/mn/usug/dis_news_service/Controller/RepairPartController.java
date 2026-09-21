@@ -33,9 +33,18 @@ public class RepairPartController {
         return typeRepository.findByActiveFlagOrderBySortOrderAscIdAsc(ACTIVE);
     }
 
+    /**
+     * @param includeInactive true бол устгагдсан мөрийг ч буцаана.
+     *        Устгасан бичлэг сэргээх боломжтой байхын тулд.
+     */
     @GetMapping("/getAll")
-    public List<RepairPart> getAll() {
-        return repository.findByActiveFlagOrderByNameAsc(ACTIVE);
+    public List<RepairPart> getAll(
+            @RequestParam(value = "includeInactive", required = false, defaultValue = "false")
+            boolean includeInactive
+    ) {
+        return includeInactive
+                ? repository.findAll()
+                : repository.findByActiveFlagOrderByNameAsc(ACTIVE);
     }
 
     @PostMapping("/save")
@@ -57,6 +66,16 @@ public class RepairPartController {
         existing.setStockQty(part.getStockQty());
         existing.setNote(part.getNote());
         return repository.save(existing);
+    }
+
+    /** Устгасан сэлбэг-г буцааж идэвхжүүлнэ */
+    @PutMapping("/restore/{id}")
+    public ResponseEntity<Void> restore(@PathVariable Long id) {
+        repository.findById(id).ifPresent(row -> {
+            row.setActiveFlag(ACTIVE);
+            repository.save(row);
+        });
+        return ResponseEntity.noContent().build();
     }
 
     /** Soft delete — зарцуулалтын түүхэд сэлбэгийн нэр үлдэх ёстой тул мөрийг устгахгүй */

@@ -33,9 +33,18 @@ public class RepairWorkerController {
         return specialtyRepository.findByActiveFlagOrderBySortOrderAscIdAsc(ACTIVE);
     }
 
+    /**
+     * @param includeInactive true бол устгагдсан мөрийг ч буцаана.
+     *        Устгасан бичлэг сэргээх боломжтой байхын тулд.
+     */
     @GetMapping("/getAll")
-    public List<RepairWorker> getAll() {
-        return repository.findByActiveFlagOrderByNameAsc(ACTIVE);
+    public List<RepairWorker> getAll(
+            @RequestParam(value = "includeInactive", required = false, defaultValue = "false")
+            boolean includeInactive
+    ) {
+        return includeInactive
+                ? repository.findAll()
+                : repository.findByActiveFlagOrderByNameAsc(ACTIVE);
     }
 
     @PostMapping("/save")
@@ -55,6 +64,16 @@ public class RepairWorkerController {
         existing.setGrade(worker.getGrade());
         existing.setNote(worker.getNote());
         return repository.save(existing);
+    }
+
+    /** Устгасан ажилтан-г буцааж идэвхжүүлнэ */
+    @PutMapping("/restore/{id}")
+    public ResponseEntity<Void> restore(@PathVariable Long id) {
+        repository.findById(id).ifPresent(row -> {
+            row.setActiveFlag(ACTIVE);
+            repository.save(row);
+        });
+        return ResponseEntity.noContent().build();
     }
 
     /** Soft delete — хийсэн ажлын түүхэд ажилтны нэр үлдэх ёстой */
