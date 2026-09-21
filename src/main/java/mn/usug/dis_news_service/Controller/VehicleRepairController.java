@@ -32,6 +32,7 @@ public class VehicleRepairController {
     private final VehicleRepository        vehicleRepository;
     private final RepairCategoryRepository categoryRepository;
     private final mn.usug.dis_news_service.DAO.RepairWorkerRepository workerRepository;
+    private final mn.usug.dis_news_service.DAO.DriverRepository driverRepository;
 
     /** Бүх засварын бүртгэл. `status` өгвөл (0=засварт, 1=дууссан) шүүнэ. */
     @GetMapping("/getAll")
@@ -107,6 +108,7 @@ public class VehicleRepairController {
         existing.setExternalOrg(body.getExternalOrg());
         existing.setFaultDescription(body.getFaultDescription());
         existing.setDriverName(body.getDriverName());
+        existing.setResponsibleDriverId(body.getResponsibleDriverId());
         existing.setStartTime(body.getStartTime());
         existing.setExpectedReady(body.getExpectedReady());
         existing.setWaitingParts(body.getWaitingParts() != null ? body.getWaitingParts() : 0);
@@ -150,6 +152,10 @@ public class VehicleRepairController {
                 .collect(Collectors.toMap(mn.usug.dis_news_service.Entity.RepairWorker::getId,
                         mn.usug.dis_news_service.Entity.RepairWorker::getName, (a, b) -> a));
 
+        Map<Long, String> driverMap = driverRepository.findAll().stream()
+                .collect(Collectors.toMap(mn.usug.dis_news_service.Entity.Driver::getId,
+                        mn.usug.dis_news_service.Entity.Driver::getName, (a, b) -> a));
+
         rows.forEach(r -> {
             Vehicle v = vehicleMap.get(r.getVehicleId());
             if (v != null) {
@@ -165,6 +171,9 @@ public class VehicleRepairController {
             }
             if (r.getResponsibleWorkerId() != null) {
                 r.setResponsibleWorkerName(workerMap.get(r.getResponsibleWorkerId()));
+            }
+            if (r.getResponsibleDriverId() != null) {
+                r.setResponsibleDriverName(driverMap.get(r.getResponsibleDriverId()));
             }
         });
         return rows;

@@ -50,6 +50,40 @@ public class RepairDocument {
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
+    /**
+     * TEXT  — зориулалтаа бичгээр тайлбарлана (мөр бөглөхгүй)
+     * ITEMS — сэлбэгийн лавлахаас сонгосон мөрүүдтэй (БМ-6 хүснэгт)
+     */
+    @Column(name = "doc_mode", nullable = false, length = 20)
+    private String docMode = "TEXT";
+
+    /** vehicle.id — дугаараар хайж сонгосон машин (заавал биш) */
+    @Column(name = "vehicle_id")
+    private Long vehicleId;
+
+    /* ── БМ-6 маягтын толгой ── */
+
+    /** Хэнээс — овог нэр, албан тушаал */
+    @Column(name = "from_person", length = 200)
+    private String fromPerson;
+
+    /** Хаана — цех, тасаг, алба */
+    @Column(name = "to_place", length = 200)
+    private String toPlace;
+
+    @Column(name = "purpose", length = 300)
+    private String purpose;
+
+    @Column(name = "receiver_name", length = 200)
+    private String receiverName;
+
+    @Column(name = "issuer_name", length = 200)
+    private String issuerName;
+
+    /** Хариуд мөрүүдийг хамт буцаана — DB-д хадгалагдахгүй */
+    @Transient
+    private java.util.List<RepairDocumentItem> items;
+
     /** 1=идэвхтэй, 0=идэвхгүй (soft delete) */
     @Column(name = "active_flag", nullable = false)
     private Integer activeFlag = 1;

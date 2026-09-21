@@ -41,7 +41,9 @@ public class RepairReportController {
     ) {
         List<RepairReportService.Row> rows = data.rows(from, to);
         RepairReportService.Attendance att = data.attendance(from, to);
-        return Map.of(
+        // Тухайн хугацаанд бичигдсэн акт / шаардах — тайланд хамт харагдана
+        List<mn.usug.dis_news_service.Entity.RepairDocument> docs = data.documents(from, to);
+        Map<String, Object> out = new java.util.LinkedHashMap<>(Map.of(
                 "fleetTotal",  data.fleetTotal(),
                 "total",       rows.size(),
                 "ready",       rows.stream().filter(RepairReportService.Row::done).count(),
@@ -51,7 +53,11 @@ public class RepairReportController {
                         "worked", att.worked(), "sick", att.sick(),
                         "leave", att.leave(), "bySpecialty", att.bySpecialty()),
                 "rows",        rows
-        );
+        ));
+        out.put("documents", docs);
+        out.put("actCount", docs.stream().filter(d -> "ACT".equals(d.getDocType())).count());
+        out.put("requestCount", docs.stream().filter(d -> "REQUEST".equals(d.getDocType())).count());
+        return out;
     }
 
     /** Өдөр тутмын мэдээ */

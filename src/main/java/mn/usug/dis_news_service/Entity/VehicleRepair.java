@@ -86,6 +86,13 @@ public class VehicleRepair {
     @Column(name = "driver_name", length = 150)
     private String driverName;
 
+    /**
+     * driver.id — машиныг хариуцсан жолооч. Машины жолоочдоос сонгоно
+     * (vehicle_driver), тиймээс цэвэр усны машинд цэвэр усны жолооч л гарна.
+     */
+    @Column(name = "responsible_driver_id")
+    private Long responsibleDriverId;
+
     /** Засварт орсон цаг — өдөр тутмын мэдээнд "09:00" гэж ордог */
     @Column(name = "start_time")
     private java.time.LocalTime startTime;
@@ -128,6 +135,7 @@ public class VehicleRepair {
     @Transient private String categoryName;
     @Transient private String categoryCode;
     @Transient private String responsibleWorkerName;
+    @Transient private String responsibleDriverName;
     /** Ангилал нь машиныг захиалгаас хасах эсэх — frontend шүүхэд */
     @Transient private Integer blocksDispatch;
     /** 1=Үйлчилгээ 2=Цэвэр ус 3=Бохир ус — тайланд хэсэг тус бүрээр бүлэглэнэ */

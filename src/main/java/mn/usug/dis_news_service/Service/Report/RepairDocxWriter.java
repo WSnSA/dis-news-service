@@ -124,7 +124,10 @@ public class RepairDocxWriter {
 
             para(doc, "Дөрөв. Бусад хийж гүйцэтгэсэн ажил", true, 11);
             para(doc, "", false, 11);
-            para(doc, "Тав. Асуулт", true, 11);
+            para(doc, "Тав. Бүрдсэн баримт", true, 11);
+            documentSection(doc, from, to);
+            para(doc, "", false, 11);
+            para(doc, "Зургаа. Асуулт", true, 11);
 
             doc.write(out);
             return out.toByteArray();
@@ -195,8 +198,40 @@ public class RepairDocxWriter {
                     .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                     .forEach(e -> para(doc, "%s – %d".formatted(e.getKey(), e.getValue()), false, 11));
 
+            para(doc, "", false, 11);
+            para(doc, "Дөрөв. Бүрдсэн баримт", true, 11);
+            documentSection(doc, from, to);
+
             doc.write(out);
             return out.toByteArray();
+        }
+    }
+
+    /**
+     * Тухайн хугацаанд бүрдсэн акт / шаардах. Тайлан уншиж байгаа хүн
+     * "аль засварт баримт бичигдсэн бэ" гэдгийг эндээс харна.
+     */
+    private void documentSection(XWPFDocument doc, LocalDate from, LocalDate to) {
+        var docs = data.documents(from, to);
+        long acts = docs.stream().filter(x -> "ACT".equals(x.getDocType())).count();
+        long reqs = docs.size() - acts;
+
+        para(doc, "", false, 11);
+        para(doc, "Бүрдсэн баримт — акт %d, шаардах %d".formatted(acts, reqs), true, 11);
+        if (docs.isEmpty()) {
+            para(doc, "Энэ хугацаанд баримт бүртгэгдээгүй.", false, 11);
+            return;
+        }
+
+        XWPFTable t = table(doc, 5);
+        header(t.getRow(0), List.of("Огноо", "Төрөл", "Дугаар", "Машин", "Дүн (₮)"));
+        for (var x : docs) {
+            XWPFTableRow tr = t.createRow();
+            cell(tr, 0, x.getDocDate() == null ? "" : x.getDocDate().format(D));
+            cell(tr, 1, "ACT".equals(x.getDocType()) ? "Акт" : "Шаардах");
+            cell(tr, 2, nz(x.getDocNo()));
+            cell(tr, 3, nz(x.getPlateNumber()));
+            cell(tr, 4, x.getAmount() == null ? "" : x.getAmount().stripTrailingZeros().toPlainString());
         }
     }
 

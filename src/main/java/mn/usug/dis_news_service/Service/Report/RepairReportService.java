@@ -37,6 +37,7 @@ public class RepairReportService {
     private final RepairWorkerRepository workerRepository;
     private final RepairSpecialtyRepository specialtyRepository;
     private final RepairAttendanceRepository attendanceRepository;
+    private final RepairDocumentRepository documentRepository;
 
     /** Нэг засварын мөр — тайланд шаардагдах бүх талбартай */
     public record Row(
@@ -58,6 +59,20 @@ public class RepairReportService {
     /** Ирцийн нэгтгэл */
     public record Attendance(List<String> worked, List<String> sick, List<String> leave,
                              Map<String, Long> bySpecialty) {}
+
+    /**
+     * Огнооны мужид бичигдсэн акт / шаардах. Тайлан болон машины түүхэд
+     * "баримт бүрдсэн эсэх"-ийг харуулахад хэрэглэнэ.
+     */
+    public List<mn.usug.dis_news_service.Entity.RepairDocument> documents(LocalDate from, LocalDate to) {
+        return documentRepository.findByActiveFlagOrderByDocDateDescIdDesc(ACTIVE).stream()
+                .filter(d -> {
+                    LocalDate when = d.getDocDate();
+                    if (when == null) return false;
+                    return !when.isBefore(from) && !when.isAfter(to);
+                })
+                .toList();
+    }
 
     /** Нийт паркийн тоо — "154 авто машин" гэсэн мөрөнд ордог */
     public long fleetTotal() {
