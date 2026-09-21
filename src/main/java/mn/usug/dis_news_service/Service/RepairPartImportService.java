@@ -134,6 +134,12 @@ public class RepairPartImportService {
             }
         }
 
+        // Нэг код олон нярав дээр (олон дэд данс) тархсан байдаг —
+        // жишээ нь хөдөлгүүрийн тос 3449.5 л нэг хүн дээр, 40 л нөгөө дээр.
+        // Кодоор нь нэгтгэж үлдэгдлийг НЭМНЭ, эс тэгвээс сүүлийн мөр өмнөхийг
+        // дарж бичиж, үлдэгдэл алдагдана.
+        rows = mergeByCode(rows);
+
         RepairPartType type = resolveType(partTypeId, detected);
         if (type == null) {
             throw new IllegalArgumentException(
@@ -209,6 +215,44 @@ public class RepairPartImportService {
     }
 
     /* ══════════ helpers ══════════ */
+
+    /**
+     * Давхардсан кодыг нэг мөр болгоно: үлдэгдлийг нэмж, бүлгүүдийг нь
+     * тэмдэглэлд жагсаана. Нэр, нэгж, үнийг эхний мөрөөс авна.
+     */
+    private static List<Row> mergeByCode(List<Row> rows) {
+        Map<String, Row> byCode = new LinkedHashMap<>();
+        Map<String, List<String>> groups = new LinkedHashMap<>();
+
+        for (Row r : rows) {
+            Row seen = byCode.get(r.getCode());
+            if (seen == null) {
+                byCode.put(r.getCode(), r);
+            } else {
+                seen.setStock(sum(seen.getStock(), r.getStock()));
+                // Нэр, нэгж, үнэ хоосон байсан бол дараагийн мөрөөс нөхнө
+                if (blankToNull(seen.getUnit()) == null)  seen.setUnit(r.getUnit());
+                if (seen.getPrice() == null)              seen.setPrice(r.getPrice());
+            }
+            String g = blankToNull(r.getGroup());
+            if (g != null) {
+                groups.computeIfAbsent(r.getCode(), k -> new ArrayList<>());
+                if (!groups.get(r.getCode()).contains(g)) groups.get(r.getCode()).add(g);
+            }
+        }
+
+        for (Map.Entry<String, List<String>> e : groups.entrySet()) {
+            Row r = byCode.get(e.getKey());
+            if (r != null) r.setGroup(String.join(", ", e.getValue()));
+        }
+        return new ArrayList<>(byCode.values());
+    }
+
+    private static BigDecimal sum(BigDecimal a, BigDecimal b) {
+        if (a == null) return b;
+        if (b == null) return a;
+        return a.add(b);
+    }
 
     /** Хэрэглэгчийн сонголт давуу; байхгүй бол файлаас таньсан төрөл */
     private RepairPartType resolveType(Long partTypeId, String detected) {
