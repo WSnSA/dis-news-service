@@ -9,5 +9,7 @@ import java.util.List;
 @Repository
 public interface DriverRepository extends JpaRepository<Driver, Long> {
 
-    List<Driver> findByNameContainingIgnoreCase(String name);
+    List<Driver> findByActiveFlagOrderByNameAsc(Integer activeFlag);
+
+    List<Driver> findByActiveFlagAndNameContainingIgnoreCase(Integer activeFlag, String name);
 }

@@ -22,6 +22,14 @@ Spring Boot 3.5.6 · Java 21 · Lombok · JPA · Spring Security (JWT) · WebSoc
 | VehicleOrderController | `/ref/vehicle-order` | GET /getByDate, POST /save, POST /bulk-confirm |
 | RepairCategoryController | `/repair/category` | GET /getAll, POST /save, PUT /update/{id}, DELETE /delete/{id} |
 | VehicleRepairController | `/repair/vehicle` | GET /getAll, GET /active, GET /by-vehicle?plate=, POST /save, PUT /update/{id}, PUT /finish/{id}, DELETE /delete/{id} |
+| RepairPartController | `/repair/part` | GET /types, GET /getAll?includeInactive=, POST /save, PUT /update/{id}, PUT /restore/{id}, DELETE /delete/{id} |
+| RepairWorkerController | `/repair/worker` | GET /specialties, GET /getAll?includeInactive=, POST /save, PUT /update/{id}, PUT /restore/{id}, DELETE /delete/{id} |
+| RepairUsageController | `/repair/usage` | GET /{repairId}, POST /part, POST /worker, DELETE /part/{id}, DELETE /worker/{id}, GET /worker-history?from=&to= |
+| RepairDocumentController | `/repair/document` | GET /getAll, POST /save, PUT /update/{id}, DELETE /delete/{id} |
+| RepairAttendanceController | `/repair/attendance` | GET ?date=, POST ?date= |
+| VehicleRepairPhotoController | `/repair/photo` | GET /{repairId}, POST, DELETE /{id} |
+| RepairReportController | `/repair/report` | GET /daily, /weekly, /period, /preview (Word .docx) |
+| DriverController | `/ref/driver` | GET /getAll?includeInactive=, GET /search?q=, POST /save, PUT /update/{id}, DELETE /delete/{id} (**soft delete**) |
 | ServertimeController | `/server-time` | GET (returns current server time) |
 | NotificationController | `/notifications` | GET, PUT /read-all |
 
@@ -70,6 +78,15 @@ Migration: `db_migration_repair_category.sql` (хүснэгт + үндсэн 4 �
 хугацаатай давхцаж буй машиныг сонголтоос хасна (давхцал: `start <= өдөр` ба `end IS NULL OR end >= өдөр`).
 
 Migration: `db_migration_vehicle_repair.sql` (`db_migration_repair_category.sql`-ийн дараа).
+
+### Driver (`driver`)
+| Field | Meaning |
+|---|---|
+| `name` (`full_name`) | Овог нэр |
+| `licenseCategories` | "A,B,C" хэлбэрээр |
+| `activeFlag` | 1=идэвхтэй, 0=устгасан. **Өмнө нь hard delete байсан** — хуваарилалтын түүхэд нэр үлдэх ёстой тул soft delete болгов |
+
+Migration: `db_migration_employee_menu.sql` (active_flag + "Ажилтан" цэсний мөр).
 
 ### Task (`tasks`)
 | Field | Meaning |
