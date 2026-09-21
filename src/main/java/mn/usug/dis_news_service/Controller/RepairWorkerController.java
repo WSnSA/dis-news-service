@@ -5,6 +5,7 @@ import mn.usug.dis_news_service.DAO.RepairSpecialtyRepository;
 import mn.usug.dis_news_service.DAO.RepairWorkerRepository;
 import mn.usug.dis_news_service.Entity.RepairSpecialty;
 import mn.usug.dis_news_service.Entity.RepairWorker;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,7 +44,7 @@ public class RepairWorkerController {
             boolean includeInactive
     ) {
         return includeInactive
-                ? repository.findAll()
+                ? repository.findAll(Sort.by(Sort.Direction.ASC, "name"))
                 : repository.findByActiveFlagOrderByNameAsc(ACTIVE);
     }
 
