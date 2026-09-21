@@ -69,7 +69,12 @@ public class RepairPartController {
         return repository.save(existing);
     }
 
-    /** Устгасан сэлбэг-г буцааж идэвхжүүлнэ */
+    /**
+     * Устгасан сэлбэг-г буцааж идэвхжүүлнэ.
+     *
+     * UI-д товч БАЙХГҮЙ — устгасан мөр саарлаар үлдэж, буцаах боломжгүй
+     * гэж тохиролцсон. Энэ нь санамсаргүй устгалыг гараар засах гарц.
+     */
     @PutMapping("/restore/{id}")
     public ResponseEntity<Void> restore(@PathVariable Long id) {
         repository.findById(id).ifPresent(row -> {
