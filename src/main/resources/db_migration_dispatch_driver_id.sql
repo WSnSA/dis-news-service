@@ -30,17 +30,22 @@ PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
    ЗӨВХӨН нэр нь ганц жолоочтой яг таарсан тохиолдолд. Хоёр жолооч ижил
    нэртэй бол аль нь болохыг мэдэх аргагүй тул хөндөхгүй — тэр мөрүүд
    driver_id NULL хэвээр үлдэж, түүхэнд орохгүй. */
+/* ⚠ Хүснэгтүүдийн collation өөр байж болно (driver нь хуучин утf8mb4_general_ci,
+   шинэ хүснэгтүүд unicode_ci) — шууд харьцуулбал "Illegal mix of collations".
+   Хоёр талыг нэг collation руу хөрвүүлнэ. */
 UPDATE vehicles_to_out v
    SET v.driver_id = (
         SELECT d.id FROM driver d
-         WHERE TRIM(LOWER(d.full_name)) = TRIM(LOWER(v.driver_name))
+         WHERE TRIM(CONVERT(d.full_name USING utf8mb4) COLLATE utf8mb4_general_ci)
+             = TRIM(CONVERT(v.driver_name USING utf8mb4) COLLATE utf8mb4_general_ci)
          LIMIT 1
    )
  WHERE v.driver_id IS NULL
    AND v.driver_name IS NOT NULL
    AND TRIM(v.driver_name) <> ''
    AND (SELECT COUNT(*) FROM driver d
-         WHERE TRIM(LOWER(d.full_name)) = TRIM(LOWER(v.driver_name))) = 1;
+         WHERE TRIM(CONVERT(d.full_name USING utf8mb4) COLLATE utf8mb4_general_ci)
+             = TRIM(CONVERT(v.driver_name USING utf8mb4) COLLATE utf8mb4_general_ci)) = 1;
 
 -- Хэдэн мөр нөхөгдөөгүйг харах:
 --   SELECT driver_name, COUNT(*) FROM vehicles_to_out

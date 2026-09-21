@@ -7,8 +7,6 @@
 --
 -- ДАХИН АЖИЛЛУУЛАХАД АЮУЛГҮЙ.
 
-DROP PROCEDURE IF EXISTS add_col_if_missing;
-
 SET @t := 'repair_document';
 
 /* form_no — "УСУГ ДМYА № 12" гэсэн маягтын дугаар */

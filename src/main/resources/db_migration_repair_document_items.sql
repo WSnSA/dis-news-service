@@ -105,15 +105,21 @@ SET @ddl := IF(@c = 0,
     'DO 0');
 PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-/* Хуучин мөрүүдийг driver_name-ээр нь нөхнө — ганц таарсан тохиолдолд */
+/* Хуучин мөрүүдийг driver_name-ээр нь нөхнө — ганц таарсан тохиолдолд.
+   ⚠ driver нь хуучин хүснэгт (utf8mb4_general_ci), vehicle_repair нь
+   utf8mb4_unicode_ci. Шууд харьцуулбал "Illegal mix of collations" алдаа
+   гарна — тиймээс хоёр талыг нэг collation руу хөрвүүлнэ. _ci нь том жижиг
+   үсгийг үл харгалзана тул LOWER() хэрэггүй. */
 UPDATE vehicle_repair r
    SET r.responsible_driver_id = (
         SELECT d.id FROM driver d
-         WHERE TRIM(LOWER(d.full_name)) = TRIM(LOWER(r.driver_name))
+         WHERE TRIM(CONVERT(d.full_name USING utf8mb4) COLLATE utf8mb4_general_ci)
+             = TRIM(CONVERT(r.driver_name USING utf8mb4) COLLATE utf8mb4_general_ci)
          LIMIT 1
    )
  WHERE r.responsible_driver_id IS NULL
    AND r.driver_name IS NOT NULL
    AND TRIM(r.driver_name) <> ''
    AND (SELECT COUNT(*) FROM driver d
-         WHERE TRIM(LOWER(d.full_name)) = TRIM(LOWER(r.driver_name))) = 1;
+         WHERE TRIM(CONVERT(d.full_name USING utf8mb4) COLLATE utf8mb4_general_ci)
+             = TRIM(CONVERT(r.driver_name USING utf8mb4) COLLATE utf8mb4_general_ci)) = 1;
