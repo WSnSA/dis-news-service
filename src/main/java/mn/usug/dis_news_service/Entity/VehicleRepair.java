@@ -86,6 +86,18 @@ public class VehicleRepair {
     @Column(name = "driver_name", length = 150)
     private String driverName;
 
+    /** Засварт орсон цаг — өдөр тутмын мэдээнд "09:00" гэж ордог */
+    @Column(name = "start_time")
+    private java.time.LocalTime startTime;
+
+    /** Бэлэн болох хугацаа */
+    @Column(name = "expected_ready")
+    private LocalDate expectedReady;
+
+    /** 1 = сэлбэггүй зогсож байна (7 хоногийн мэдээнд тусад нь гардаг) */
+    @Column(name = "waiting_parts", nullable = false)
+    private Integer waitingParts = 0;
+
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
@@ -118,4 +130,6 @@ public class VehicleRepair {
     @Transient private String responsibleWorkerName;
     /** Ангилал нь машиныг захиалгаас хасах эсэх — frontend шүүхэд */
     @Transient private Integer blocksDispatch;
+    /** 1=Үйлчилгээ 2=Цэвэр ус 3=Бохир ус — тайланд хэсэг тус бүрээр бүлэглэнэ */
+    @Transient private Integer serviceType;
 }

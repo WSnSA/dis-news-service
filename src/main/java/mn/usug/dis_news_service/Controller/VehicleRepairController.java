@@ -83,6 +83,7 @@ public class VehicleRepairController {
         body.setPlateNumber(vehicle.getPlateNumber());
         body.setStatus(VehicleRepair.STATUS_IN_REPAIR);
         body.setActiveFlag(ACTIVE);
+        if (body.getWaitingParts() == null) body.setWaitingParts(0);
         return ResponseEntity.ok(repository.save(body));
     }
 
@@ -106,6 +107,9 @@ public class VehicleRepairController {
         existing.setExternalOrg(body.getExternalOrg());
         existing.setFaultDescription(body.getFaultDescription());
         existing.setDriverName(body.getDriverName());
+        existing.setStartTime(body.getStartTime());
+        existing.setExpectedReady(body.getExpectedReady());
+        existing.setWaitingParts(body.getWaitingParts() != null ? body.getWaitingParts() : 0);
         return ResponseEntity.ok(repository.save(existing));
     }
 
@@ -151,6 +155,7 @@ public class VehicleRepairController {
             if (v != null) {
                 r.setBrand(v.getBrand());
                 r.setModel(v.getModel());
+                r.setServiceType(v.getServiceType());
             }
             RepairCategory c = categoryMap.get(r.getRepairCategoryId());
             if (c != null) {
