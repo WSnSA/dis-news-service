@@ -139,6 +139,7 @@ public class BriefingService {
                 : dto.getDepartmentIds().stream().distinct().collect(Collectors.toList());
         if (depIds.isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Холбогдох алба 1-с доошгүй сонгоно");
+        validateDeadlines(dto.getSubmitDeadline(), dto.getScoreDeadline());
 
         boolean isNew = dto.getId() == null;
         BriefingTask task;
@@ -166,11 +167,14 @@ public class BriefingService {
                 td.setDepartmentId(depId);
                 taskDepRepo.save(td);
             });
-            // Эхний cycle + хоосон биелэлтүүд
-            createCycle(saved.getId(), 1, currentMeetingTuesday(), depIds);
+            // Эхний cycle + хоосон биелэлтүүд (бүртгэгчийн тохируулсан хугацаатай)
+            createCycle(saved.getId(), 1, currentMeetingTuesday(), depIds,
+                    dto.getSubmitDeadline(), dto.getScoreDeadline());
             notificationService.notifyBriefing(saved.getDescription(), new HashSet<>(depIds));
         } else {
             syncDepartments(saved.getId(), depIds);
+            // Засах үед идэвхтэй (сүүлийн) cycle-ийн хугацааг шинэчлэх боломж
+            updateActiveDeadlines(saved.getId(), dto.getSubmitDeadline(), dto.getScoreDeadline());
         }
 
         audit.log(isNew ? "CREATE_TASK" : "UPDATE_TASK", "TASK", saved.getId(), null,
@@ -217,20 +221,47 @@ public class BriefingService {
         }
     }
 
+    /** Автомат хугацаатай (сунгалт болон бусад) cycle */
     private BriefingCycle createCycle(Integer taskId, int cycleNo, LocalDate meetingDate, List<Integer> depIds) {
+        return createCycle(taskId, cycleNo, meetingDate, depIds, null, null);
+    }
+
+    /**
+     * @param submitDeadline бүртгэгчийн тохируулсан утга; NULL бол автомат (Мягмар+3, 16:00)
+     * @param scoreDeadline  бүртгэгчийн тохируулсан утга; NULL бол автомат (Мягмар+6, 14:00)
+     */
+    private BriefingCycle createCycle(Integer taskId, int cycleNo, LocalDate meetingDate, List<Integer> depIds,
+                                      LocalDateTime submitDeadline, LocalDateTime scoreDeadline) {
         BriefingMeeting meeting = getOrCreateMeeting(meetingDate);
         BriefingCycle c = new BriefingCycle();
         c.setTaskId(taskId);
         c.setMeetingId(meeting.getId());
         c.setCycleNo(cycleNo);
         c.setMeetingDate(meetingDate);
-        c.setSubmitDeadline(submitDeadlineOf(meetingDate));
-        c.setScoreDeadline(scoreDeadlineOf(meetingDate));
+        c.setSubmitDeadline(submitDeadline != null ? submitDeadline : submitDeadlineOf(meetingDate));
+        c.setScoreDeadline(scoreDeadline != null ? scoreDeadline : scoreDeadlineOf(meetingDate));
         c.setStatus(0);
         c.setCreatedDate(now());
         BriefingCycle saved = cycleRepo.save(c);
         depIds.forEach(depId -> createFulfillmentRow(saved.getId(), depId));
         return saved;
+    }
+
+    /** Хугацааны логик шалгах — score нь submit-ээс өмнө байж болохгүй. */
+    private void validateDeadlines(LocalDateTime submitDeadline, LocalDateTime scoreDeadline) {
+        if (submitDeadline != null && scoreDeadline != null && scoreDeadline.isBefore(submitDeadline))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Хянан дүгнэх хугацаа нь биелэлт оруулах хугацаанаас өмнө байж болохгүй");
+    }
+
+    /** Засах үед идэвхтэй (сүүлийн, дүгнээгүй) cycle-ийн хугацааг шинэчилнэ. NULL талбарыг алгасна. */
+    private void updateActiveDeadlines(Integer taskId, LocalDateTime submitDeadline, LocalDateTime scoreDeadline) {
+        if (submitDeadline == null && scoreDeadline == null) return;
+        BriefingCycle latest = cycleRepo.findTopByTaskIdOrderByCycleNoDesc(taskId);
+        if (latest == null) return;
+        if (submitDeadline != null) latest.setSubmitDeadline(submitDeadline);
+        if (scoreDeadline != null) latest.setScoreDeadline(scoreDeadline);
+        cycleRepo.save(latest);
     }
 
     // ── Шуурхай зөвлөгөөн (§3.1) ─────────────────────────────────────────────────

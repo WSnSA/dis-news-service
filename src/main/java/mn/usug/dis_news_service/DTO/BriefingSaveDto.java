@@ -2,6 +2,7 @@ package mn.usug.dis_news_service.DTO;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /** Үүрэг даалгавар бүртгэх / засах оролт (шуурхай хурал дээр бичигч хэрэглэгч). */
@@ -18,4 +19,16 @@ public class BriefingSaveDto {
 
     /** Холбогдох албадын departmentId жагсаалт (1-с доошгүй) */
     private List<Integer> departmentIds;
+
+    /**
+     * Биелэлт оруулах эцсийн хугацаа (бүртгэгч өөрөө тохируулна). NULL бол
+     * автомат утга (Мягмар + 3 өдөр 16:00) хэрэглэнэ.
+     */
+    private LocalDateTime submitDeadline;
+
+    /**
+     * Хянан дүгнэх эцсийн хугацаа (бүртгэгч өөрөө тохируулна). NULL бол
+     * автомат утга (Мягмар + 6 өдөр 14:00) хэрэглэнэ.
+     */
+    private LocalDateTime scoreDeadline;
 }
