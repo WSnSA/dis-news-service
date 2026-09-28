@@ -91,6 +91,7 @@ public class RepairDocxWriter {
         List<RepairReportService.Row> rows = data.rows(from, to);
         RepairReportService.Attendance att = data.attendance(from, to);
         Map<String, Long> bySection = data.countBySection(rows);
+        Map<String, Long> readyBySection = data.countReadyBySection(rows);
         long ready = rows.stream().filter(RepairReportService.Row::done).count();
 
         try (XWPFDocument doc = new XWPFDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -117,6 +118,13 @@ public class RepairDocxWriter {
             para(doc, "Цэвэр усны хэсгийн –  %d т/х".formatted(bySection.getOrDefault("Цэвэр", 0L)), false, 11);
             para(doc, "Бохир усны хэсгийн – %d т/х".formatted(bySection.getOrDefault("Бохир", 0L)), false, 11);
             para(doc, "Үйлчилгээний хэсгийн – %d т/х".formatted(bySection.getOrDefault("Үйлчилгээ", 0L)), false, 11);
+
+            para(doc, "Ажилд бэлэн болсон тээврийн хэрэгслийн тоо хэсгээр:", true, 11);
+            para(doc, "Цэвэр ус-%d, Бохир ус-%d, Үйлчилгээ-%d, Нийт-%d тээврийн хэрэгсэл бэлэн"
+                    .formatted(readyBySection.getOrDefault("Цэвэр", 0L),
+                               readyBySection.getOrDefault("Бохир", 0L),
+                               readyBySection.getOrDefault("Үйлчилгээ", 0L),
+                               ready), false, 11);
 
             section(doc, rows, "Цэвэр",     "ЦЭВЭР УСНЫ ТЭЭВРИЙН ХЭРЭГСЭЛ");
             section(doc, rows, "Бохир",     "БОХИР УСНЫ ХЭСГИЙН ТЭЭВРИЙН ХЭРЭГСЭЛ");

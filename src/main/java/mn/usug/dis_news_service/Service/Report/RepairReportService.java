@@ -97,20 +97,7 @@ public class RepairReportService {
             boolean overlaps = !start.isAfter(to) && (end == null || !end.isBefore(from));
             if (!overlaps) continue;
 
-            Vehicle v = vehicles.get(r.getVehicleId());
-            Integer st = v != null ? v.getServiceType() : null;
-
-            out.add(new Row(
-                    r.getPlateNumber(),
-                    v != null ? v.getBrand() : null,
-                    v != null ? v.getModel() : null,
-                    SECTIONS.getOrDefault(st == null ? -1 : st, "Бусад"),
-                    categories.getOrDefault(r.getRepairCategoryId(), ""),
-                    firstNonBlank(r.getFaultDescription(), r.getNote()),
-                    start, r.getStartTime(), end, r.getExpectedReady(),
-                    Integer.valueOf(VehicleRepair.STATUS_DONE).equals(r.getStatus()),
-                    r.getWaitingParts() != null && r.getWaitingParts() == 1
-            ));
+            out.add(toRow(r, vehicles, categories));
         }
         out.sort(Comparator
                 .comparing(Row::section)
@@ -118,9 +105,49 @@ public class RepairReportService {
         return out;
     }
 
-    /** Тухайн өдөр засварт байсан машинууд */
+    /**
+     * Тухайн өдөр ЭХЭЛСЭН эсвэл ДУУССАН (бэлэн болсон) машинууд.
+     *
+     * {@code rows(date, date)}-ээс ялгаатай нь — өмнө нь эхэлсэн, хараахан
+     * дуусаагүй (сэлбэг хүлээж зогсож байгаа мэт) засварыг ХАМААРУУЛАХГҮЙ.
+     * Тэр өдөр бодитоор юу ч болоогүй машиныг өдрийн мэдээнд оруулахгүй.
+     */
     public List<Row> dailyRows(LocalDate date) {
-        return rows(date, date);
+        Map<Long, Vehicle> vehicles = vehicleRepository.findAll().stream()
+                .collect(Collectors.toMap(Vehicle::getId, Function.identity(), (a, b) -> a));
+        Map<Long, String> categories = categoryRepository.findAll().stream()
+                .collect(Collectors.toMap(RepairCategory::getId, RepairCategory::getName, (a, b) -> a));
+
+        List<Row> out = new ArrayList<>();
+        for (VehicleRepair r : repairRepository.findAll()) {
+            if (!ACTIVE.equals(r.getActiveFlag())) continue;
+            if (r.getStartDate() == null) continue;
+
+            boolean startedToday  = date.equals(r.getStartDate());
+            boolean finishedToday = Integer.valueOf(VehicleRepair.STATUS_DONE).equals(r.getStatus())
+                    && date.equals(r.getEndDate());
+            if (!startedToday && !finishedToday) continue;
+
+            out.add(toRow(r, vehicles, categories));
+        }
+        out.sort(Comparator.comparing(Row::section));
+        return out;
+    }
+
+    private Row toRow(VehicleRepair r, Map<Long, Vehicle> vehicles, Map<Long, String> categories) {
+        Vehicle v = vehicles.get(r.getVehicleId());
+        Integer st = v != null ? v.getServiceType() : null;
+        return new Row(
+                r.getPlateNumber(),
+                v != null ? v.getBrand() : null,
+                v != null ? v.getModel() : null,
+                SECTIONS.getOrDefault(st == null ? -1 : st, "Бусад"),
+                categories.getOrDefault(r.getRepairCategoryId(), ""),
+                firstNonBlank(r.getFaultDescription(), r.getNote()),
+                r.getStartDate(), r.getStartTime(), r.getEndDate(), r.getExpectedReady(),
+                Integer.valueOf(VehicleRepair.STATUS_DONE).equals(r.getStatus()),
+                r.getWaitingParts() != null && r.getWaitingParts() == 1
+        );
     }
 
     /** Ирц — өдөр тутмын мэдээний толгойд болон 7 хоногийн бүрэлдэхүүнд */
@@ -159,6 +186,14 @@ public class RepairReportService {
         Map<String, Long> counts = new LinkedHashMap<>();
         for (String s : List.of("Цэвэр", "Бохир", "Үйлчилгээ")) counts.put(s, 0L);
         for (Row r : rows) counts.merge(r.section(), 1L, Long::sum);
+        return counts;
+    }
+
+    /** Хэсэг тус бүрийн БЭЛЭН БОЛСОН тоо — "Цэвэр ус-8, Бохир-7, Үйлчилгээ-5, Нийт-20" */
+    public Map<String, Long> countReadyBySection(List<Row> rows) {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (String s : List.of("Цэвэр", "Бохир", "Үйлчилгээ")) counts.put(s, 0L);
+        for (Row r : rows) if (r.done()) counts.merge(r.section(), 1L, Long::sum);
         return counts;
     }
 

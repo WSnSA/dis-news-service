@@ -2,6 +2,7 @@ package mn.usug.dis_news_service.Controller;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import mn.usug.dis_news_service.DAO.VehicleOrderItemRepository;
 import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
 import mn.usug.dis_news_service.DAO.VehiclesToOutCancelRepository;
 import mn.usug.dis_news_service.DAO.VehiclesToOutRepository;
@@ -30,6 +31,7 @@ public class VehiclesToOutController {
     private final VehiclesToOutServiceImpl service;
     private final NotificationService notificationService;
     private final VehicleOrderRepository orderRepo;
+    private final VehicleOrderItemRepository orderItemRepo;
     private final VehiclesToOutCancelRepository cancelRepo;
     private final VehiclesToOutRepository vehiclesToOutRepo;
 
@@ -170,19 +172,21 @@ public class VehiclesToOutController {
     }
 
     /**
-     * Захиалгын СҮҮЛЧИЙН хуваарилалт устсан бол захиалгыг "баталгаажсан" (status=1)
-     * төлөвт буцаана.
+     * Захиалгын хуваарилалт устсанаас хойш үлдсэн машин нь шаардлагатай тооноос
+     * цөөн болсон бол захиалгыг "баталгаажсан" (status=1) төлөвт буцаана.
      *
      * Ингэхгүй бол захиалга status=2 хэвээр үлдэж, "Баталгаажсан" табад
      * харагдахгүй болохоор дахин машин хуваарилах боломжгүй болдог байсан.
-     * Захиалгад өөр машин үлдсэн бол хэсэгчлэн хуваарилагдсан хэвээр тул хөндөхгүй.
+     * Захиалга бүрэн хуваарилагдсан хэвээр байвал (жишээ нь 3-аас 3) хөндөхгүй.
      */
     private void releaseOrderIfUnassigned(Integer vehicleOrderId) {
         if (vehicleOrderId == null) return;
 
         // deleteById-ийн дараа шууд асуух тул устгалыг эхлээд бичүүлнэ
         vehiclesToOutRepo.flush();
-        if (!vehiclesToOutRepo.findAllByVehicleOrderIdOrderByIdAsc(vehicleOrderId).isEmpty()) return;
+        int requested = requestedCount(vehicleOrderId);
+        int dispatched = vehiclesToOutRepo.findAllByVehicleOrderIdOrderByIdAsc(vehicleOrderId).size();
+        if (dispatched >= requested) return;
 
         orderRepo.findById(vehicleOrderId.longValue()).ifPresent(order -> {
             if (order.getStatus() == null || order.getStatus() != 2) return;
@@ -307,14 +311,33 @@ public class VehiclesToOutController {
      *   0 = хүлээгдэж байна
      *   1 = 502 баталгаажуулсан
      *   2 = 507 хуваарилсан → ажилд гарсан
+     *
+     * Захиалга хэд хэдэн ӨӨР машин (жишээ нь 3) шаардаж болно
+     * (vehicle_order_item мөр бүрийн qty-гийн нийлбэр, мөр байхгүй бол 1).
+     * Тэдгээрийн зөвхөн ЗАРИМЫГ нь (жишээ нь 2-ыг) энэ дуудлагаар хуваарилсан бол
+     * захиалгыг ХУВААРИЛАГДСАН гэж тооцохгүй — "Баталгаажсан" табанд үлдэж, үлдсэн
+     * машиныг дараа дахин нээгээд хуваарилах боломжтой байна. Бүгдийг хуваарилсан
+     * үед л status=2 болно.
      */
     private void markOrderDispatched(Integer vehicleOrderId) {
         if (vehicleOrderId == null) return;
         orderRepo.findById(vehicleOrderId.longValue()).ifPresent(order -> {
-            order.setStatus(2);
+            int requested = requestedCount(vehicleOrderId);
+            int dispatched = vehiclesToOutRepo.findAllByVehicleOrderIdOrderByIdAsc(vehicleOrderId).size();
+
+            order.setStatus(dispatched >= requested ? 2 : 1);
             // Боломжгүй (status=3) байсан захиалга дахин хуваарилагдвал шалтгааныг цэвэрлэнэ
             order.setDeclineReason(null);
             orderRepo.save(order);
         });
+    }
+
+    /** Захиалгын шаардаж буй нийт машины тоо (vehicle_order_item.qty-гийн нийлбэр, мөр байхгүй бол 1) */
+    private int requestedCount(Integer vehicleOrderId) {
+        List<mn.usug.dis_news_service.Entity.VehicleOrderItem> items =
+                orderItemRepo.findByVehicleOrderId(vehicleOrderId.longValue());
+        return items.isEmpty() ? 1 : items.stream()
+                .mapToInt(i -> i.getQty() != null ? i.getQty() : 1)
+                .sum();
     }
 }

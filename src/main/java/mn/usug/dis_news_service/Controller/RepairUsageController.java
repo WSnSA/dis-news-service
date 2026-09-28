@@ -3,6 +3,7 @@ package mn.usug.dis_news_service.Controller;
 import lombok.RequiredArgsConstructor;
 import mn.usug.dis_news_service.DAO.*;
 import mn.usug.dis_news_service.Entity.*;
+import mn.usug.dis_news_service.Model.RepairPartHistoryDto;
 import mn.usug.dis_news_service.Model.RepairUsageDto;
 import mn.usug.dis_news_service.Model.RepairWorkerHistoryDto;
 import org.springframework.http.HttpStatus;
@@ -336,6 +337,113 @@ public class RepairUsageController {
         }
 
         out.sort((a, b) -> b.getTotalHours().compareTo(a.getTotalHours()));
+        return out;
+    }
+
+    /**
+     * Сэлбэгийн хэрэглээний түүх — сэлбэг бүрээр аль машинд, хэзээ зарцуулсан бэ.
+     *
+     * from/to өгвөл ЗАРЦУУЛСАН огноогоор (мөр үүссэн огноо) шүүнэ — засварын
+     * эхэлсэн огноогоор биш, учир нь нэг засвар удаан үргэлжлэх ба сэлбэг нь
+     * дундуур нь зарцуулагдаж болно.
+     */
+    @GetMapping("/part-history")
+    public List<RepairPartHistoryDto> partHistory(
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to
+    ) {
+        LocalDate fromDate = parseDate(from);
+        LocalDate toDate   = parseDate(to);
+
+        Map<Long, RepairPart> parts = partRepo.findAll().stream()
+                .collect(Collectors.toMap(RepairPart::getId, Function.identity(), (a, b) -> a));
+        Map<Long, String> partTypes = partTypeRepo.findAll().stream()
+                .collect(Collectors.toMap(RepairPartType::getId, RepairPartType::getName, (a, b) -> a));
+        Map<Long, VehicleRepair> repairs = repairRepo.findAll().stream()
+                .collect(Collectors.toMap(VehicleRepair::getId, Function.identity(), (a, b) -> a));
+        Map<Long, Vehicle> vehicles = vehicleRepo.findAll().stream()
+                .collect(Collectors.toMap(Vehicle::getId, Function.identity(), (a, b) -> a));
+        Map<Long, String> categories = categoryRepo.findAll().stream()
+                .collect(Collectors.toMap(RepairCategory::getId, RepairCategory::getName, (a, b) -> a));
+
+        Map<Long, List<RepairPartHistoryDto.Use>> usesByPart = new LinkedHashMap<>();
+        Map<Long, BigDecimal> qtyByPart = new LinkedHashMap<>();
+        Map<Long, BigDecimal> amountByPart = new LinkedHashMap<>();
+        // Лавлахаас бүрмөсөн устсан сэлбэгийн нэр/нэгжийг мөрөнд хадгалснаас нөхнө
+        Map<Long, String> fallbackName = new LinkedHashMap<>();
+        Map<Long, String> fallbackUnit = new LinkedHashMap<>();
+
+        for (VehicleRepairPart line : partLineRepo.findAll()) {
+            if (!ACTIVE.equals(line.getActiveFlag())) continue;
+
+            LocalDate usedDate = line.getCreatedAt() != null ? line.getCreatedAt().toLocalDate() : null;
+            if (fromDate != null && (usedDate == null || usedDate.isBefore(fromDate))) continue;
+            if (toDate != null && (usedDate == null || usedDate.isAfter(toDate))) continue;
+
+            VehicleRepair r = repairs.get(line.getVehicleRepairId());
+            Vehicle v = r != null && r.getVehicleId() != null ? vehicles.get(r.getVehicleId()) : null;
+            String vehicleText = v == null ? "" :
+                    ((v.getBrand() == null ? "" : v.getBrand()) + " " + (v.getModel() == null ? "" : v.getModel())).trim();
+
+            BigDecimal qty = line.getQty() != null ? line.getQty() : BigDecimal.ZERO;
+            BigDecimal price = line.getUnitPrice() != null ? line.getUnitPrice() : BigDecimal.ZERO;
+            BigDecimal amount = qty.multiply(price);
+
+            Long partId = line.getRepairPartId();
+            if (line.getPartName() != null && !line.getPartName().isBlank()) fallbackName.putIfAbsent(partId, line.getPartName());
+            if (line.getPartUnit() != null && !line.getPartUnit().isBlank()) fallbackUnit.putIfAbsent(partId, line.getPartUnit());
+
+            usesByPart.computeIfAbsent(partId, k -> new ArrayList<>())
+                    .add(RepairPartHistoryDto.Use.builder()
+                            .repairId(line.getVehicleRepairId())
+                            .plateNumber(r != null ? firstNonBlank(r.getPlateNumber(), v != null ? v.getPlateNumber() : null, "—")
+                                    : "—")
+                            .vehicleText(vehicleText)
+                            .categoryName(r != null ? categories.getOrDefault(r.getRepairCategoryId(), "") : "")
+                            .qty(qty)
+                            .unit(firstNonBlank(line.getPartUnit(), null))
+                            .unitPrice(price)
+                            .amount(amount)
+                            .note(line.getNote())
+                            .usedDate(usedDate)
+                            .build());
+            qtyByPart.merge(partId, qty, BigDecimal::add);
+            amountByPart.merge(partId, amount, BigDecimal::add);
+        }
+
+        List<RepairPartHistoryDto> out = new ArrayList<>();
+        for (Map.Entry<Long, List<RepairPartHistoryDto.Use>> e : usesByPart.entrySet()) {
+            Long partId = e.getKey();
+            RepairPart ref = parts.get(partId);
+            List<RepairPartHistoryDto.Use> uses = e.getValue();
+            uses.sort((a, b) -> {
+                LocalDate x = a.getUsedDate(), y = b.getUsedDate();
+                if (x == null && y == null) return 0;
+                if (x == null) return 1;
+                if (y == null) return -1;
+                return y.compareTo(x);          // сүүлд зарцуулсан нь эхэнд
+            });
+
+            out.add(RepairPartHistoryDto.builder()
+                    .partId(partId)
+                    .partName(firstNonBlank(ref != null ? ref.getName() : null, fallbackName.get(partId), "—"))
+                    .partTypeName(ref != null ? partTypes.getOrDefault(ref.getPartTypeId(), "") : "")
+                    .unit(firstNonBlank(ref != null ? ref.getUnit() : null, fallbackUnit.get(partId), null))
+                    .activeFlag(ref != null ? ref.getActiveFlag() : 0)
+                    .useCount(uses.size())
+                    .totalQty(qtyByPart.getOrDefault(partId, BigDecimal.ZERO))
+                    .totalAmount(amountByPart.getOrDefault(partId, BigDecimal.ZERO))
+                    .uses(uses)
+                    .build());
+        }
+
+        out.sort((a, b) -> {
+            int byDate = 0;
+            LocalDate x = a.getUses().isEmpty() ? null : a.getUses().get(0).getUsedDate();
+            LocalDate y = b.getUses().isEmpty() ? null : b.getUses().get(0).getUsedDate();
+            if (x != null && y != null) byDate = y.compareTo(x);
+            return byDate != 0 ? byDate : b.getTotalQty().compareTo(a.getTotalQty());
+        });
         return out;
     }
 
