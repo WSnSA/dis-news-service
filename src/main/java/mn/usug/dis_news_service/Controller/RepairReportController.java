@@ -37,9 +37,12 @@ public class RepairReportController {
     @GetMapping("/preview")
     public Map<String, Object> preview(
             @RequestParam("from") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam("to")   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+            @RequestParam("to")   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(value = "kind", required = false, defaultValue = "daily") String kind
     ) {
-        List<RepairReportService.Row> rows = data.rows(from, to);
+        // Өдөр тутмын мэдээнд зөвхөн тэр өдөр ЭХЭЛСЭН/ДУУССАН машин ордог —
+        // "daily" download-той тоо таарч байх ёстой тул preview-д ч адилхан шүүнэ.
+        List<RepairReportService.Row> rows = "daily".equals(kind) ? data.dailyRows(from) : data.rows(from, to);
         RepairReportService.Attendance att = data.attendance(from, to);
         // Тухайн хугацаанд бичигдсэн акт / шаардах — тайланд хамт харагдана
         List<mn.usug.dis_news_service.Entity.RepairDocument> docs = data.documents(from, to);
@@ -49,6 +52,7 @@ public class RepairReportController {
                 "ready",       rows.stream().filter(RepairReportService.Row::done).count(),
                 "waitingParts", rows.stream().filter(RepairReportService.Row::waitingParts).count(),
                 "bySection",   data.countBySection(rows),
+                "readyBySection", data.countReadyBySection(rows),
                 "attendance",  Map.of(
                         "worked", att.worked(), "sick", att.sick(),
                         "leave", att.leave(), "bySpecialty", att.bySpecialty()),
