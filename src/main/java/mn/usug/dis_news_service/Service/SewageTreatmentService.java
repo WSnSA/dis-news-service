@@ -100,16 +100,19 @@ public class SewageTreatmentService {
      * Мөр байхгүй станцыг цэсний нэрээр нь шинээр нэмнэ.
      */
     private List<SewageTreatmentSummaryDto> mergeFacility(List<SewageTreatmentSummaryDto> rows, LocalDate date) {
-        List<StFacilityDaily> recs = facilityRepo.findByRecordDateAndActiveFlag(date, 1);
+        // Бусад ST станцтай ижил 07:00 ээлжийн цонхоор авна: тухайн өдрийн 07:00-аас
+        // маргаашийн 06:59 хүртэл (маргаашийн 00:00–06:59 бичилт энэ ээлжид, тухайн
+        // өдрийн 00:00–06:59 бичилт өмнөх ээлжид тооцогдоно). Хуучин цаггүй (NULL) мөр
+        // тухайн өдрийнхөө бүртгэл хэвээр.
+        List<StFacilityDaily> recs = facilityRepo.findFacilityShiftWindow(date, date.plusDays(1));
         if (recs.isEmpty()) return rows;
 
-        // Цаг тус бүрийн бүртгэл нэвтэрсэн тул станц бүрд хамгийн сүүлийн цагийн (эсвэл
-        // хуучин өдрийн, hour=NULL) мөрийг сонгож нэгтгэнэ — олон мөр давхцахаас сэргийлнэ.
+        // Станц бүрд ээлжийн дотор хамгийн сүүлчийн (хамгийн орой бичсэн) мөрийг сонгоно.
         Map<Integer, StFacilityDaily> latest = new LinkedHashMap<>();
         for (StFacilityDaily rec : recs) {
             if (rec.getStationId() == null) continue;
             StFacilityDaily cur = latest.get(rec.getStationId());
-            if (cur == null || hourOf(rec) >= hourOf(cur)) latest.put(rec.getStationId(), rec);
+            if (cur == null || shiftPos(rec, date) >= shiftPos(cur, date)) latest.put(rec.getStationId(), rec);
         }
 
         Map<Integer, FacilityAgg> byStation = new LinkedHashMap<>();
@@ -210,9 +213,15 @@ public class SewageTreatmentService {
         return d == null ? 0d : d;
     }
 
-    /** Эрэмбэлэхэд: цаггүй (хуучин өдрийн) бүртгэлийг хамгийн бага гэж үзнэ */
-    private static int hourOf(StFacilityDaily rec) {
-        return rec.getRecordHour() == null ? -1 : rec.getRecordHour();
+    /**
+     * Ээлжийн доторх дараалал (эрэмбэлэхэд): тухайн ээлжийн өдрийн 07–23 цаг → 7..23,
+     * маргаашийн 00–06 цаг → 24..30 (өглөө эрт бичилт нь ээлжийн ХАМГИЙН СҮҮЛД).
+     * Цаггүй (хуучин өдрийн NULL) бүртгэлийг ээлжийн эхэн (7) гэж үзнэ.
+     */
+    private static int shiftPos(StFacilityDaily rec, LocalDate shiftDate) {
+        int h = rec.getRecordHour() == null ? 7 : rec.getRecordHour();
+        boolean nextDay = rec.getRecordDate() != null && rec.getRecordDate().isAfter(shiftDate);
+        return nextDay ? h + 24 : h;
     }
 
     /** Нэг станцын өдрийн дүн */
