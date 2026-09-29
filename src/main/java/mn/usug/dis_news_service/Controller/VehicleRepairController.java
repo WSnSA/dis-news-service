@@ -85,6 +85,7 @@ public class VehicleRepairController {
         body.setStatus(VehicleRepair.STATUS_IN_REPAIR);
         body.setActiveFlag(ACTIVE);
         if (body.getWaitingParts() == null) body.setWaitingParts(0);
+        if (body.getHasRepair() == null) body.setHasRepair(1);
         return ResponseEntity.ok(repository.save(body));
     }
 
@@ -112,6 +113,7 @@ public class VehicleRepairController {
         existing.setStartTime(body.getStartTime());
         existing.setExpectedReady(body.getExpectedReady());
         existing.setWaitingParts(body.getWaitingParts() != null ? body.getWaitingParts() : 0);
+        if (body.getHasRepair() != null) existing.setHasRepair(body.getHasRepair());
         return ResponseEntity.ok(repository.save(existing));
     }
 
