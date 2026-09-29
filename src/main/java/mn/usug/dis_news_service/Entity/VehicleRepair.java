@@ -108,6 +108,14 @@ public class VehicleRepair {
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
+    /**
+     * 1=засвартай бүртгэгдсэн, 0=засваргүй бүртгэгдсэн.
+     * Цэвэр усны машинд бодит засвар болоогүй ч жолоочийн лог хийхийн тулд
+     * бичлэг үүсгэсэн бол 0.
+     */
+    @Column(name = "has_repair", nullable = false)
+    private Integer hasRepair = 1;
+
     /** 1=идэвхтэй, 0=устгасан (soft delete) */
     @Column(name = "active_flag", nullable = false)
     private Integer activeFlag = 1;
