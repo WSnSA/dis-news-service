@@ -39,6 +39,7 @@ public class BriefingService {
     private final BriefingAccessService access;
     private final BriefingTaskDelegateRepository delegateRepo;
     private final BriefingAuditService audit;
+    private final SettingService settingService;
 
     private static final ZoneId UB = ZoneId.of("Asia/Ulaanbaatar");
 
@@ -51,14 +52,14 @@ public class BriefingService {
         return LocalDate.now(UB).with(ChronoField.DAY_OF_WEEK, 2);
     }
 
-    /** Биелэлт оруулах эцсийн хугацаа — тухайн долоо хоногийн Баасан 16:00 (Мягмар + 3 өдөр) */
+    /** Биелэлт оруулах анхдагч эцсийн хугацаа — Баасан (Мягмар + 3 өдөр), цаг нь тохиргооноос */
     private LocalDateTime submitDeadlineOf(LocalDate meetingDate) {
-        return meetingDate.plusDays(3).atTime(16, 0);
+        return meetingDate.plusDays(3).atTime(settingService.getInt("briefing_submit_deadline_hour", 16), 0);
     }
 
-    /** Дүгнэх эцсийн хугацаа — дараа долоо хоногийн Даваа 14:00 (Мягмар + 6 өдөр) */
+    /** Дүгнэх эцсийн хугацаа — дараа долоо хоногийн Даваа (Мягмар + 6 өдөр), цаг нь тохиргооноос */
     private LocalDateTime scoreDeadlineOf(LocalDate meetingDate) {
-        return meetingDate.plusDays(6).atTime(14, 0);
+        return meetingDate.plusDays(6).atTime(settingService.getInt("briefing_score_deadline_hour", 14), 0);
     }
 
     // ── Assigner жагсаалт (can_assign_task=1) ────────────────────────────────────

@@ -35,10 +35,11 @@ public class BriefingNewsService {
     private final UserDAO userRepo;
     private final BriefingAccessService access;
     private final BriefingAuditService audit;
+    private final SettingService settingService;
 
-    /** Мэдээ оруулах эцсийн хугацаа — хурлаас өмнөх өдөр (Даваа) 17:00 */
+    /** Мэдээ оруулах эцсийн хугацаа — хурлаас өмнөх өдөр (Даваа), тохиргооны цагаар (анхдагч 17:00) */
     private LocalDateTime newsDeadlineOf(LocalDate meetingDate) {
-        return meetingDate.minusDays(1).atTime(17, 0);
+        return meetingDate.minusDays(1).atTime(settingService.getInt("briefing_news_deadline_hour", 17), 0);
     }
 
     // ── Нэгжүүд ──────────────────────────────────────────────────────────────────
