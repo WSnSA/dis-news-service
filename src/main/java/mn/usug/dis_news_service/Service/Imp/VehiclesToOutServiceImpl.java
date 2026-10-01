@@ -77,9 +77,39 @@ public class VehiclesToOutServiceImpl implements VehiclesToOutService {
 
     @Override
     public List<VehiclesToOutRowDto> findRowsByOrderId(Integer vehicleOrderId) {
-        return repo.findAllByVehicleOrderIdOrderByIdAsc(vehicleOrderId)
-                .stream()
-                .map(this::toRowDtoFilledFromLegacy)
+        List<VehiclesToOut> records = repo.findAllByVehicleOrderIdOrderByIdAsc(vehicleOrderId);
+        if (records.isEmpty()) return List.of();
+
+        // Олон өдрийн захиалгад аль өдөр цуцлагдсаныг машин тус бүрт нөхнө
+        Set<Integer> ids = records.stream().map(VehiclesToOut::getId).collect(Collectors.toSet());
+        List<VehiclesToOutCancel> cancels = cancelRepo.findByVehiclesToOutIdIn(ids);
+
+        Map<Integer, String> userNames = new HashMap<>();
+        Set<Integer> userIds = cancels.stream()
+                .map(VehiclesToOutCancel::getCreatedBy)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (!userIds.isEmpty()) {
+            userDAO.findAllById(userIds)
+                    .forEach(u -> userNames.put(u.getId(), buildShortName(u.getLastName(), u.getFirstName())));
+        }
+
+        Map<Integer, List<VehiclesToOutRowDto.CancelDay>> cancelsByRow = new HashMap<>();
+        cancels.stream()
+                .sorted(java.util.Comparator.comparing(VehiclesToOutCancel::getCancelDate))
+                .forEach(c -> cancelsByRow.computeIfAbsent(c.getVehiclesToOutId(), k -> new ArrayList<>())
+                        .add(VehiclesToOutRowDto.CancelDay.builder()
+                                .date(c.getCancelDate())
+                                .reason(c.getReason())
+                                .cancelledByName(c.getCreatedBy() != null ? userNames.get(c.getCreatedBy()) : null)
+                                .build()));
+
+        return records.stream()
+                .map(v -> {
+                    VehiclesToOutRowDto dto = toRowDtoFilledFromLegacy(v);
+                    dto.setCancellations(cancelsByRow.getOrDefault(v.getId(), List.of()));
+                    return dto;
+                })
                 .toList();
     }
 

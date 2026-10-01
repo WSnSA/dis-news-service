@@ -56,5 +56,14 @@ public class VehicleOrderDto {
     private String  requestedTime;
 
     private List<VehicleItemDto> vehicles;
+
+    /* ── Нэг өдрийн цуцлалт (getByDate дээр л нөхөгдөнө) ──
+       status=2 хэвээр үлдэнэ — олон өдрийн захиалгын бусад өдөр хуваарилалт хүчинтэй. */
+    /** Захиалгад оногдсон машины тоо */
+    private Integer dispatchedCount;
+    /** Хүссэн өдөр цуцлагдсан машины тоо — dispatchedCount-той тэнцвэл тэр өдөр бүгд цуцлагдсан */
+    private Integer cancelledCount;
+    /** Захиалгын хугацаанд аль нэг машин цуцлагдсан өдрүүд */
+    private List<LocalDate> cancelledDates;
 }
 

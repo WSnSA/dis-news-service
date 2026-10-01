@@ -3,7 +3,9 @@ package mn.usug.dis_news_service.Model;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -35,4 +37,15 @@ public class VehiclesToOutRowDto {
     private String cancelReason;
     private String cancelledByName;
     private LocalDateTime cancelledAt;
+
+    /** Энэ хуваарилалтын бүх цуцлагдсан өдрүүд (by-order дээр нөхөгдөнө) — олон өдрийн захиалгад аль өдөр цуцлагдсаныг харуулна */
+    private List<CancelDay> cancellations;
+
+    @Data
+    @Builder
+    public static class CancelDay {
+        private LocalDate date;
+        private String reason;
+        private String cancelledByName;
+    }
 }

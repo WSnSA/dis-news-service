@@ -32,6 +32,9 @@ public interface VehiclesToOutRepository extends JpaRepository<VehiclesToOut, In
 
     List<VehiclesToOut> findAllByVehicleOrderIdOrderByIdAsc(Integer vehicleOrderId);
 
+    /** Олон захиалгын хуваарилалтыг нэг дуудлагаар — захиалгын жагсаалтад цуцлалтыг нөхөхөд */
+    List<VehiclesToOut> findAllByVehicleOrderIdIn(java.util.Collection<Integer> vehicleOrderIds);
+
     /* ==================== МАШИНЫ ХУВААРЬ ==================== */
 
     /**

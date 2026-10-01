@@ -6,18 +6,24 @@ import mn.usug.dis_news_service.DAO.UserDAO;
 import mn.usug.dis_news_service.DAO.VehicleOrderItemRepository;
 import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
 import mn.usug.dis_news_service.DAO.VehicleTypeRepository;
+import mn.usug.dis_news_service.DAO.VehiclesToOutCancelRepository;
+import mn.usug.dis_news_service.DAO.VehiclesToOutRepository;
 import mn.usug.dis_news_service.DTO.VehicleItemDto;
 import mn.usug.dis_news_service.DTO.VehicleOrderDto;
 import mn.usug.dis_news_service.Entity.Department;
 import mn.usug.dis_news_service.Entity.User;
 import mn.usug.dis_news_service.Entity.VehicleOrder;
 import mn.usug.dis_news_service.Entity.VehicleType;
+import mn.usug.dis_news_service.Entity.VehiclesToOut;
+import mn.usug.dis_news_service.Entity.VehiclesToOutCancel;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,9 +35,51 @@ public class VehicleOrderService {
     private final VehicleTypeRepository typeRepo;
     private final DepartmentDAO departmentRepo;
     private final UserDAO userRepo;
+    private final VehiclesToOutRepository dispatchRepo;
+    private final VehiclesToOutCancelRepository cancelRepo;
 
     public List<VehicleOrderDto> getByDate(LocalDate date) {
-        return mapOrders(orderRepo.findByDate(date));
+        List<VehicleOrderDto> dtos = mapOrders(orderRepo.findByDate(date));
+        fillCancellations(dtos, date);
+        return dtos;
+    }
+
+    /**
+     * Нэг өдрийн цуцлалт vehicle_order.status-ыг өөрчилдөггүй (олон өдрийн захиалгын
+     * бусад өдөр хуваарилалт хүчинтэй). Тиймээс хүссэн өдөр хэдэн машин цуцлагдсан,
+     * аль өдрүүдэд цуцлалт байгааг захиалга бүрт нөхөж frontend-д төлөвийг нь харуулна.
+     */
+    private void fillCancellations(List<VehicleOrderDto> dtos, LocalDate date) {
+        Set<Integer> orderIds = dtos.stream()
+                .filter(d -> d.getStatus() != null && d.getStatus() == 2)
+                .map(d -> d.getId().intValue())
+                .collect(Collectors.toSet());
+        if (orderIds.isEmpty()) return;
+
+        List<VehiclesToOut> dispatches = dispatchRepo.findAllByVehicleOrderIdIn(orderIds);
+        if (dispatches.isEmpty()) return;
+
+        Map<Integer, Integer> orderByDispatch = dispatches.stream()
+                .collect(Collectors.toMap(VehiclesToOut::getId, VehiclesToOut::getVehicleOrderId));
+        Map<Integer, Long> dispatchedCount = dispatches.stream()
+                .collect(Collectors.groupingBy(VehiclesToOut::getVehicleOrderId, Collectors.counting()));
+
+        Map<Integer, Integer> cancelledOnDate = new HashMap<>();
+        Map<Integer, java.util.TreeSet<LocalDate>> cancelledDates = new HashMap<>();
+        for (VehiclesToOutCancel c : cancelRepo.findByVehiclesToOutIdIn(orderByDispatch.keySet())) {
+            Integer orderId = orderByDispatch.get(c.getVehiclesToOutId());
+            if (orderId == null) continue;
+            cancelledDates.computeIfAbsent(orderId, k -> new java.util.TreeSet<>()).add(c.getCancelDate());
+            if (c.getCancelDate().equals(date)) cancelledOnDate.merge(orderId, 1, Integer::sum);
+        }
+
+        for (VehicleOrderDto dto : dtos) {
+            Integer key = dto.getId().intValue();
+            if (!dispatchedCount.containsKey(key)) continue;
+            dto.setDispatchedCount(dispatchedCount.get(key).intValue());
+            dto.setCancelledCount(cancelledOnDate.getOrDefault(key, 0));
+            dto.setCancelledDates(List.copyOf(cancelledDates.getOrDefault(key, new java.util.TreeSet<>())));
+        }
     }
 
     /** Баталгаажаагүй (status=0) — 502 ажилтан харна */
