@@ -1,5 +1,7 @@
 package mn.usug.dis_news_service.Service;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mn.usug.dis_news_service.DAO.UserDAO;
@@ -39,15 +41,43 @@ public class VehicleOrderApprovalPolicy {
     @Value("${vehicle-order.dept-approval-skip.position-ids:}")
     private List<Integer> skipPositionIds;
 
+    @PersistenceContext
+    private EntityManager em;
+
+    /** vehicle_approval_skip хүснэгт үүссэн эсэх. Нэг удаа үнэн болбол кэшилнэ. */
+    private volatile boolean skipTableReady = false;
+
+    /**
+     * Хүснэгт байгаа эсэхийг information_schema-аас шалгана (энэ query хэзээ ч алддаггүй).
+     * Байхгүй хүснэгт рүү шууд query хийвэл идэвхтэй транзакц rollback-only болж, commit
+     * дээр UnexpectedRollbackException өгдөг (апп асахгүй / захиалга хадгалагдахгүй) тул
+     * ийнхүү урьдчилан шалгаж, байхгүй бол огт хандахгүй.
+     */
+    private boolean skipTableExists() {
+        if (skipTableReady) return true;
+        try {
+            Number n = (Number) em.createNativeQuery(
+                    "SELECT COUNT(*) FROM information_schema.tables " +
+                    "WHERE table_schema = DATABASE() AND table_name = 'vehicle_approval_skip'")
+                    .getSingleResult();
+            if (n != null && n.intValue() > 0) { skipTableReady = true; return true; }
+        } catch (Exception e) {
+            log.warn("vehicle_approval_skip хүснэгт шалгахад алдаа: {}", e.getMessage());
+        }
+        return false;
+    }
+
     /**
      * Алгасах эрхтэй хэрэглэгчийн id-ууд (DB). vehicle_approval_skip хүснэгт байхгүй
-     * (migration ороогүй) тохиолдолд захиалга үүсгэх урсгалыг эвдэхгүйн тулд хоосон буцаана.
+     * (migration ороогүй) тохиолдолд огт хандахгүйгээр хоосон буцаана — захиалга
+     * үүсгэх болон апп асах урсгалыг эвдэхгүй.
      */
     private List<Integer> skipUserIdsFromDb() {
+        if (!skipTableExists()) return List.of();
         try {
             return skipRepo.findAllUserIds();
         } catch (Exception e) {
-            log.warn("vehicle_approval_skip уншилт амжилтгүй (migration ороогүй байж магадгүй): {}", e.getMessage());
+            log.warn("vehicle_approval_skip уншилт амжилтгүй: {}", e.getMessage());
             return List.of();
         }
     }
