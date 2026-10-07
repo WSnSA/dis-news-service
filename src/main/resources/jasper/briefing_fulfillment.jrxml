@@ -1,21 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Шуурхай хурлын үүрэг даалгаврын биелэлтийн тайлан.
-  Хуудас: A4 босоо (595 x 842 pt). Захын зай: зүүн 2см(57), баруун 2см(57), дээр 3см(85), доор 1.5см(43).
-  columnWidth = 595 - 57 - 57 = 481. Боломжит band өндөр = 842 - 85 - 43 = 714.
+  Хуудас: A4 ХЭВТЭЭ (Landscape, 842 x 595 pt). Захын зай: зүүн 2см(57), баруун 2см(57), дээр 3см(85), доор 1.5см(43).
+  columnWidth = 842 - 57 - 57 = 728. Боломжит band өндөр = 595 - 85 - 43 = 467.
 
-  Параметрүүд (data map-ын дээд түвшин):
-    reportTitle, periodLabel, reviewerTitle, reviewerName, compilerTitle, compilerName
-  rows (detail datasource) мөр бүрийн field:
-    no, taskText, dept, deadline, fulfillment, assigner, score  (бүгд String)
+  ЗБН (алба) бүрийг тусдаа мөр болгоно. Үүргийн түвшний баганууд (№, Өгөгдсөн үүрэг,
+  Хугацаа, Үүрэг өгсөн, Дүгнэсэн хувь) нь нэг үүргийн мөрүүдэд НЭГ удаа (эхний мөрөнд)
+  хэвлэгдэж, доторх хэвтээ зураасгүйгээр rowspan маягаар нэгтгэгдэнэ (өмнөх HTML-ийн адил).
+
+  Параметрүүд: reportTitle, periodLabel, reviewerTitle, reviewerName, compilerTitle, compilerName
+  rows (detail) field: groupKey, no, taskText, dept, deadline, fulfillment, assigner, score (бүгд String)
+  Нэг үүрэг-cycle = нэг groupKey.
 
   Jasper-т import хийх КОД: BRIEFING_FULFILLMENT
 -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
-              name="briefing_fulfillment" pageWidth="595" pageHeight="842"
-              columnWidth="481" leftMargin="57" rightMargin="57" topMargin="85" bottomMargin="43"
+              name="briefing_fulfillment" pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="728" leftMargin="57" rightMargin="57" topMargin="85" bottomMargin="43"
               whenNoDataType="NoDataSection">
 
     <parameter name="reportTitle" class="java.lang.String"/>
@@ -25,6 +28,7 @@
     <parameter name="compilerTitle" class="java.lang.String"/>
     <parameter name="compilerName" class="java.lang.String"/>
 
+    <field name="groupKey" class="java.lang.String"/>
     <field name="no" class="java.lang.String"/>
     <field name="taskText" class="java.lang.String"/>
     <field name="dept" class="java.lang.String"/>
@@ -33,17 +37,31 @@
     <field name="assigner" class="java.lang.String"/>
     <field name="score" class="java.lang.String"/>
 
+    <!-- Нэг үүрэг-cycle = нэг бүлэг. Бүлгийн төгсгөлд бүх өргөнөөр хэвтээ зураас татаж
+         үүрэг хооронд болон хүснэгтийн доод ирмэгийг хаана. -->
+    <group name="taskGroup">
+        <groupExpression><![CDATA[$F{groupKey}]]></groupExpression>
+        <groupFooter>
+            <band height="1">
+                <line>
+                    <reportElement x="0" y="0" width="728" height="1"/>
+                    <graphicElement><pen lineWidth="0.5"/></graphicElement>
+                </line>
+            </band>
+        </groupFooter>
+    </group>
+
     <title>
         <band height="58">
             <textField isBlankWhenNull="true">
-                <reportElement x="0" y="0" width="481" height="34"/>
+                <reportElement x="0" y="0" width="728" height="34"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle">
                     <font fontName="Arial" size="12" isBold="true"/>
                 </textElement>
                 <textFieldExpression><![CDATA[$P{reportTitle}]]></textFieldExpression>
             </textField>
             <textField isBlankWhenNull="true">
-                <reportElement x="0" y="38" width="481" height="16"/>
+                <reportElement x="0" y="38" width="728" height="16"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle">
                     <font fontName="Arial" size="10" isBold="true"/>
                 </textElement>
@@ -55,45 +73,45 @@
     <columnHeader>
         <band height="38">
             <staticText>
-                <reportElement x="0" y="0" width="26" height="38"/>
+                <reportElement x="0" y="0" width="30" height="38"/>
                 <box><pen lineWidth="0.5"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="8" isBold="true"/></textElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="9" isBold="true"/></textElement>
                 <text><![CDATA[Да]]></text>
             </staticText>
             <staticText>
-                <reportElement x="26" y="0" width="120" height="38"/>
+                <reportElement x="30" y="0" width="180" height="38"/>
                 <box><pen lineWidth="0.5"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="8" isBold="true"/></textElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="9" isBold="true"/></textElement>
                 <text><![CDATA[Өгөгдсөн үүрэг даалгавар]]></text>
             </staticText>
             <staticText>
-                <reportElement x="146" y="0" width="80" height="38"/>
+                <reportElement x="210" y="0" width="110" height="38"/>
                 <box><pen lineWidth="0.5"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="8" isBold="true"/></textElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="9" isBold="true"/></textElement>
                 <text><![CDATA[Хариуцан гүйцэтгэх хэлтэс, алба, нэгж]]></text>
             </staticText>
             <staticText>
-                <reportElement x="226" y="0" width="50" height="38"/>
+                <reportElement x="320" y="0" width="65" height="38"/>
                 <box><pen lineWidth="0.5"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="8" isBold="true"/></textElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="9" isBold="true"/></textElement>
                 <text><![CDATA[Хугацаа]]></text>
             </staticText>
             <staticText>
-                <reportElement x="276" y="0" width="120" height="38"/>
+                <reportElement x="385" y="0" width="200" height="38"/>
                 <box><pen lineWidth="0.5"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="8" isBold="true"/></textElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="9" isBold="true"/></textElement>
                 <text><![CDATA[Биелэлт]]></text>
             </staticText>
             <staticText>
-                <reportElement x="396" y="0" width="50" height="38"/>
+                <reportElement x="585" y="0" width="80" height="38"/>
                 <box><pen lineWidth="0.5"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="8" isBold="true"/></textElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="9" isBold="true"/></textElement>
                 <text><![CDATA[Үүрэг даалгавар өгсөн]]></text>
             </staticText>
             <staticText>
-                <reportElement x="446" y="0" width="35" height="38"/>
+                <reportElement x="665" y="0" width="63" height="38"/>
                 <box><pen lineWidth="0.5"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="8" isBold="true"/></textElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="9" isBold="true"/></textElement>
                 <text><![CDATA[Дүгнэсэн хувь]]></text>
             </staticText>
         </band>
@@ -101,47 +119,69 @@
 
     <detail>
         <band height="22" splitType="Prevent">
+            <!-- ЗБН бүрийн хоорондох хэвтээ зураас (зөвхөн Хариуцах нэгж, Биелэлт баганад,
+                 нэг үүргийн 2 дахь ба цааш мөрүүдийн дээр). Үүргийн баганууд merged хэвээр. -->
+            <line>
+                <reportElement x="210" y="0" width="110" height="1">
+                    <printWhenExpression><![CDATA[$V{taskGroup_COUNT}.intValue() > 1]]></printWhenExpression>
+                </reportElement>
+                <graphicElement><pen lineWidth="0.5"/></graphicElement>
+            </line>
+            <line>
+                <reportElement x="385" y="0" width="200" height="1">
+                    <printWhenExpression><![CDATA[$V{taskGroup_COUNT}.intValue() > 1]]></printWhenExpression>
+                </reportElement>
+                <graphicElement><pen lineWidth="0.5"/></graphicElement>
+            </line>
+
+            <!-- № (үүргийн түвшин — эхний мөрөнд) -->
             <textField isStretchWithOverflow="true" isBlankWhenNull="true">
-                <reportElement x="0" y="0" width="26" height="22" stretchType="RelativeToTallestObject"/>
-                <box><pen lineWidth="0.5"/></box>
+                <reportElement x="0" y="0" width="30" height="22" stretchType="RelativeToTallestObject"/>
+                <box><leftPen lineWidth="0.5"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Top"><font fontName="Arial" size="8"/></textElement>
-                <textFieldExpression><![CDATA[$F{no}]]></textFieldExpression>
+                <textFieldExpression><![CDATA[$V{taskGroup_COUNT}.intValue() == 1 ? $F{no} : ""]]></textFieldExpression>
             </textField>
+            <!-- Өгөгдсөн үүрэг даалгавар (үүргийн түвшин) -->
             <textField isStretchWithOverflow="true" isBlankWhenNull="true">
-                <reportElement x="26" y="0" width="120" height="22" stretchType="RelativeToTallestObject"/>
-                <box leftPadding="3" rightPadding="3"><pen lineWidth="0.5"/></box>
+                <reportElement x="30" y="0" width="180" height="22" stretchType="RelativeToTallestObject"/>
+                <box leftPadding="3" rightPadding="3"><leftPen lineWidth="0.5"/></box>
                 <textElement textAlignment="Left" verticalAlignment="Top"><font fontName="Arial" size="8"/></textElement>
-                <textFieldExpression><![CDATA[$F{taskText}]]></textFieldExpression>
+                <textFieldExpression><![CDATA[$V{taskGroup_COUNT}.intValue() == 1 ? $F{taskText} : ""]]></textFieldExpression>
             </textField>
+            <!-- Хариуцан гүйцэтгэх хэлтэс/алба/нэгж (ЗБН — мөр бүрт) -->
             <textField isStretchWithOverflow="true" isBlankWhenNull="true">
-                <reportElement x="146" y="0" width="80" height="22" stretchType="RelativeToTallestObject"/>
-                <box leftPadding="3" rightPadding="3"><pen lineWidth="0.5"/></box>
+                <reportElement x="210" y="0" width="110" height="22" stretchType="RelativeToTallestObject"/>
+                <box leftPadding="3" rightPadding="3"><leftPen lineWidth="0.5"/></box>
                 <textElement textAlignment="Left" verticalAlignment="Top"><font fontName="Arial" size="8"/></textElement>
                 <textFieldExpression><![CDATA[$F{dept}]]></textFieldExpression>
             </textField>
+            <!-- Хугацаа (үүргийн түвшин) -->
             <textField isStretchWithOverflow="true" isBlankWhenNull="true">
-                <reportElement x="226" y="0" width="50" height="22" stretchType="RelativeToTallestObject"/>
-                <box><pen lineWidth="0.5"/></box>
+                <reportElement x="320" y="0" width="65" height="22" stretchType="RelativeToTallestObject"/>
+                <box><leftPen lineWidth="0.5"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Top"><font fontName="Arial" size="8"/></textElement>
-                <textFieldExpression><![CDATA[$F{deadline}]]></textFieldExpression>
+                <textFieldExpression><![CDATA[$V{taskGroup_COUNT}.intValue() == 1 ? $F{deadline} : ""]]></textFieldExpression>
             </textField>
+            <!-- Биелэлт (ЗБН — мөр бүрт) -->
             <textField isStretchWithOverflow="true" isBlankWhenNull="true">
-                <reportElement x="276" y="0" width="120" height="22" stretchType="RelativeToTallestObject"/>
-                <box leftPadding="3" rightPadding="3"><pen lineWidth="0.5"/></box>
+                <reportElement x="385" y="0" width="200" height="22" stretchType="RelativeToTallestObject"/>
+                <box leftPadding="3" rightPadding="3"><leftPen lineWidth="0.5"/></box>
                 <textElement textAlignment="Left" verticalAlignment="Top"><font fontName="Arial" size="8"/></textElement>
                 <textFieldExpression><![CDATA[$F{fulfillment}]]></textFieldExpression>
             </textField>
+            <!-- Үүрэг даалгавар өгсөн (үүргийн түвшин) -->
             <textField isStretchWithOverflow="true" isBlankWhenNull="true">
-                <reportElement x="396" y="0" width="50" height="22" stretchType="RelativeToTallestObject"/>
-                <box leftPadding="2" rightPadding="2"><pen lineWidth="0.5"/></box>
+                <reportElement x="585" y="0" width="80" height="22" stretchType="RelativeToTallestObject"/>
+                <box leftPadding="3" rightPadding="3"><leftPen lineWidth="0.5"/></box>
                 <textElement textAlignment="Left" verticalAlignment="Top"><font fontName="Arial" size="8"/></textElement>
-                <textFieldExpression><![CDATA[$F{assigner}]]></textFieldExpression>
+                <textFieldExpression><![CDATA[$V{taskGroup_COUNT}.intValue() == 1 ? $F{assigner} : ""]]></textFieldExpression>
             </textField>
+            <!-- Дүгнэсэн хувь (үүргийн түвшин) -->
             <textField isStretchWithOverflow="true" isBlankWhenNull="true">
-                <reportElement x="446" y="0" width="35" height="22" stretchType="RelativeToTallestObject"/>
-                <box><pen lineWidth="0.5"/></box>
+                <reportElement x="665" y="0" width="63" height="22" stretchType="RelativeToTallestObject"/>
+                <box><leftPen lineWidth="0.5"/><rightPen lineWidth="0.5"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Top"><font fontName="Arial" size="8"/></textElement>
-                <textFieldExpression><![CDATA[$F{score}]]></textFieldExpression>
+                <textFieldExpression><![CDATA[$V{taskGroup_COUNT}.intValue() == 1 ? $F{score} : ""]]></textFieldExpression>
             </textField>
         </band>
     </detail>
@@ -149,7 +189,7 @@
     <pageFooter>
         <band height="20">
             <textField>
-                <reportElement x="331" y="4" width="150" height="14"/>
+                <reportElement x="578" y="4" width="150" height="14"/>
                 <textElement textAlignment="Right"><font fontName="Arial" size="8"/></textElement>
                 <textFieldExpression><![CDATA["Хуудас " + $V{PAGE_NUMBER}]]></textFieldExpression>
             </textField>
@@ -159,32 +199,32 @@
     <summary>
         <band height="96">
             <staticText>
-                <reportElement x="0" y="10" width="300" height="14"/>
+                <reportElement x="0" y="10" width="400" height="14"/>
                 <textElement><font fontName="Arial" size="9" isBold="true"/></textElement>
                 <text><![CDATA[БИЕЛЭЛТИЙГ ХЯНАСАН:]]></text>
             </staticText>
             <textField isBlankWhenNull="true">
-                <reportElement x="0" y="26" width="330" height="14"/>
+                <reportElement x="0" y="26" width="500" height="14"/>
                 <textElement><font fontName="Arial" size="9"/></textElement>
                 <textFieldExpression><![CDATA[$P{reviewerTitle}]]></textFieldExpression>
             </textField>
             <textField isBlankWhenNull="true">
-                <reportElement x="340" y="26" width="141" height="14"/>
+                <reportElement x="520" y="26" width="208" height="14"/>
                 <textElement textAlignment="Right"><font fontName="Arial" size="9" isBold="true"/></textElement>
                 <textFieldExpression><![CDATA[$P{reviewerName}]]></textFieldExpression>
             </textField>
             <staticText>
-                <reportElement x="0" y="56" width="300" height="14"/>
+                <reportElement x="0" y="56" width="400" height="14"/>
                 <textElement><font fontName="Arial" size="9" isBold="true"/></textElement>
                 <text><![CDATA[БИЕЛЭЛТИЙГ НЭГТГЭН ГАРГАСАН:]]></text>
             </staticText>
             <textField isBlankWhenNull="true">
-                <reportElement x="0" y="72" width="330" height="14"/>
+                <reportElement x="0" y="72" width="500" height="14"/>
                 <textElement><font fontName="Arial" size="9"/></textElement>
                 <textFieldExpression><![CDATA[$P{compilerTitle}]]></textFieldExpression>
             </textField>
             <textField isBlankWhenNull="true">
-                <reportElement x="340" y="72" width="141" height="14"/>
+                <reportElement x="520" y="72" width="208" height="14"/>
                 <textElement textAlignment="Right"><font fontName="Arial" size="9" isBold="true"/></textElement>
                 <textFieldExpression><![CDATA[$P{compilerName}]]></textFieldExpression>
             </textField>
@@ -194,7 +234,7 @@
     <noData>
         <band height="30">
             <staticText>
-                <reportElement x="0" y="8" width="481" height="18"/>
+                <reportElement x="0" y="8" width="728" height="18"/>
                 <textElement textAlignment="Center"><font fontName="Arial" size="9"/></textElement>
                 <text><![CDATA[Тайланд хамрах үүрэг даалгавар олдсонгүй.]]></text>
             </staticText>
