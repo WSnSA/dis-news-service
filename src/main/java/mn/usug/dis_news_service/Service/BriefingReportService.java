@@ -83,37 +83,51 @@ public class BriefingReportService {
         for (Object[] a : flat) {
             BriefingDto t = (BriefingDto) a[1];
             BriefingDto.Cycle c = (BriefingDto.Cycle) a[2];
-            Map<String, Object> r = new HashMap<>();
-            r.put("no", String.valueOf(++no));
-            r.put("taskText", nz(t.getDescription()));
-            r.put("dept", deptList(t));
-            r.put("deadline", c.getSubmitDeadline() != null ? c.getSubmitDeadline().toLocalDate().format(D) : "");
-            r.put("fulfillment", fulfillmentText(c));
-            r.put("assigner", nz(t.getAssignerName()));
-            r.put("score", c.getScore() != null ? c.getScore() + "%" : "-");
-            rows.add(r);
+            no++;
+            // Үүрэг тус бүрийн түвшний утгууд — JRXML дээр group-ийн эхний мөрөнд л хэвлэгдэнэ
+            String groupKey = String.valueOf(c.getId());
+            String noStr = String.valueOf(no);
+            String taskText = nz(t.getDescription());
+            String deadline = c.getSubmitDeadline() != null ? c.getSubmitDeadline().toLocalDate().format(D) : "";
+            String assigner = nz(t.getAssignerName());
+            String score = c.getScore() != null ? c.getScore() + "%" : "-";
+
+            // ЗБН (алба) бүрийг тусдаа мөр болгоно (өмнөх HTML-ийн адил)
+            for (String[] dr : deptFulfillmentRows(t, c)) {
+                Map<String, Object> r = new HashMap<>();
+                r.put("groupKey", groupKey);
+                r.put("no", noStr);
+                r.put("taskText", taskText);
+                r.put("dept", dr[0]);
+                r.put("deadline", deadline);
+                r.put("fulfillment", dr[1]);
+                r.put("assigner", assigner);
+                r.put("score", score);
+                rows.add(r);
+            }
         }
         return rows;
     }
 
-    private String deptList(BriefingDto t) {
-        if (t.getDepartments() == null) return "";
-        return t.getDepartments().stream()
-                .map(BriefingDto.DepRef::getDepName)
-                .filter(Objects::nonNull)
-                .collect(Collectors.joining(", "));
-    }
-
-    /** Алба тус бүрийн биелэлтийн текст — "Алба: текст" мөр мөрөөр. Хоосон бол "Оруулаагүй". */
-    private String fulfillmentText(BriefingDto.Cycle c) {
-        if (c.getFulfillments() == null || c.getFulfillments().isEmpty()) return "Оруулаагүй";
-        List<String> lines = new ArrayList<>();
-        for (BriefingDto.Fulfillment f : c.getFulfillments()) {
-            String text = f.getWorkText() != null ? f.getWorkText().trim() : "";
-            boolean submitted = f.getSubmittedAt() != null && !text.isEmpty();
-            String dep = f.getDepName() != null ? f.getDepName() : "";
-            lines.add((dep.isBlank() ? "" : dep + ": ") + (submitted ? text : "Оруулаагүй"));
+    /**
+     * Үүрэг-cycle-ийг ЗБН (алба) бүрээр мөр болгон задлана — [дэд нэр, биелэлтийн текст].
+     * Биелэлттэй бол алба тус бүрийн мөр; эс бол хариуцагч алба бүрээр "Оруулаагүй".
+     */
+    private List<String[]> deptFulfillmentRows(BriefingDto t, BriefingDto.Cycle c) {
+        List<String[]> out = new ArrayList<>();
+        if (c.getFulfillments() != null && !c.getFulfillments().isEmpty()) {
+            for (BriefingDto.Fulfillment f : c.getFulfillments()) {
+                String text = f.getWorkText() != null ? f.getWorkText().trim() : "";
+                boolean submitted = f.getSubmittedAt() != null && !text.isEmpty();
+                out.add(new String[]{ nz(f.getDepName()), submitted ? text : "Оруулаагүй" });
+            }
+        } else if (t.getDepartments() != null && !t.getDepartments().isEmpty()) {
+            for (BriefingDto.DepRef d : t.getDepartments()) {
+                out.add(new String[]{ nz(d.getDepName()), "Оруулаагүй" });
+            }
+        } else {
+            out.add(new String[]{ "", "Оруулаагүй" });
         }
-        return String.join("\n", lines);
+        return out;
     }
 }
