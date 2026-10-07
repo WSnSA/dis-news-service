@@ -3,6 +3,7 @@ package mn.usug.dis_news_service.Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mn.usug.dis_news_service.DAO.UserDAO;
+import mn.usug.dis_news_service.DAO.VehicleApprovalSkipRepository;
 import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
 import mn.usug.dis_news_service.Entity.User;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,28 +32,38 @@ public class VehicleOrderApprovalPolicy {
 
     private final UserDAO userDAO;
     private final VehicleOrderRepository orderRepo;
-
-    /** Албаны баталгаажуулалт алгасах хэрэглэгчийн id-ууд (таслалаар) */
-    @Value("${vehicle-order.dept-approval-skip.user-ids:258}")
-    private List<Integer> skipUserIds;
+    /** Алгасах хэрэглэгчийн жагсаалт — "Эрхийн удирдлага" цэснээс удирддаг (vehicle_approval_skip) */
+    private final VehicleApprovalSkipRepository skipRepo;
 
     /** Албан тушаалын id-аар алгасуулах шаардлагатай бол (таслалаар, хоосон = ашиглахгүй) */
     @Value("${vehicle-order.dept-approval-skip.position-ids:}")
     private List<Integer> skipPositionIds;
 
+    /**
+     * Алгасах эрхтэй хэрэглэгчийн id-ууд (DB). vehicle_approval_skip хүснэгт байхгүй
+     * (migration ороогүй) тохиолдолд захиалга үүсгэх урсгалыг эвдэхгүйн тулд хоосон буцаана.
+     */
+    private List<Integer> skipUserIdsFromDb() {
+        try {
+            return skipRepo.findAllUserIds();
+        } catch (Exception e) {
+            log.warn("vehicle_approval_skip уншилт амжилтгүй (migration ороогүй байж магадгүй): {}", e.getMessage());
+            return List.of();
+        }
+    }
+
     /** Тухайн хэрэглэгч албаны баталгаажуулалтыг алгасах эрхтэй эсэх */
     public boolean skipsDeptApproval(Integer userId) {
         if (userId == null) return false;
-        if (skipUserIds != null && skipUserIds.contains(userId)) return true;
+        if (skipUserIdsFromDb().contains(userId)) return true;
         if (skipPositionIds == null || skipPositionIds.isEmpty()) return false;
         User u = userDAO.findById(userId).orElse(null);
         return u != null && u.getPositionId() != null && skipPositionIds.contains(u.getPositionId());
     }
 
-    /** Алгасах эрхтэй бүх хэрэглэгчийн id (тохиргооны id + албан тушаалаар олдсон) */
+    /** Алгасах эрхтэй бүх хэрэглэгчийн id (DB-д бүртгэгдсэн + албан тушаалаар олдсон) */
     public List<Integer> resolveSkipUserIds() {
-        Set<Integer> ids = new LinkedHashSet<>();
-        if (skipUserIds != null) ids.addAll(skipUserIds);
+        Set<Integer> ids = new LinkedHashSet<>(skipUserIdsFromDb());
         if (skipPositionIds != null && !skipPositionIds.isEmpty()) {
             for (User u : userDAO.findAll()) {
                 if (u.getPositionId() != null && skipPositionIds.contains(u.getPositionId())) {
