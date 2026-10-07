@@ -48,7 +48,7 @@ public class JasperClient {
 
     private volatile String token;
     private volatile long tokenExpiresAt = 0L;              // epoch millis
-    private final Map<String, Integer> codeIdCache = new ConcurrentHashMap<>();
+    private final Map<String, String> codeIdCache = new ConcurrentHashMap<>();
 
     // ── Нийтийн API ───────────────────────────────────────────────────────────────
 
@@ -100,21 +100,21 @@ public class JasperClient {
 
     // ── Код → id ───────────────────────────────────────────────────────────────────
 
-    private Integer resolveId(String code, boolean forceReload) {
+    private String resolveId(String code, boolean forceReload) {
         if (!forceReload) {
-            Integer cached = codeIdCache.get(code);
+            String cached = codeIdCache.get(code);
             if (cached != null) return cached;
         }
-        Integer id = fetchIdByCode(code);
-        if (id == null)
+        String id = fetchIdByCode(code);
+        if (id == null || id.isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Тайлангийн загвар олдсонгүй (код: " + code + "). Jasper-т уг кодоор import хийнэ үү.");
         codeIdCache.put(code, id);
         return id;
     }
 
-    /** Идэвхгүйг алгасаж, ижил кодтойгоос хамгийн сүүлийн updatedAt-тайг сонгоно. */
-    private Integer fetchIdByCode(String code) {
+    /** Идэвхгүйг алгасаж, ижил кодтойгоос хамгийн сүүлийн updatedAt-тайг сонгоно. id нь UUID (String). */
+    private String fetchIdByCode(String code) {
         try {
             HttpResponse<String> res = http.send(
                     HttpRequest.newBuilder(URI.create(baseUrl + "/api/v1/templates"))
@@ -127,14 +127,14 @@ public class JasperClient {
                         "Jasper загварын жагсаалт авахад алдаа (" + res.statusCode() + "): " + res.body());
             JsonNode arr = om.readTree(res.body());
             if (arr.isObject() && arr.has("data")) arr = arr.get("data");   // боож өгдөг хувилбар
-            Integer bestId = null; String bestUpdated = "";
+            String bestId = null; String bestUpdated = "";
             for (JsonNode t : arr) {
                 if (!code.equals(t.path("code").asText(null))) continue;
                 String status = t.path("status").asText("");
                 if (!status.isBlank() && status.equalsIgnoreCase("INACTIVE")) continue;
                 String updated = t.path("updatedAt").asText("");
                 if (bestId == null || updated.compareTo(bestUpdated) >= 0) {
-                    bestId = t.path("id").asInt();
+                    bestId = t.path("id").asText(null);
                     bestUpdated = updated;
                 }
             }
@@ -148,7 +148,7 @@ public class JasperClient {
 
     // ── Рендер ──────────────────────────────────────────────────────────────────────
 
-    private byte[] render(Integer templateId, Map<String, Object> data) {
+    private byte[] render(String templateId, Map<String, Object> data) {
         try {
             String body = om.writeValueAsString(Map.of(
                     "templateId", templateId,
