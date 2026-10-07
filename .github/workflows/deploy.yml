@@ -50,6 +50,7 @@ jobs:
             -e SPRING_DATASOURCE_URL="jdbc:mysql://host.docker.internal:3306/dis_news?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ulaanbaatar" `
             -e SPRING_DATASOURCE_USERNAME="root" `
             -e SPRING_DATASOURCE_PASSWORD="root123" `
+            -e JASPER_CLIENT_SECRET="${{ secrets.JASPER_CLIENT_SECRET }}" `
             ghcr.io/wsnsa/dis-news-service:latest
 
       - name: Cleanup old Docker images

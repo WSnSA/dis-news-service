@@ -35,7 +35,7 @@ public class JasperClient {
     @Value("${jasper.base-url:http://172.16.0.101:8082}")
     private String baseUrl;
 
-    @Value("${jasper.client-key:dis-news-service}")
+    @Value("${jasper.client-key:tc-backend}")
     private String clientKey;
 
     @Value("${jasper.client-secret:}")
