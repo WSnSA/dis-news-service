@@ -10,10 +10,15 @@ import mn.usug.dis_news_service.Entity.BriefingUnit;
 import mn.usug.dis_news_service.Entity.BriefingAuditLog;
 import mn.usug.dis_news_service.Service.BriefingService;
 import mn.usug.dis_news_service.Service.BriefingNewsService;
+import mn.usug.dis_news_service.Service.BriefingReportService;
 import mn.usug.dis_news_service.Service.BriefingRoleService;
 import mn.usug.dis_news_service.Service.BriefingAuditService;
 import mn.usug.dis_news_service.Service.BriefingAccessService;
 import mn.usug.dis_news_service.Service.UserContext;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -32,6 +37,7 @@ public class BriefingController {
     private final BriefingService service;
     private final BriefingRoleService roleService;
     private final BriefingNewsService newsService;
+    private final BriefingReportService reportService;
     private final BriefingAuditService auditService;
     private final BriefingAccessService access;
 
@@ -99,6 +105,20 @@ public class BriefingController {
     @GetMapping("/assigners")
     public List<Map<String, Object>> assigners() {
         return service.listAssigners();
+    }
+
+    /** Үүрэг даалгаврын биелэлтийн тайлан (PDF, jasper) — хугацааны мужаар */
+    @GetMapping("/fulfillment-report/pdf")
+    public ResponseEntity<byte[]> fulfillmentReportPdf(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        byte[] pdf = reportService.fulfillmentReport(from, to);
+        String fname = "Shuurhai_tailan_" + from + "_" + to + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" + fname + "\"; filename*=UTF-8''" + fname)
+                .body(pdf);
     }
 
     // ── Шуурхай зөвлөгөөн (§3.1) ────────────────────────────────────────────────
