@@ -19,7 +19,7 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="briefing_fulfillment" pageWidth="842" pageHeight="595" orientation="Landscape"
               columnWidth="728" leftMargin="57" rightMargin="57" topMargin="85" bottomMargin="43"
-              whenNoDataType="NoDataSection">
+              isFloatColumnFooter="true" whenNoDataType="NoDataSection">
 
     <parameter name="reportTitle" class="java.lang.String"/>
     <parameter name="periodLabel" class="java.lang.String"/>
@@ -185,6 +185,16 @@
             </textField>
         </band>
     </detail>
+
+    <!-- Хуудас бүрийн сүүлийн мөрийн доор бүх өргөнөөр доод зураас (үргэлжилсэн хуудсыг хаана) -->
+    <columnFooter>
+        <band height="1">
+            <line>
+                <reportElement x="0" y="0" width="728" height="1"/>
+                <graphicElement><pen lineWidth="0.5"/></graphicElement>
+            </line>
+        </band>
+    </columnFooter>
 
     <pageFooter>
         <band height="20">
