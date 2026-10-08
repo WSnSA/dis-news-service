@@ -85,13 +85,13 @@
                 <text><![CDATA[Өгөгдсөн үүрэг даалгавар]]></text>
             </staticText>
             <staticText>
-                <reportElement x="210" y="0" width="110" height="38"/>
+                <reportElement x="275" y="0" width="110" height="38"/>
                 <box><pen lineWidth="0.5"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="9" isBold="true"/></textElement>
                 <text><![CDATA[Хариуцан гүйцэтгэх хэлтэс, алба, нэгж]]></text>
             </staticText>
             <staticText>
-                <reportElement x="320" y="0" width="65" height="38"/>
+                <reportElement x="210" y="0" width="65" height="38"/>
                 <box><pen lineWidth="0.5"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Arial" size="9" isBold="true"/></textElement>
                 <text><![CDATA[Хугацаа]]></text>
@@ -122,7 +122,7 @@
             <!-- ЗБН бүрийн хоорондох хэвтээ зураас (зөвхөн Хариуцах нэгж, Биелэлт баганад,
                  нэг үүргийн 2 дахь ба цааш мөрүүдийн дээр). Үүргийн баганууд merged хэвээр. -->
             <line>
-                <reportElement x="210" y="0" width="110" height="1">
+                <reportElement x="275" y="0" width="110" height="1">
                     <printWhenExpression><![CDATA[$V{taskGroup_COUNT}.intValue() > 1]]></printWhenExpression>
                 </reportElement>
                 <graphicElement><pen lineWidth="0.5"/></graphicElement>
@@ -150,14 +150,14 @@
             </textField>
             <!-- Хариуцан гүйцэтгэх хэлтэс/алба/нэгж (ЗБН — мөр бүрт) -->
             <textField isStretchWithOverflow="true" isBlankWhenNull="true">
-                <reportElement x="210" y="0" width="110" height="22" stretchType="RelativeToTallestObject"/>
+                <reportElement x="275" y="0" width="110" height="22" stretchType="RelativeToTallestObject"/>
                 <box leftPadding="3" rightPadding="3"><leftPen lineWidth="0.5"/></box>
                 <textElement textAlignment="Left" verticalAlignment="Top"><font fontName="Arial" size="8"/></textElement>
                 <textFieldExpression><![CDATA[$F{dept}]]></textFieldExpression>
             </textField>
             <!-- Хугацаа (үүргийн түвшин) -->
             <textField isStretchWithOverflow="true" isBlankWhenNull="true">
-                <reportElement x="320" y="0" width="65" height="22" stretchType="RelativeToTallestObject"/>
+                <reportElement x="210" y="0" width="65" height="22" stretchType="RelativeToTallestObject"/>
                 <box><leftPen lineWidth="0.5"/></box>
                 <textElement textAlignment="Center" verticalAlignment="Top"><font fontName="Arial" size="8"/></textElement>
                 <textFieldExpression><![CDATA[$V{taskGroup_COUNT}.intValue() == 1 ? $F{deadline} : ""]]></textFieldExpression>
