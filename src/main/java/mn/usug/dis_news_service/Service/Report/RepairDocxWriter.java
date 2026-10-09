@@ -40,14 +40,12 @@ public class RepairDocxWriter {
             para(doc, "АВТО БААЗ ДЭЭР-:%d %s нар ажиллаж байна. Нийт %d ажилтан."
                     .formatted(att.worked().size(), workedNames, att.worked().size()), true, 11);
 
-            // "Өвчтэй-1: …     Нөхөн амралт-2: …"
+            // "Өвчтэй-1: …     Нөхөн амралт-2: …     Чөлөөтэй-1: …     Амарсан-1: …"
             StringBuilder absent = new StringBuilder();
-            if (!att.sick().isEmpty())
-                absent.append("Өвчтэй-%d: %s".formatted(att.sick().size(), String.join(", ", att.sick())));
-            if (!att.leave().isEmpty()) {
-                if (absent.length() > 0) absent.append("        ");
-                absent.append("Нөхөн амралт-%d: %s".formatted(att.leave().size(), String.join(", ", att.leave())));
-            }
+            absentGroup(absent, "Өвчтэй", att.sick());
+            absentGroup(absent, "Нөхөн амралт", att.leave());
+            absentGroup(absent, "Чөлөөтэй", att.off());
+            absentGroup(absent, "Амарсан", att.rested());
             para(doc, absent.toString(), false, 11);
 
             XWPFTable table = table(doc, 9);
@@ -70,7 +68,7 @@ public class RepairDocxWriter {
                 cell(tr, 4, r.startTime() != null ? r.startTime().format(T) : "");
                 cell(tr, 5, nz(r.fault()));
                 cell(tr, 6, r.section());
-                cell(tr, 7, r.done() ? "Бэлэн" : "Засвартай");
+                cell(tr, 7, readiness(r));
                 cell(tr, 8, r.expectedReady() != null ? r.expectedReady().format(D) : "");
                 i++;
             }
@@ -83,6 +81,19 @@ public class RepairDocxWriter {
             doc.write(out);
             return out.toByteArray();
         }
+    }
+
+    private static void absentGroup(StringBuilder sb, String label, List<String> names) {
+        if (names.isEmpty()) return;
+        if (sb.length() > 0) sb.append("        ");
+        sb.append("%s-%d: %s".formatted(label, names.size(), String.join(", ", names)));
+    }
+
+    /** "Засварлагдсан эсэх" — бэлэн болоогүй бол явцын тайлбарыг хамт бичнэ */
+    private static String readiness(RepairReportService.Row r) {
+        if (r.done()) return "Бэлэн";
+        if (!r.note().isBlank()) return "Засвартай — " + r.note();
+        return r.waitingParts() ? "Засвартай — сэлбэг хүлээж байна" : "Засвартай";
     }
 
     /* ══════════════ 7 хоногийн тайлан ══════════════ */

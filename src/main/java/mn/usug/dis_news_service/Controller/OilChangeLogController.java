@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 /**
  * Тос тосолгооны бүртгэл — машины засвараас (vehicle_repair) тусдаа, зөвхөн
- * тээврийн хэрэгсэл, жолооч, огноо, гүйлтийг хурдан бичихэд зориулсан лог.
+ * тээврийн хэрэгсэл, жолооч, огноо, гүйлт, зарцуулсан тосыг (литр) хурдан бичихэд зориулсан лог.
  */
 @RestController
 @RequestMapping("/repair/oil-change")
@@ -37,6 +37,7 @@ public class OilChangeLogController {
         if (body.getVehicleId() == null)  return badRequest("Машин сонгоно уу");
         if (body.getChangeDate() == null) return badRequest("Огноо оруулна уу");
         if (body.getOdometerKm() == null || body.getOdometerKm() <= 0) return badRequest("Гүйлт оруулна уу");
+        if (body.getOilLiters() == null || body.getOilLiters().signum() <= 0) return badRequest("Зарцуулсан тос (литр) оруулна уу");
 
         Vehicle vehicle = vehicleRepository.findById(body.getVehicleId()).orElse(null);
         if (vehicle == null) return badRequest("Машин олдсонгүй");

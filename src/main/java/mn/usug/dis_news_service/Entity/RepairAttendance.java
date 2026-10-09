@@ -28,6 +28,7 @@ public class RepairAttendance {
     public static final int SICK   = 2;
     public static final int LEAVE  = 3;
     public static final int OFF    = 4;
+    public static final int RESTED = 5;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,7 +40,7 @@ public class RepairAttendance {
     @Column(name = "repair_worker_id", nullable = false)
     private Long repairWorkerId;
 
-    /** 1=ажилласан, 2=өвчтэй, 3=нөхөн амралт, 4=чөлөөтэй */
+    /** 1=ажилласан, 2=өвчтэй, 3=нөхөн амралт, 4=чөлөөтэй, 5=амарсан */
     @Column(name = "status", nullable = false)
     private Integer status = WORKED;
 

@@ -45,6 +45,7 @@ public class RepairReportService {
             String section,          // Цэвэр / Бохир / Үйлчилгээ
             String categoryName,
             String fault,
+            String note,             // Тайлбар — "Сэлбэг хүлээж байна…" гэх мэт явцын тэмдэглэл
             LocalDate startDate, java.time.LocalTime startTime,
             LocalDate endDate, LocalDate expectedReady,
             boolean done, boolean waitingParts
@@ -58,6 +59,7 @@ public class RepairReportService {
 
     /** Ирцийн нэгтгэл */
     public record Attendance(List<String> worked, List<String> sick, List<String> leave,
+                             List<String> off, List<String> rested,
                              Map<String, Long> bySpecialty) {}
 
     /**
@@ -97,7 +99,7 @@ public class RepairReportService {
             boolean overlaps = !start.isAfter(to) && (end == null || !end.isBefore(from));
             if (!overlaps) continue;
 
-            out.add(toRow(r, vehicles, categories));
+            out.add(toRow(r, vehicles, categories, null));
         }
         out.sort(Comparator
                 .comparing(Row::section)
@@ -106,11 +108,12 @@ public class RepairReportService {
     }
 
     /**
-     * Тухайн өдөр ЭХЭЛСЭН эсвэл ДУУССАН (бэлэн болсон) машинууд.
-     *
-     * {@code rows(date, date)}-ээс ялгаатай нь — өмнө нь эхэлсэн, хараахан
-     * дуусаагүй (сэлбэг хүлээж зогсож байгаа мэт) засварыг ХАМААРУУЛАХГҮЙ.
-     * Тэр өдөр бодитоор юу ч болоогүй машиныг өдрийн мэдээнд оруулахгүй.
+     * Өдөр тутмын мэдээний машинууд:
+     *   - тухайн өдөр ЭХЭЛСЭН засвар;
+     *   - тухайн өдөр ДУУССАН (бэлэн болсон) засвар;
+     *   - өмнө нь эхэлсэн, тэр өдрийн байдлаар БЭЛЭН БОЛООГҮЙ (засварт байгаа,
+     *     сэлбэг хүлээж зогсож байгаа) засвар — бэлэн болтлоо өдөр бүр мэдээнд гарна.
+     * Засваргүй бүртгэгдсэн (has_repair=0) бичлэг үргэлжилж буй жагсаалтад орохгүй.
      */
     public List<Row> dailyRows(LocalDate date) {
         Map<Long, Vehicle> vehicles = vehicleRepository.findAll().stream()
@@ -121,31 +124,47 @@ public class RepairReportService {
         List<Row> out = new ArrayList<>();
         for (VehicleRepair r : repairRepository.findAll()) {
             if (!ACTIVE.equals(r.getActiveFlag())) continue;
-            if (r.getStartDate() == null) continue;
+            LocalDate start = r.getStartDate();
+            if (start == null || start.isAfter(date)) continue;
 
-            boolean startedToday  = date.equals(r.getStartDate());
-            boolean finishedToday = Integer.valueOf(VehicleRepair.STATUS_DONE).equals(r.getStatus())
-                    && date.equals(r.getEndDate());
-            if (!startedToday && !finishedToday) continue;
+            boolean done = Integer.valueOf(VehicleRepair.STATUS_DONE).equals(r.getStatus());
+            LocalDate end = r.getEndDate();
+            boolean startedToday  = date.equals(start);
+            boolean finishedToday = done && date.equals(end);
+            // Тэр өдрийн байдлаар бэлэн болоогүй: дуусаагүй, эсвэл дараа нь дууссан
+            boolean notReadyYet = !done || (end != null && end.isAfter(date));
+            boolean realRepair  = r.getHasRepair() == null || r.getHasRepair() != 0;
+            if (!startedToday && !finishedToday && !(notReadyYet && realRepair)) continue;
 
-            out.add(toRow(r, vehicles, categories));
+            out.add(toRow(r, vehicles, categories, date));
         }
-        out.sort(Comparator.comparing(Row::section));
+        out.sort(Comparator
+                .comparing(Row::section)
+                .thenComparing(row -> row.startDate() == null ? LocalDate.MIN : row.startDate()));
         return out;
     }
 
-    private Row toRow(VehicleRepair r, Map<Long, Vehicle> vehicles, Map<Long, String> categories) {
+    /**
+     * @param asOf тайлангийн өдөр — тэр өдрөөс хойш дууссан засварыг тухайн
+     *             өдрийн байдлаар "засвартай" гэж харуулна. null бол одоогийн төлөв.
+     */
+    private Row toRow(VehicleRepair r, Map<Long, Vehicle> vehicles, Map<Long, String> categories, LocalDate asOf) {
         Vehicle v = vehicles.get(r.getVehicleId());
         Integer st = v != null ? v.getServiceType() : null;
+        boolean done = Integer.valueOf(VehicleRepair.STATUS_DONE).equals(r.getStatus())
+                && (asOf == null || r.getEndDate() == null || !r.getEndDate().isAfter(asOf));
+        String fault = firstNonBlank(r.getFaultDescription(), r.getNote());
+        String note = firstNonBlank(r.getNote());
         return new Row(
                 r.getPlateNumber(),
                 v != null ? v.getBrand() : null,
                 v != null ? v.getModel() : null,
                 SECTIONS.getOrDefault(st == null ? -1 : st, "Бусад"),
                 categories.getOrDefault(r.getRepairCategoryId(), ""),
-                firstNonBlank(r.getFaultDescription(), r.getNote()),
+                fault,
+                note.equals(fault) ? "" : note,
                 r.getStartDate(), r.getStartTime(), r.getEndDate(), r.getExpectedReady(),
-                Integer.valueOf(VehicleRepair.STATUS_DONE).equals(r.getStatus()),
+                done,
                 r.getWaitingParts() != null && r.getWaitingParts() == 1
         );
     }
@@ -157,7 +176,8 @@ public class RepairReportService {
         Map<Long, String> specialties = specialtyRepository.findAll().stream()
                 .collect(Collectors.toMap(RepairSpecialty::getId, RepairSpecialty::getName, (a, b) -> a));
 
-        List<String> worked = new ArrayList<>(), sick = new ArrayList<>(), leave = new ArrayList<>();
+        List<String> worked = new ArrayList<>(), sick = new ArrayList<>(), leave = new ArrayList<>(),
+                off = new ArrayList<>(), rested = new ArrayList<>();
         Map<String, Long> bySpecialty = new LinkedHashMap<>();
         Set<Long> countedForSpecialty = new HashSet<>();
 
@@ -168,6 +188,8 @@ public class RepairReportService {
             switch (a.getStatus() == null ? RepairAttendance.WORKED : a.getStatus()) {
                 case RepairAttendance.SICK  -> { if (!sick.contains(name))  sick.add(name); }
                 case RepairAttendance.LEAVE -> { if (!leave.contains(name)) leave.add(name); }
+                case RepairAttendance.OFF    -> { if (!off.contains(name))    off.add(name); }
+                case RepairAttendance.RESTED -> { if (!rested.contains(name)) rested.add(name); }
                 default -> {
                     if (!worked.contains(name)) worked.add(name);
                     // 7 хоногийн "8-Засварчин 1-Цахилгаанчин" мөрд нэг хүнийг нэг л удаа тоолно
@@ -178,7 +200,7 @@ public class RepairReportService {
                 }
             }
         }
-        return new Attendance(worked, sick, leave, bySpecialty);
+        return new Attendance(worked, sick, leave, off, rested, bySpecialty);
     }
 
     /** Хэсэг тус бүрийн тоо — "Цэвэр усны хэсгийн – 22 т/х" */

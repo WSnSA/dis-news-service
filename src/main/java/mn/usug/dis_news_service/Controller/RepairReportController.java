@@ -40,7 +40,7 @@ public class RepairReportController {
             @RequestParam("to")   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(value = "kind", required = false, defaultValue = "daily") String kind
     ) {
-        // Өдөр тутмын мэдээнд зөвхөн тэр өдөр ЭХЭЛСЭН/ДУУССАН машин ордог —
+        // Өдөр тутмын мэдээнд тэр өдөр ЭХЭЛСЭН/ДУУССАН болон бэлэн болоогүй машин ордог —
         // "daily" download-той тоо таарч байх ёстой тул preview-д ч адилхан шүүнэ.
         List<RepairReportService.Row> rows = "daily".equals(kind) ? data.dailyRows(from) : data.rows(from, to);
         RepairReportService.Attendance att = data.attendance(from, to);
@@ -55,7 +55,8 @@ public class RepairReportController {
                 "readyBySection", data.countReadyBySection(rows),
                 "attendance",  Map.of(
                         "worked", att.worked(), "sick", att.sick(),
-                        "leave", att.leave(), "bySpecialty", att.bySpecialty()),
+                        "leave", att.leave(), "off", att.off(), "rested", att.rested(),
+                        "bySpecialty", att.bySpecialty()),
                 "rows",        rows
         ));
         out.put("documents", docs);

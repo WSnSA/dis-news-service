@@ -47,6 +47,10 @@ public class OilChangeLog {
     @Column(name = "odometer_km", nullable = false)
     private Integer odometerKm;
 
+    /** Зарцуулсан тосны хэмжээ (литр). Хуучин бичлэгт NULL */
+    @Column(name = "oil_liters", precision = 8, scale = 2)
+    private java.math.BigDecimal oilLiters;
+
     @Column(name = "note", length = 300)
     private String note;
 
