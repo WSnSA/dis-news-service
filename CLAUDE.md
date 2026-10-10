@@ -12,7 +12,7 @@ Spring Boot 3.5.6 · Java 21 · Lombok · JPA · Spring Security (JWT) · WebSoc
 ## Endpoint map
 | Controller | Base path | Key endpoints |
 |---|---|---|
-| AuthController | `/auth` | POST /login, PUT /reset-password, POST /register |
+| AuthController | `/auth` | POST /login, **POST /sso {ticket}** (ERP-ээс нэвтэрсэн чигээр — `sso_ticket`-ийн нэг удаагийн 60 сек тасалбар, SHA-256 хэшээр; ERP (erp-service `DisNewsSsoController`) бичнэ, энд устгаж /login-тэй ижил хариу), PUT /reset-password, POST /register |
 | MainController | `/main` | POST /hourly, GET /getHourlyHistory, GET /getDailySummary, GET /getMarkers |
 | ReferenceController | `/ref` | /department/\*, /position/\*, /station/\*, /user/\* |
 | TaskController | `/ref/task` | GET /getAll, GET /countPending, POST /save, PUT /updateFulfillment/{id}, DELETE /delete/{id} |

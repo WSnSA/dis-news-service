@@ -9,9 +9,15 @@ import mn.usug.dis_news_service.Service.ReferenceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.HashMap;
+import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -22,6 +28,8 @@ public class AuthController {
     ReferenceService refService;
     @Autowired
     ForgotPasswordService forgotPasswordService;
+    @Autowired
+    NamedParameterJdbcTemplate jdbc;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
@@ -34,6 +42,42 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Wrong password");
         }
         else return ResponseEntity.ok(AESUtil.encryptObject(user));
+    }
+
+    /**
+     * ERP-ээс нэвтэрсэн чигээр шилжих (topbar "Мэдээний программ"). ERP (erp-service DisNewsSsoController)
+     * sso_ticket-д нэг удаагийн тасалбарын SHA-256 хэш, хэрэглэгчийн id, хугацаа (60 сек) бичнэ.
+     * Энд тасалбарыг устгаж (зөвхөн нэг удаа) /login-тэй ижил хариу буцаана.
+     */
+    @PostMapping("/sso")
+    public ResponseEntity<?> sso(@RequestBody Map<String, String> body) {
+        String ticket = body == null ? null : body.get("ticket");
+        if (ticket == null || ticket.length() < 20 || ticket.length() > 100) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid ticket");
+        }
+        MapSqlParameterSource p = new MapSqlParameterSource("h", sha256(ticket));
+        List<Integer> ids;
+        try {
+            ids = jdbc.queryForList("SELECT user_id FROM sso_ticket WHERE token_hash = :h AND expires_at > NOW()", p, Integer.class);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid ticket");
+        }
+        // Нэг удаа: устгасан нэг л хүсэлт нэвтэрнэ
+        if (ids.isEmpty() || jdbc.update("DELETE FROM sso_ticket WHERE token_hash = :h", p) != 1) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired ticket");
+        }
+        User user = refService.getUserById(ids.get(0));
+        if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        if (!Boolean.TRUE.equals(user.getActiveFlag())) return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User inactive");
+        return ResponseEntity.ok(AESUtil.encryptObject(user));
+    }
+
+    private static String sha256(String s) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @PutMapping("/reset-password")
