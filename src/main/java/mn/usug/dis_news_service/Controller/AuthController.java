@@ -6,7 +6,10 @@ import mn.usug.dis_news_service.Model.UserModel;
 import mn.usug.dis_news_service.Service.AESUtil;
 import mn.usug.dis_news_service.Service.ForgotPasswordService;
 import mn.usug.dis_news_service.Service.ReferenceService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -15,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
@@ -30,6 +35,11 @@ public class AuthController {
     ForgotPasswordService forgotPasswordService;
     @Autowired
     NamedParameterJdbcTemplate jdbc;
+    @Value("${erp.app-url:https://erp.usug.mn}")
+    String erpAppUrl;
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
@@ -58,18 +68,71 @@ public class AuthController {
         MapSqlParameterSource p = new MapSqlParameterSource("h", sha256(ticket));
         List<Integer> ids;
         try {
-            ids = jdbc.queryForList("SELECT user_id FROM sso_ticket WHERE token_hash = :h AND expires_at > NOW()", p, Integer.class);
+            ids = jdbc.queryForList("SELECT user_id FROM sso_ticket WHERE token_hash = :h AND source = 'ERP' AND expires_at > NOW()", p, Integer.class);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid ticket");
         }
         // Нэг удаа: устгасан нэг л хүсэлт нэвтэрнэ
-        if (ids.isEmpty() || jdbc.update("DELETE FROM sso_ticket WHERE token_hash = :h", p) != 1) {
+        if (ids.isEmpty() || jdbc.update("DELETE FROM sso_ticket WHERE token_hash = :h AND source = 'ERP'", p) != 1) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired ticket");
         }
         User user = refService.getUserById(ids.get(0));
         if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         if (!Boolean.TRUE.equals(user.getActiveFlag())) return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User inactive");
         return ResponseEntity.ok(AESUtil.encryptObject(user));
+    }
+
+    /**
+     * Мэдээний программаас ERP руу нэвтэрсэн чигээр (topbar "ERP" товч). Нэвтэрсэн хэрэглэгчийн токеныг шалгаж
+     * (токен дахь нууц үг DB-тэй таарах ёстой — тогтмол түлхүүрээр хуурамч токен үүсгэхээс хамгаална), sso_ticket-д
+     * source='DISNEWS' нэг удаагийн 60 сек тасалбар бичээд ERP-ийн холбоосыг буцаана. ERP (erp-service
+     * POST /auth/disnews-sso) тасалбарыг устгаж тухайн хүний ERP session-ыг өгнө.
+     */
+    @PostMapping("/erp-sso")
+    public ResponseEntity<?> erpSso(@RequestHeader(value = "Authorization", required = false) String auth) {
+        User user = verifiedUser(auth);
+        if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Дахин нэвтэрнэ үү."));
+        try {
+            ensureTicketTable();
+            byte[] b = new byte[32];
+            RANDOM.nextBytes(b);
+            String ticket = Base64.getUrlEncoder().withoutPadding().encodeToString(b);
+            jdbc.update("INSERT INTO sso_ticket (token_hash, user_id, source, expires_at, created_at) "
+                            + "VALUES (:h, :u, 'DISNEWS', NOW() + INTERVAL 60 SECOND, NOW())",
+                    new MapSqlParameterSource().addValue("h", sha256(ticket)).addValue("u", user.getId()));
+            jdbc.update("DELETE FROM sso_ticket WHERE expires_at < NOW() - INTERVAL 1 HOUR", Map.of());
+            return ResponseEntity.ok(Map.of("url", erpAppUrl.replaceAll("/+$", "") + "/auth/sso#t=" + ticket, "expiresIn", 60));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("message", "ERP руу шилжүүлж чадсангүй. Түр хүлээгээд дахин оролдоно уу."));
+        }
+    }
+
+    /** Bearer токеныг задлаад, токен дахь id + нууц үг DB-ийн идэвхтэй хэрэглэгчтэй таарвал тэр хэрэглэгч. */
+    private User verifiedUser(String auth) {
+        if (auth == null || !auth.startsWith("Bearer ")) return null;
+        try {
+            String json = AESUtil.decryptToken(auth.substring(7));
+            if (json == null) return null;
+            JsonNode n = MAPPER.readTree(json);
+            if (!n.hasNonNull("id") || !n.hasNonNull("password")) return null;
+            User u = refService.getUserById(n.get("id").asInt());
+            if (u == null || !Boolean.TRUE.equals(u.getActiveFlag()) || u.getPassword() == null) return null;
+            return MessageDigest.isEqual(u.getPassword().getBytes(StandardCharsets.UTF_8), n.get("password").asText().getBytes(StandardCharsets.UTF_8)) ? u : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private volatile boolean ticketTableReady;
+
+    /** ddl-auto=none — ERP-тэй хуваалцах хүснэгтийг анх хэрэглэхэд үүсгэнэ (erp-service DisNewsSsoController-той ижил). */
+    private void ensureTicketTable() {
+        if (ticketTableReady) return;
+        jdbc.getJdbcTemplate().execute("CREATE TABLE IF NOT EXISTS sso_ticket ("
+                + " token_hash CHAR(64) NOT NULL PRIMARY KEY, user_id INT NOT NULL, source VARCHAR(20) NULL,"
+                + " expires_at DATETIME NOT NULL, created_at DATETIME NOT NULL, KEY idx_sso_ticket_exp (expires_at)"
+                + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        ticketTableReady = true;
     }
 
     private static String sha256(String s) {
