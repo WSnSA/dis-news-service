@@ -34,8 +34,10 @@ public class ReportService {
         List<HourlyReport> pool         = buildSection("pool",         javaDate);
         List<HourlyReport> js           = buildSection("js",           javaDate);
 
-        // ── Цэвэрлэх байгууламж (ээлжийн дараа өдрийн 7:00 цагийн тайлан) ────────────
-        List<SewageTreatmentSummaryDto> sewage = sewageTreatmentService.getSummary(date.plusDays(1), 7);
+        // ── Цэвэрлэх байгууламж (ээлжийн дараа өдрийн 7:00 цагийн тайлан + шинэ ЦБ) ────
+        // Шинэ цэвэрлэх байгууламжийг (st_facility_daily) мөн нэгтгэнэ — тухайн өдрийн
+        // (date) 07:00 ээлжийн цонхоор. Усны бусад станцын тоо өөрчлөгдөхгүй.
+        List<SewageTreatmentSummaryDto> sewage = sewageTreatmentService.getSummaryWithFacility(date.plusDays(1), 7, date);
 
         // ── Ажлын мэдээ ──────────────────────────────────────────
         WorkNewsDayRes workNews = null;

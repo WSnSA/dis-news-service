@@ -93,6 +93,15 @@ public class SewageTreatmentService {
         return mergeFacility(rows, date);
     }
 
+    /**
+     * report/daily-д зориулсан: (sewageDate, hour) цагийн snapshot дээр шинэ байгууламжийн
+     * (shiftDate ээлжийн 07:00 цонх) мөрийг нэмнэ. Бусад станцын тоо өөрчлөгдөхгүй.
+     * sewageDate (ихэвчлэн shiftDate+1, цаг 07) ба shiftDate-ийн конвенц ялгаатай тул тусдаа.
+     */
+    public List<SewageTreatmentSummaryDto> getSummaryWithFacility(LocalDate sewageDate, int hour, LocalDate shiftDate) {
+        return mergeFacility(getSummary(sewageDate, hour), shiftDate);
+    }
+
     /* ══════════ st_facility_daily → нэгтгэлийн мөр ══════════ */
 
     /**
