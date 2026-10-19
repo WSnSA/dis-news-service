@@ -36,6 +36,24 @@ public class BriefingFulfillment {
     @Column(name = "status", nullable = false)
     private Integer status = 0;
 
+    /**
+     * Тухайн нэгжийн гүйцэтгэлийн үнэлгээ 0-100 (NULL=дүгнээгүй).
+     * Үүрэг өгсөн удирдлага нэгж (ЗБН) тус бүрийн хавсралтыг нягтлаад тус тусад нь өгнө.
+     * Cycle-ийн ерөнхий дүн нь илгээгдсэн нэгжүүдийн энэ оноонуудын дундаж.
+     */
+    @Column(name = "score")
+    private Integer score;
+
+    /** Нэгжийн дүгнэлт/тайлбар — хувьтай хамт ЗААВАЛ бичигдэнэ */
+    @Column(name = "score_comment", length = 2000)
+    private String scoreComment;
+
+    @Column(name = "scored_by")
+    private Integer scoredBy;
+
+    @Column(name = "scored_at")
+    private LocalDateTime scoredAt;
+
     /** Буцаах тайлбар (удирдлага) */
     @Column(name = "return_comment", length = 2000)
     private String returnComment;
