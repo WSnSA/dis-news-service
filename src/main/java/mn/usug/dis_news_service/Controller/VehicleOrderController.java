@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import mn.usug.dis_news_service.DAO.VehicleOrderItemRepository;
 import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
 import mn.usug.dis_news_service.DAO.VehicleTypeRepository;
+import mn.usug.dis_news_service.DAO.VehiclesToOutRepository;
 import mn.usug.dis_news_service.DTO.VehicleOrderDto;
 import mn.usug.dis_news_service.DTO.VehicleOrderItemSaveDto;
 import mn.usug.dis_news_service.DTO.VehicleOrderSaveDto;
@@ -33,6 +34,7 @@ public class VehicleOrderController {
     private final VehicleOrderRepository orderRepo;
     private final VehicleOrderItemRepository itemRepo;
     private final VehicleTypeRepository vehicleTypeRepo;
+    private final VehiclesToOutRepository vehiclesToOutRepo;
     /** Албаны баталгаажуулалт алгасах бодлого (тохиргоо: vehicle-order.dept-approval-skip.*) */
     private final VehicleOrderApprovalPolicy approvalPolicy;
 
@@ -124,13 +126,43 @@ public class VehicleOrderController {
         if (order.getStatus() != 1) {
             throw new IllegalStateException("Зөвхөн баталгаажсан захиалгад боломжгүй хариу өгөх боломжтой");
         }
-        order.setStatus(3);
-        order.setDeclineReason(body.getOrDefault("reason", ""));
+        String reason = body.getOrDefault("reason", "");
+
+        /*
+         * Олон машинтай захиалгын ЗАРИМ машин нь аль хэдийн хуваарилагдсан бол
+         * (жишээ нь 3-аас 2) "Боломжгүй" нь зөвхөн ҮЛДСЭН машинд хамаарна.
+         * Өмнө нь бүх захиалгыг status=3 болгодог байсан тул хуваарилагдсан
+         * машинууд ч мөн "Боломжгүй" табанд орж, захиалагч алба бүхэлдээ
+         * татгалзсан мэдэгдэл авдаг байв. Одоо захиалгыг хуваарилсан машинаараа
+         * хаана (status=2), хуваарилагдсан машинууд "Ажилд гарах"-д хэвээр үлдэнэ.
+         */
+        int requested = requestedCount(id);
+        int dispatched = vehiclesToOutRepo.findAllByVehicleOrderIdOrderByIdAsc(id.intValue()).size();
+        boolean partial = dispatched > 0;
+
+        if (partial) {
+            int missing = Math.max(requested - dispatched, 0);
+            order.setStatus(2);
+            order.setDeclineReason("%d машин боломжгүй: %s".formatted(missing, reason));
+        } else {
+            order.setStatus(3);
+            order.setDeclineReason(reason);
+        }
         // Хэн, хэзээ боломжгүй болгосныг бүртгэнэ (UI-д "i" tooltip дээр харагдана)
         order.setUpdatedBy(UserContext.getUserId());
         order.setUpdatedDate(LocalDateTime.now());
         orderRepo.save(order);
-        notificationService.notifyVehicleOrder("Захиалга боломжгүй болов", order.getAssignedDepartmentId());
+        notificationService.notifyVehicleOrder(
+                partial ? "Захиалгын үлдсэн машин боломжгүй болов" : "Захиалга боломжгүй болов",
+                order.getAssignedDepartmentId());
+    }
+
+    /** Захиалгын шаардаж буй нийт машины тоо (vehicle_order_item.qty-гийн нийлбэр, мөр байхгүй бол 1) */
+    private int requestedCount(Long orderId) {
+        List<VehicleOrderItem> items = itemRepo.findByVehicleOrderId(orderId);
+        return items.isEmpty() ? 1 : items.stream()
+                .mapToInt(i -> i.getQty() != null ? i.getQty() : 1)
+                .sum();
     }
 
     /** Хүлээгдэж буй (status=0) захиалгыг засах */

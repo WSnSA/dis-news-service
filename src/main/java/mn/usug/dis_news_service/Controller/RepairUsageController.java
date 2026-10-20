@@ -123,8 +123,25 @@ public class RepairUsageController {
     @PostMapping("/part")
     @Transactional
     public VehicleRepairPart addPart(@RequestBody VehicleRepairPart line) {
-        if (line.getVehicleRepairId() == null || line.getRepairPartId() == null) {
+        if (line.getVehicleRepairId() == null) {
             throw new IllegalArgumentException("Засвар болон сэлбэгээ сонгоно уу");
+        }
+        // Лавлахад байхгүй сэлбэгийг нэрээр нь гараар бүртгэнэ — үлдэгдэл хөтлөхгүй
+        if (line.getRepairPartId() == null) {
+            String name = line.getPartName() != null ? line.getPartName().trim() : "";
+            if (name.isEmpty()) {
+                throw new IllegalArgumentException("Сэлбэгээ сонгох эсвэл нэрийг нь бичнэ үү");
+            }
+            line.setId(null);
+            line.setActiveFlag(ACTIVE);
+            line.setPartName(name.length() > 200 ? name.substring(0, 200) : name);
+            if (line.getQty() == null || line.getQty().signum() <= 0) {
+                line.setQty(BigDecimal.ONE);
+            }
+            if (line.getUnitPrice() == null || line.getUnitPrice().signum() < 0) {
+                line.setUnitPrice(BigDecimal.ZERO);
+            }
+            return partLineRepo.save(line);
         }
         RepairPart ref = partRepo.findById(line.getRepairPartId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Сэлбэг олдсонгүй"));
@@ -168,6 +185,7 @@ public class RepairUsageController {
             line.setActiveFlag(INACTIVE);
             partLineRepo.save(line);
 
+            if (line.getRepairPartId() == null) return;   // гараар бичсэн — үлдэгдэлгүй
             partRepo.findById(line.getRepairPartId()).ifPresent(ref -> {
                 if (ref.getStockQty() == null) return;
                 BigDecimal qty = line.getQty() != null ? line.getQty() : BigDecimal.ZERO;
@@ -372,6 +390,7 @@ public class RepairUsageController {
         // Лавлахаас бүрмөсөн устсан сэлбэгийн нэр/нэгжийг мөрөнд хадгалснаас нөхнө
         Map<Long, String> fallbackName = new LinkedHashMap<>();
         Map<Long, String> fallbackUnit = new LinkedHashMap<>();
+        Map<String, Long> manualIds = new LinkedHashMap<>();
 
         for (VehicleRepairPart line : partLineRepo.findAll()) {
             if (!ACTIVE.equals(line.getActiveFlag())) continue;
@@ -390,6 +409,11 @@ public class RepairUsageController {
             BigDecimal amount = qty.multiply(price);
 
             Long partId = line.getRepairPartId();
+            if (partId == null) {
+                // Гараар бичсэн сэлбэг — нэр бүрийг тусдаа (сөрөг) түлхүүрээр бүлэглэнэ
+                String manualKey = (line.getPartName() == null ? "" : line.getPartName().trim()).toLowerCase();
+                partId = manualIds.computeIfAbsent(manualKey, k -> -(manualIds.size() + 1L));
+            }
             if (line.getPartName() != null && !line.getPartName().isBlank()) fallbackName.putIfAbsent(partId, line.getPartName());
             if (line.getPartUnit() != null && !line.getPartUnit().isBlank()) fallbackUnit.putIfAbsent(partId, line.getPartUnit());
 
@@ -427,9 +451,10 @@ public class RepairUsageController {
             out.add(RepairPartHistoryDto.builder()
                     .partId(partId)
                     .partName(firstNonBlank(ref != null ? ref.getName() : null, fallbackName.get(partId), "—"))
-                    .partTypeName(ref != null ? partTypes.getOrDefault(ref.getPartTypeId(), "") : "")
+                    .partTypeName(ref != null ? partTypes.getOrDefault(ref.getPartTypeId(), "")
+                            : (partId < 0 ? "Гараар бичсэн" : ""))
                     .unit(firstNonBlank(ref != null ? ref.getUnit() : null, fallbackUnit.get(partId), null))
-                    .activeFlag(ref != null ? ref.getActiveFlag() : 0)
+                    .activeFlag(ref != null ? ref.getActiveFlag() : (partId < 0 ? 1 : 0))
                     .useCount(uses.size())
                     .totalQty(qtyByPart.getOrDefault(partId, BigDecimal.ZERO))
                     .totalAmount(amountByPart.getOrDefault(partId, BigDecimal.ZERO))
