@@ -30,7 +30,8 @@ public class VehicleRepairPart {
     @Column(name = "vehicle_repair_id", nullable = false)
     private Long vehicleRepairId;
 
-    @Column(name = "repair_part_id", nullable = false)
+    /** repair_part.id — лавлахад байхгүй, гараар бичсэн сэлбэгт NULL (нэр нь part_name-д) */
+    @Column(name = "repair_part_id")
     private Long repairPartId;
 
     @Column(name = "qty", nullable = false, precision = 15, scale = 2)

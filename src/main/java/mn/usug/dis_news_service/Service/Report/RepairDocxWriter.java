@@ -24,6 +24,18 @@ public class RepairDocxWriter {
     private static final DateTimeFormatter T = DateTimeFormatter.ofPattern("HH:mm");
     private static final String FONT = "Arial";
 
+    /* Өнгө (hex, # -гүй) — Excel-ийн нөхцөлт форматын түгээмэл өнгөнүүд */
+    private static final String HEAD_FILL    = "1F4E79";   // толгой — хар хөх
+    private static final String HEAD_TEXT    = "FFFFFF";
+    private static final String SUMMARY_FILL = "DDEBF7";   // 1-р баганын нийт тоо
+    private static final String ZEBRA        = "F7F9FC";
+    private static final String READY_FILL   = "C6EFCE";
+    private static final String READY_TEXT   = "006100";
+    private static final String WAIT_FILL    = "FFEB9C";
+    private static final String WAIT_TEXT    = "9C5700";
+    private static final String REPAIR_FILL  = "FFC7CE";
+    private static final String REPAIR_TEXT  = "9C0006";
+
     private final RepairReportService data;
 
     /* ══════════════ Өдөр тутмын мэдээ ══════════════ */
@@ -34,6 +46,9 @@ public class RepairDocxWriter {
 
         try (XWPFDocument doc = new XWPFDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             landscape(doc);
+
+            // "2026.10.20 өдрийн мэдээ" — огноог тодруулагчаар онцолно
+            title(doc, date.format(D), " өдрийн мэдээ");
 
             // "АВТО БААЗ ДЭЭР-:7 Л.Зэв, … нар ажиллаж байна. Нийт 7 ажилтан."
             String workedNames = String.join(", ", att.worked());
@@ -59,24 +74,31 @@ public class RepairDocxWriter {
             int i = 1;
             for (RepairReportService.Row r : rows) {
                 XWPFTableRow tr = table.createRow();
+                // Мөр ээлжлэн бүдэг саарал — урт хүснэгтийг уншихад хялбар
+                String zebra = i % 2 == 0 ? ZEBRA : null;
                 // 1-р багана зөвхөн эхний мөрөнд — доош нь нэгтгэнэ
-                cell(tr, 0, i == 1 ? "%d авто машин / %d".formatted(data.fleetTotal(), rows.size()) : "");
+                styled(tr, 0, i == 1 ? "%d авто машин / %d".formatted(data.fleetTotal(), rows.size()) : "",
+                        SUMMARY_FILL, HEAD_FILL, true);
                 if (i > 1) vMerge(tr.getCell(0));
-                cell(tr, 1, String.valueOf(i));
-                cell(tr, 2, r.typeText());
-                cell(tr, 3, nz(r.plate()));
-                cell(tr, 4, r.startTime() != null ? r.startTime().format(T) : "");
-                cell(tr, 5, nz(r.fault()));
-                cell(tr, 6, r.section());
-                cell(tr, 7, readiness(r));
-                cell(tr, 8, r.expectedReady() != null ? r.expectedReady().format(D) : "");
+                styled(tr, 1, String.valueOf(i), zebra, null, false);
+                styled(tr, 2, r.typeText(), zebra, null, false);
+                styled(tr, 3, nz(r.plate()), zebra, null, true);
+                styled(tr, 4, r.startTime() != null ? r.startTime().format(T) : "", zebra, null, false);
+                styled(tr, 5, nz(r.fault()), zebra, null, false);
+                styled(tr, 6, r.section(), zebra, sectionColor(r.section()), true);
+                String[] status = readinessColors(r);
+                styled(tr, 7, readiness(r), status[0], status[1], true);
+                styled(tr, 8, r.expectedReady() != null ? r.expectedReady().format(D) : "", zebra, null, false);
                 i++;
             }
             if (rows.isEmpty()) {
                 XWPFTableRow tr = table.createRow();
-                cell(tr, 0, "%d авто машин / 0".formatted(data.fleetTotal()));
+                styled(tr, 0, "%d авто машин / 0".formatted(data.fleetTotal()), SUMMARY_FILL, HEAD_FILL, true);
                 for (int c = 1; c < 9; c++) cell(tr, c, "");
             }
+
+            // Өнгөний тайлбар
+            legend(doc);
 
             doc.write(out);
             return out.toByteArray();
@@ -87,6 +109,23 @@ public class RepairDocxWriter {
         if (names.isEmpty()) return;
         if (sb.length() > 0) sb.append("        ");
         sb.append("%s-%d: %s".formatted(label, names.size(), String.join(", ", names)));
+    }
+
+    /** "Засварлагдсан эсэх" нүдний [дэвсгэр, текст] өнгө: бэлэн — ногоон, сэлбэг хүлээж буй — шар, засвартай — улаан */
+    private static String[] readinessColors(RepairReportService.Row r) {
+        if (r.done()) return new String[]{READY_FILL, READY_TEXT};
+        if (r.waitingParts()) return new String[]{WAIT_FILL, WAIT_TEXT};
+        return new String[]{REPAIR_FILL, REPAIR_TEXT};
+    }
+
+    /** Хэсгийн нэрийн өнгө — Цэвэр: цэнхэр, Бохир: бор, Үйлчилгээ: нил ягаан */
+    private static String sectionColor(String section) {
+        return switch (section == null ? "" : section) {
+            case "Цэвэр" -> "1D4ED8";
+            case "Бохир" -> "92400E";
+            case "Үйлчилгээ" -> "6D28D9";
+            default -> null;
+        };
     }
 
     /** "Засварлагдсан эсэх" — бэлэн болоогүй бол явцын тайлбарыг хамт бичнэ */
@@ -291,6 +330,70 @@ public class RepairDocxWriter {
         return t;
     }
 
+    /** Гарчиг — "2026.10.20" тодруулагчтай + " өдрийн мэдээ", голлуулсан */
+    private void title(XWPFDocument doc, String highlighted, String rest) {
+        XWPFParagraph p = doc.createParagraph();
+        p.setAlignment(ParagraphAlignment.CENTER);
+        p.setSpacingAfter(200);
+
+        XWPFRun d = p.createRun();
+        d.setText(highlighted);
+        d.setBold(true);
+        d.setFontSize(16);
+        d.setFontFamily(FONT);
+        d.setColor(HEAD_FILL);
+        d.setTextHighlightColor("yellow");
+
+        XWPFRun r = p.createRun();
+        r.setText(rest);
+        r.setBold(true);
+        r.setFontSize(16);
+        r.setFontFamily(FONT);
+        r.setColor(HEAD_FILL);
+    }
+
+    /** Хүснэгтийн доорх өнгөний тайлбар */
+    private void legend(XWPFDocument doc) {
+        XWPFParagraph p = doc.createParagraph();
+        p.setSpacingBefore(120);
+        legendItem(p, "Бэлэн", READY_FILL, READY_TEXT);
+        legendItem(p, "Сэлбэг хүлээж байна", WAIT_FILL, WAIT_TEXT);
+        legendItem(p, "Засвартай", REPAIR_FILL, REPAIR_TEXT);
+    }
+
+    private void legendItem(XWPFParagraph p, String text, String fill, String color) {
+        XWPFRun r = p.createRun();
+        r.setText(" " + text + " ");
+        r.setBold(true);
+        r.setFontSize(9);
+        r.setFontFamily(FONT);
+        r.setColor(color);
+        var rPr = r.getCTR().isSetRPr() ? r.getCTR().getRPr() : r.getCTR().addNewRPr();
+        var shd = rPr.addNewShd();
+        shd.setVal(org.openxmlformats.schemas.wordprocessingml.x2006.main.STShd.CLEAR);
+        shd.setColor("auto");
+        shd.setFill(fill);
+        XWPFRun gap = p.createRun();
+        gap.setText("   ");
+        gap.setFontSize(9);
+    }
+
+    /** Өнгөтэй нүд — fill/color null бол анхдагч */
+    private void styled(XWPFTableRow row, int index, String text, String fill, String color, boolean bold) {
+        XWPFTableCell c = row.getCell(index);
+        if (c == null) return;
+        if (!c.getParagraphs().isEmpty()) c.removeParagraph(0);
+        XWPFParagraph p = c.addParagraph();
+        XWPFRun r = p.createRun();
+        r.setText(text == null ? "" : text);
+        r.setFontSize(10);
+        r.setFontFamily(FONT);
+        r.setBold(bold);
+        if (color != null) r.setColor(color);
+        if (fill != null) c.setColor(fill);
+        c.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+    }
+
     private void header(XWPFTableRow row, List<String> titles) {
         for (int i = 0; i < titles.size(); i++) {
             XWPFTableCell c = row.getCell(i);
@@ -303,7 +406,9 @@ public class RepairDocxWriter {
             r.setBold(true);
             r.setFontSize(10);
             r.setFontFamily(FONT);
-            c.setColor("EFEFEF");
+            r.setColor(HEAD_TEXT);
+            c.setColor(HEAD_FILL);
+            c.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
         }
     }
 
