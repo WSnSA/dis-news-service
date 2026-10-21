@@ -90,6 +90,7 @@ public class BriefingReportService {
             String taskText = nz(t.getDescription());
             String deadline = c.getSubmitDeadline() != null ? c.getSubmitDeadline().toLocalDate().format(D) : "";
             String assigner = nz(t.getAssignerName());
+            // Үүрэг-түвшний баганы "Дүн" нь одоо нэгжүүдийн ДУНДАЖ (cycle.score)
             String score = c.getScore() != null ? c.getScore() + "%" : "-";
 
             // ЗБН (алба) бүрийг тусдаа мөр болгоно (өмнөх HTML-ийн адил)
@@ -101,8 +102,9 @@ public class BriefingReportService {
                 r.put("dept", dr[0]);
                 r.put("deadline", deadline);
                 r.put("fulfillment", dr[1]);
+                r.put("unitScore", dr[2]);   // тухайн нэгжийн гүйцэтгэлийн үнэлгээ (мөр бүрт)
                 r.put("assigner", assigner);
-                r.put("score", score);
+                r.put("score", score);       // нэгжүүдийн дундаж (merged)
                 rows.add(r);
             }
         }
@@ -110,7 +112,8 @@ public class BriefingReportService {
     }
 
     /**
-     * Үүрэг-cycle-ийг ЗБН (алба) бүрээр мөр болгон задлана — [дэд нэр, биелэлтийн текст].
+     * Үүрэг-cycle-ийг ЗБН (алба) бүрээр мөр болгон задлана —
+     * [дэд нэр, биелэлтийн текст (+ удирдлагын дүгнэлт), нэгжийн үнэлгээ %].
      * Биелэлттэй бол алба тус бүрийн мөр; эс бол хариуцагч алба бүрээр "Оруулаагүй".
      */
     private List<String[]> deptFulfillmentRows(BriefingDto t, BriefingDto.Cycle c) {
@@ -119,14 +122,19 @@ public class BriefingReportService {
             for (BriefingDto.Fulfillment f : c.getFulfillments()) {
                 String text = f.getWorkText() != null ? f.getWorkText().trim() : "";
                 boolean submitted = f.getSubmittedAt() != null && !text.isEmpty();
-                out.add(new String[]{ nz(f.getDepName()), submitted ? text : "Оруулаагүй" });
+                String body = submitted ? text : "Оруулаагүй";
+                // Удирдлагын дүгнэлтийг (байвал) биелэлтийн доор нэмнэ
+                String cmt = f.getScoreComment() != null ? f.getScoreComment().trim() : "";
+                if (!cmt.isEmpty()) body = body + "\nҮнэлгээ: " + cmt;
+                String unitScore = f.getScore() != null ? f.getScore() + "%" : (submitted ? "–" : "");
+                out.add(new String[]{ nz(f.getDepName()), body, unitScore });
             }
         } else if (t.getDepartments() != null && !t.getDepartments().isEmpty()) {
             for (BriefingDto.DepRef d : t.getDepartments()) {
-                out.add(new String[]{ nz(d.getDepName()), "Оруулаагүй" });
+                out.add(new String[]{ nz(d.getDepName()), "Оруулаагүй", "" });
             }
         } else {
-            out.add(new String[]{ "", "Оруулаагүй" });
+            out.add(new String[]{ "", "Оруулаагүй", "" });
         }
         return out;
     }
