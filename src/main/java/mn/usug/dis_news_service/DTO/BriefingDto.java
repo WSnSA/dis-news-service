@@ -77,6 +77,14 @@ public class BriefingDto {
         private Integer status;
         private String  returnComment;
         private LocalDateTime returnedAt;
+
+        /** Нэгжийн гүйцэтгэлийн үнэлгээ 0-100 (NULL=дүгнээгүй) */
+        private Integer score;
+        /** Нэгжийн дүгнэлт (хувьтай хамт заавал) */
+        private String  scoreComment;
+        private String  scoredByName;
+        private LocalDateTime scoredAt;
+
         private List<Evidence> evidence;
     }
 

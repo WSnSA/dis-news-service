@@ -231,6 +231,14 @@ public class BriefingController {
         return service.score(cycleId, score, str(body.get("scoreComment")));
     }
 
+    /** Дүгнэх — нэгж (ЗБН) тус бүрээр: гүйцэтгэлийн хувь (0-100) + дүгнэлт (заавал) */
+    @PostMapping("/fulfillment/{fulfillmentId}/score")
+    public BriefingDto scoreFulfillment(@PathVariable Integer fulfillmentId, @RequestBody Map<String, Object> body) {
+        Integer score = body.get("score") != null
+                ? Integer.valueOf(body.get("score").toString()) : null;
+        return service.scoreFulfillment(fulfillmentId, score, str(body.get("scoreComment")));
+    }
+
     /** Биелэлт буцаах (§3.3) — нэгжид засуулахаар буцаана */
     @PostMapping("/fulfillment/{fulfillmentId}/return")
     public BriefingDto returnFulfillment(@PathVariable Integer fulfillmentId, @RequestBody Map<String, Object> body) {

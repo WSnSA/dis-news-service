@@ -109,13 +109,27 @@ public class BriefingService {
     private void finalizeOverdueNoFulfillment() {
         List<BriefingCycle> overdue = cycleRepo.findByScoreIsNullAndScoreDeadlineBefore(now());
         for (BriefingCycle c : overdue) {
-            boolean anySubmitted = fulRepo.findByCycleId(c.getId()).stream()
-                    .anyMatch(f -> f.getSubmittedAt() != null);
+            List<BriefingFulfillment> fuls = fulRepo.findByCycleId(c.getId());
+            boolean anySubmitted = fuls.stream().anyMatch(f -> f.getSubmittedAt() != null);
             if (!anySubmitted) {
+                // Биелэлт огт ороогүй → 0
                 c.setScore(0);
                 c.setStatus(1);
                 c.setScoredAt(now());
                 cycleRepo.save(c);
+            } else {
+                // Хугацаа дуусахад удирдлага заримыг нь дүгнэсэн бол дүгнэсэн нэгжүүдийн
+                // дунджаар нь хаана (дүгнэгдээгүй бол хэвээр нээлттэй үлдэнэ).
+                List<Integer> scores = fuls.stream()
+                        .filter(f -> f.getSubmittedAt() != null && f.getScore() != null)
+                        .map(BriefingFulfillment::getScore).toList();
+                if (!scores.isEmpty()) {
+                    int avg = (int) Math.round(scores.stream().mapToInt(Integer::intValue).average().orElse(0));
+                    c.setScore(avg);
+                    c.setStatus(1);
+                    c.setScoredAt(now());
+                    cycleRepo.save(c);
+                }
             }
         }
     }
@@ -518,6 +532,85 @@ public class BriefingService {
         return getOne(task.getId());
     }
 
+    // ── Дүгнэх (нэгж тус бүрээр — ЗБН-ийн гүйцэтгэлийн үнэлгээ) ────────────────────
+
+    /**
+     * Үүрэг өгсөн удирдлага нэгж (ЗБН) тус бүрийн хавсралтыг нягтлаад гүйцэтгэлийн
+     * хувь (0-100) болон дүгнэлтийг ЗААВАЛ бичиж өгнө. Бүх илгээгдсэн нэгжийг дүгнэж
+     * дуусахад cycle-ийн ерөнхий дүн нь нэгжүүдийн оноонуудын дундаж болж тооцоологдоно.
+     */
+    @Transactional
+    public BriefingDto scoreFulfillment(Integer fulfillmentId, Integer score, String scoreComment) {
+        if (score == null || score < 0 || score > 100)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Дүн 0-100 хооронд байна");
+        // Хувьтай хамт дүгнэлт ЗААВАЛ бичигдэнэ
+        if (scoreComment == null || scoreComment.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Дүгнэлтийг заавал бичнэ");
+
+        BriefingFulfillment f = fulRepo.findById(fulfillmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Биелэлт олдсонгүй"));
+        BriefingCycle cycle = cycleRepo.findById(f.getCycleId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Мөчлөг олдсонгүй"));
+        BriefingTask task = taskRepo.findById(cycle.getTaskId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Үүрэг олдсонгүй"));
+
+        if (!access.canScoreTask(UserContext.getUserId(), task))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Танд энэ үүргийг дүгнэх эрх алга");
+        // Хатуу хугацаа: Даваа 14:00
+        if (now().isAfter(cycle.getScoreDeadline()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Дүгнэх хугацаа дууссан (Даваа 14:00)");
+        // Илгээгдсэн биелэлтийг л дүгнэнэ
+        if (f.getSubmittedAt() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Илгээгээгүй биелэлтийг дүгнэх боломжгүй");
+
+        Integer oldScore = f.getScore();
+        f.setScore(score);
+        f.setScoreComment(scoreComment);
+        f.setScoredBy(UserContext.getUserId());
+        f.setScoredAt(now());
+        f.setUpdatedAt(now());
+        fulRepo.save(f);
+
+        audit.log("SCORE_UNIT", "FULFILLMENT", f.getId(),
+                oldScore == null ? null : ("score=" + oldScore),
+                "deptId=" + f.getDepartmentId() + "; score=" + score + "; comment=" + scoreComment);
+
+        recomputeCycleScore(cycle, task);
+        return getOne(task.getId());
+    }
+
+    /**
+     * Cycle-ийн ерөнхий дүнг нэгжүүдийн оноонуудын дунджаар шинэчилнэ.
+     * Бүх илгээгдсэн нэгж дүгнэгдэж дууссан үед л cycle-ийг дүгнэгдсэн (status=1) болгож,
+     * дүнг (дундаж) хадгална. Хагас дүгнэсэн үед cycle.score=NULL хэвээр (REVIEWING).
+     */
+    private void recomputeCycleScore(BriefingCycle cycle, BriefingTask task) {
+        List<BriefingFulfillment> fuls = fulRepo.findByCycleId(cycle.getId());
+        List<BriefingFulfillment> submitted = fuls.stream()
+                .filter(x -> x.getSubmittedAt() != null).toList();
+        List<BriefingFulfillment> scored = submitted.stream()
+                .filter(x -> x.getScore() != null).toList();
+        if (submitted.isEmpty() || scored.size() < submitted.size()) {
+            // Бүх илгээгдсэн нэгжийг дүгнэж дуусаагүй — cycle хараахан дүгнэгдээгүй
+            return;
+        }
+        int avg = (int) Math.round(scored.stream().mapToInt(BriefingFulfillment::getScore).average().orElse(0));
+        cycle.setScore(avg);
+        cycle.setScoredBy(UserContext.getUserId());
+        cycle.setScoredAt(now());
+        cycle.setStatus(1);
+        cycleRepo.save(cycle);
+
+        audit.log("SCORE", "CYCLE", cycle.getId(), null,
+                "avg=" + avg + "; units=" + scored.size());
+
+        if (avg == 100) {
+            task.setStatus(1); // бүрэн биелсэн
+            task.setUpdatedDate(now());
+            taskRepo.save(task);
+        }
+    }
+
     // ── Биелэлт буцаах (§3.3) ────────────────────────────────────────────────────
 
     /**
@@ -731,6 +824,10 @@ public class BriefingService {
                     fd.setStatus(f.getStatus());
                     fd.setReturnComment(f.getReturnComment());
                     fd.setReturnedAt(f.getReturnedAt());
+                    fd.setScore(f.getScore());
+                    fd.setScoreComment(f.getScoreComment());
+                    fd.setScoredByName(f.getScoredBy() != null ? userMap.get(f.getScoredBy()) : null);
+                    fd.setScoredAt(f.getScoredAt());
                     fd.setEvidence(evByFolder.getOrDefault(f.getFolderId(), List.of()).stream()
                             .map(this::toEvidenceDto).collect(Collectors.toList()));
                     return fd;
