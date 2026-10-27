@@ -74,6 +74,10 @@ public class VehicleOrder {
 
     private Integer activeFlag;
 
+    /** Давтамжит захиалгын загвараас автоматаар үүссэн бол тухайн загварын id (эс бол NULL). */
+    @Column(name = "recurring_id")
+    private Long recurringId;
+
     @CreatedDate
     @Column(name = "created_date", updatable = false)
     private LocalDateTime createdDate;
