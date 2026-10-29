@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS dis_setting (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO dis_setting (setting_key, setting_value, label, group_name, sort_order) VALUES
-    ('order_cutoff_hour',             '17', 'Машин захиалгын эцсийн цаг — энэ цагаас хойш захиалга өгөх/засах/устгах боломжгүй', 'Машин захиалга', 1),
+    ('order_cutoff_hour',             '16', 'Машин захиалгын эцсийн цаг — энэ цагаас хойш захиалга өгөх/засах/устгах боломжгүй', 'Машин захиалга', 1),
     ('briefing_news_deadline_hour',   '17', 'Шуурхайн мэдээ оруулах эцсийн цаг (хурлын өмнөх өдөр — Даваа)',                    'Шуурхай хурал',   2),
     ('briefing_submit_deadline_hour', '16', 'Биелэлт оруулах анхдагч эцсийн цаг (Баасан гараг)',                                'Шуурхай хурал',   3),
     ('briefing_score_deadline_hour',  '14', 'Хянан дүгнэх эцсийн цаг (дараа долоо хоногийн Даваа)',                             'Шуурхай хурал',   4)

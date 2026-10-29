@@ -3,6 +3,7 @@ package mn.usug.dis_news_service.Controller;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import mn.usug.dis_news_service.Service.VehicleOrderCutoff;
 import mn.usug.dis_news_service.DAO.VehicleOrderItemRepository;
 import mn.usug.dis_news_service.DAO.VehicleOrderRepository;
 import mn.usug.dis_news_service.DAO.VehicleTypeRepository;
@@ -28,6 +29,13 @@ import java.util.Map;
 @RequestMapping("/ref/vehicle-order")
 @RequiredArgsConstructor
 public class VehicleOrderController {
+
+    private final VehicleOrderCutoff cutoff;
+
+    @GetMapping("/cutoff-hour")
+    public Map<String, Integer> cutoffHour() {
+        return Map.of("hour", cutoff.getHour());
+    }
 
     private final VehicleOrderService service;
     private final NotificationService notificationService;
@@ -169,6 +177,7 @@ public class VehicleOrderController {
     @PutMapping("/update/{id}")
     @Transactional
     public void update(@PathVariable Long id, @RequestBody VehicleOrderSaveDto dto) {
+        cutoff.requireOpen();
         VehicleOrder order = orderRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("VehicleOrder not found: " + id));
         if (order.getStatus() != 0) {
@@ -211,6 +220,7 @@ public class VehicleOrderController {
     @DeleteMapping("/delete/{id}")
     @Transactional
     public void delete(@PathVariable Long id) {
+        cutoff.requireOpen();
         VehicleOrder order = orderRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("VehicleOrder not found: " + id));
         if (order.getStatus() != 0) {
@@ -223,6 +233,7 @@ public class VehicleOrderController {
     @PostMapping("/save")
     @Transactional
     public void save(@RequestBody VehicleOrderSaveDto dto) {
+        cutoff.requireOpen();
 
         /* ===== 1️⃣ Parent ===== */
         VehicleOrder order = new VehicleOrder();
