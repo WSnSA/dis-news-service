@@ -58,6 +58,7 @@ public class WorkNewsService {
 
         LocalDateTime now = LocalDateTime.now(UB);
         LocalDate date = resolveShiftDate(now);
+        validateRequestedShift(req.newsDate(), date);
         String monthKey = date.format(MONTH_KEY);
 
         WorkNewsDay day = dayRepo.findByNewsDate(date).orElseGet(() -> {
@@ -82,6 +83,22 @@ public class WorkNewsService {
         item.setCreatedBy(userId);
 
         return itemRepo.save(item).getId();
+    }
+
+    static void validateRequestedShift(String requestedDate, LocalDate shiftDate) {
+        if (requestedDate == null || requestedDate.isBlank()) return; // legacy callers
+        LocalDate requested;
+        try {
+            requested = LocalDate.parse(requestedDate);
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Мэдээний огноо буруу байна.");
+        }
+        if (!requested.equals(shiftDate)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "Ээлжийн огноо өөрчлөгдсөн байна. Огноогоо шинэчлээд дахин хадгална уу.");
+        }
     }
 
     @Transactional(readOnly = true)

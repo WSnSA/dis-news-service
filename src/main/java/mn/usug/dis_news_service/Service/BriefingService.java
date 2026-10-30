@@ -363,7 +363,7 @@ public class BriefingService {
         // Хатуу хугацаа: Баасан 17:00
         if (now().isAfter(cycle.getSubmitDeadline()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Биелэлт оруулах хугацаа дууссан (Баасан 17:00)");
+                    "Биелэлт оруулах хугацаа дууссан: " + cycle.getSubmitDeadline());
         access.requireNotViewer(UserContext.getUserId());
         requireSameDepartment(departmentId);
 
@@ -428,7 +428,7 @@ public class BriefingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Мөчлөг олдсонгүй"));
         if (now().isAfter(cycle.getSubmitDeadline()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Нотлох баримт хавсаргах хугацаа дууссан (Баасан 17:00)");
+                    "Нотлох баримт хавсаргах хугацаа дууссан: " + cycle.getSubmitDeadline());
         access.requireNotViewer(UserContext.getUserId());
         requireSameDepartment(f.getDepartmentId());
 
