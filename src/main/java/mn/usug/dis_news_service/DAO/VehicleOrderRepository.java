@@ -13,6 +13,9 @@ import java.util.List;
 @Repository
 public interface VehicleOrderRepository extends JpaRepository<VehicleOrder, Long> {
 
+    /** Давтамжит загвараас тухайн өдөрт аль хэдийн захиалга үүссэн эсэх (давхардлаас сэргийлнэ). */
+    boolean existsByRecurringIdAndOrderDateAndActiveFlag(Long recurringId, LocalDate orderDate, Integer activeFlag);
+
     @Query("""
         select v
         from VehicleOrder v
