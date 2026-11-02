@@ -36,6 +36,11 @@ public class VehicleRecurringOrderService {
     private final DepartmentDAO departmentRepo;
     private final UserDAO userRepo;
     private final VehicleOrderApprovalPolicy approvalPolicy;
+    private final MenuDAO menuDAO;
+    private final PermissionDAO permissionDAO;
+
+    /** Давтамжит захиалгын цэсний path (эрх шалгахад ашиглана) */
+    private static final String MENU_PATH = "vehicle-recurring";
 
     private static final ZoneId UB = ZoneId.of("Asia/Ulaanbaatar");
 
@@ -151,6 +156,81 @@ public class VehicleRecurringOrderService {
         r.setUpdatedBy(UserContext.getUserId());
         r.setUpdatedDate(now());
         recRepo.save(r);
+    }
+
+    // ── Эрх (permission matrix: "Давтамжит захиалга" цэсний canEdit) ──────────────
+
+    /** Тухайн хэрэглэгч давтамжит захиалга үүсгэх/удирдах эрхтэй эсэх */
+    @Transactional(readOnly = true)
+    public boolean canUse(Integer userId) {
+        if (userId == null) return false;
+        for (Menu m : menuDAO.findByPath(MENU_PATH)) {
+            Permission p = permissionDAO.findByUserIdAndMenuId(userId, m.getId());
+            if (p != null && Integer.valueOf(1).equals(p.getCanEdit())) return true;
+        }
+        return false;
+    }
+
+    private void requireCanUse() {
+        if (!canUse(UserContext.getUserId()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Танд давтамжит захиалга үүсгэх эрх алга");
+    }
+
+    // ── Байгаа захиалгаас давтамжит загвар үүсгэх ("Давтах") ──────────────────────
+
+    /**
+     * Байгаа нэг захиалгыг (vehicle_order) 7 хоног тутам давтагддаг загвар болгоно.
+     * weekdays хоосон бол захиалгын өдрийн гаригаар (Даваа–Баасан) давтана. Тээврийн
+     * төрлүүдийг захиалгаас хуулна. Үүсгэсэн загварын id-г буцаана.
+     */
+    @Transactional
+    public Long createFromOrder(Long orderId, List<Integer> weekdays) {
+        requireCanUse();
+        Integer actorId = UserContext.getUserId();
+        VehicleOrder o = orderRepo.findById(orderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Захиалга олдсонгүй"));
+
+        List<Integer> days = new ArrayList<>();
+        if (weekdays != null) {
+            for (Integer d : weekdays) if (d != null && d >= 1 && d <= 5) days.add(d);
+        }
+        if (days.isEmpty()) days.add(deriveWeekday(o)); // захиалгын өдрийн гариг (1–5)
+        days = days.stream().distinct().sorted().collect(Collectors.toList());
+
+        VehicleRecurringOrder r = new VehicleRecurringOrder();
+        r.setWorkDescription(o.getWorkDescription());
+        r.setAssignedDepartmentId(o.getAssignedDepartmentId());
+        r.setAssignedEmployeeId(o.getAssignedEmployeeId());
+        r.setOrderType(o.getOrderType() != null ? o.getOrderType() : 0);
+        r.setPickupLocation(o.getPickupLocation());
+        r.setDropoffLocation(o.getDropoffLocation());
+        r.setPassengerCount(o.getPassengerCount());
+        r.setRequestedTime(o.getRequestedTime());
+        r.setWeekdays(days.stream().map(String::valueOf).collect(Collectors.joining(",")));
+        r.setActiveFlag(1);
+        r.setCreatedBy(actorId);
+        r.setCreatedDate(now());
+        r.setUpdatedBy(actorId);
+        r.setUpdatedDate(now());
+        VehicleRecurringOrder saved = recRepo.save(r);
+
+        for (VehicleOrderItem it : orderItemRepo.findByVehicleOrderId(orderId)) {
+            VehicleRecurringOrderItem ri = new VehicleRecurringOrderItem();
+            ri.setRecurringId(saved.getId());
+            ri.setVehicleTypeId(it.getVehicleType() != null ? it.getVehicleType().getId() : null);
+            ri.setQty(it.getQty());
+            ri.setOtherText(it.getOtherText());
+            recItemRepo.save(ri);
+        }
+        return saved.getId();
+    }
+
+    /** Захиалгын өдрийн ISO гариг (1–5). Амралтын өдөр (6/7) бол Даваа (1) руу буулгана. */
+    private int deriveWeekday(VehicleOrder o) {
+        LocalDate d = o.getStartDate() != null ? o.getStartDate() : o.getOrderDate();
+        if (d == null) return 1;
+        int dow = d.getDayOfWeek().getValue();   // Даваа=1 ... Ням=7
+        return dow <= 5 ? dow : 1;
     }
 
     // ── Захиалга автоматаар үүсгэх ────────────────────────────────────────────────

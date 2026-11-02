@@ -27,6 +27,27 @@ public class VehicleRecurringOrderController {
         return service.getAll();
     }
 
+    /** Одоогийн хэрэглэгч давтамжит захиалга үүсгэх эрхтэй эсэх (frontend "Давтах" товч gate) */
+    @GetMapping("/my-access")
+    public Map<String, Object> myAccess() {
+        return Map.of("canUse", service.canUse(mn.usug.dis_news_service.Service.UserContext.getUserId()));
+    }
+
+    /** Байгаа захиалгыг 7 хоног тутам давтагддаг загвар болгоно ("Давтах"). */
+    @PostMapping("/from-order/{orderId}")
+    public Map<String, Object> fromOrder(@PathVariable Long orderId,
+                                         @RequestBody(required = false) Map<String, Object> body) {
+        List<Integer> weekdays = null;
+        if (body != null && body.get("weekdays") instanceof List<?> raw) {
+            weekdays = raw.stream()
+                    .map(x -> x == null ? null : Integer.valueOf(x.toString()))
+                    .filter(java.util.Objects::nonNull)
+                    .collect(java.util.stream.Collectors.toList());
+        }
+        Long id = service.createFromOrder(orderId, weekdays);
+        return Map.of("id", id);
+    }
+
     /** Загвар үүсгэх/засах (id=null бол шинэ) */
     @PostMapping("/save")
     public void save(@RequestBody VehicleRecurringOrderSaveDto dto) {
