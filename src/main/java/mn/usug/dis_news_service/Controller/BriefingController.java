@@ -129,7 +129,7 @@ public class BriefingController {
         return service.listMeetings();
     }
 
-    /** Энэ долоо хоногийн хурал (байхгүй бол null) */
+    /** Харуулах хурал: өнөөдрийн → ирэх 7 хоногийн ойрын → сүүлийн 7 хоногийн (байхгүй бол null) */
     @GetMapping("/meeting/current")
     public BriefingMeeting currentMeeting() {
         return service.currentMeeting();

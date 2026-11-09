@@ -21,4 +21,7 @@ public interface BriefingMeetingRepository extends JpaRepository<BriefingMeeting
     List<BriefingMeeting> findByActiveFlagOrderByMeetingDateDesc(Integer activeFlag);
 
     BriefingMeeting findTopByOrderByMeetingDateDesc();
+
+    /** Хугацааны хүрээн дэх идэвхтэй хурлууд (огноогоор өсөхөөр) */
+    List<BriefingMeeting> findByActiveFlagAndMeetingDateBetweenOrderByMeetingDateAsc(Integer activeFlag, LocalDate from, LocalDate to);
 }

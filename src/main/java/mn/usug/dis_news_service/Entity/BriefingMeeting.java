@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 /**
  * Шуурхай зөвлөгөөн (§3.1).
- * Нэг 7 хоногт нэг хурал (Мягмар). Хуралдааны дугаар + ерөнхий мэдээлэлтэй.
+ * Шуурхай зөвлөгөөн — дурын өдөр, нэг өдөрт нэг хурал. Хуралдааны дугаар + ерөнхий мэдээлэлтэй.
  * Үүрэг (briefing_cycle) болон шуурхайн мэдээ (briefing_news) тус хуралд холбогдоно.
  */
 @Entity
@@ -20,7 +20,7 @@ public class BriefingMeeting {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    /** 7 хоногийн Мягмар */
+    /** Хуралдааны огноо (дурын өдөр) */
     @Column(name = "meeting_date")
     private LocalDate meetingDate;
 

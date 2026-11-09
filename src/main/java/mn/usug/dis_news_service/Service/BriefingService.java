@@ -47,17 +47,33 @@ public class BriefingService {
 
     // ── Хугацаа / 7 хоногийн логик ──────────────────────────────────────────────
 
-    /** Тухайн 7 хоногийн 2 дахь өдөр (Мягмар) */
-    private LocalDate currentMeetingTuesday() {
-        return LocalDate.now(UB).with(ChronoField.DAY_OF_WEEK, 2);
+    // Шуурхай зөвлөгөөн дурын өдөр болж болно (нэг өдөрт нэг хурал). Хугацаанууд хурлын огнооноос тооцогдоно.
+
+    /** Ойрын идэвхтэй хурлууд: өнгөрсөн 6 хоног … ирэх 7 хоног (огноогоор өсөхөөр) */
+    private List<BriefingMeeting> nearMeetings(LocalDate today) {
+        return meetingRepo.findByActiveFlagAndMeetingDateBetweenOrderByMeetingDateAsc(1, today.minusDays(6), today.plusDays(7));
     }
 
-    /** Биелэлт оруулах анхдагч эцсийн хугацаа — Баасан (Мягмар + 3 өдөр), цаг нь тохиргооноос */
+    /**
+     * Шинэ үүрэг аль хуралд хамаарах вэ: сүүлийн 7 хоногт (өнөөдрийг оруулаад) болсон хамгийн сүүлийн хурал.
+     * Байхгүй бол өнөөдөр — getOrCreateMeeting нь өнөөдрийн хурлыг автоматаар үүсгэнэ.
+     * (Хуучин хурал руу хавсарч, хугацаа нь аль хэдийн өнгөрсөн мөчлөг үүсэхээс сэргийлнэ.)
+     */
+    private LocalDate taskMeetingDate() {
+        LocalDate today = LocalDate.now(UB);
+        return nearMeetings(today).stream()
+                .map(BriefingMeeting::getMeetingDate)
+                .filter(d -> !d.isAfter(today))
+                .reduce((a, b) -> b)
+                .orElse(today);
+    }
+
+    /** Биелэлт оруулах анхдагч эцсийн хугацаа — хурлын огноо + 3 өдөр, цаг нь тохиргооноос */
     private LocalDateTime submitDeadlineOf(LocalDate meetingDate) {
         return meetingDate.plusDays(3).atTime(settingService.getInt("briefing_submit_deadline_hour", 16), 0);
     }
 
-    /** Дүгнэх эцсийн хугацаа — дараа долоо хоногийн Даваа (Мягмар + 6 өдөр), цаг нь тохиргооноос */
+    /** Дүгнэх эцсийн хугацаа — хурлын огноо + 6 өдөр, цаг нь тохиргооноос */
     private LocalDateTime scoreDeadlineOf(LocalDate meetingDate) {
         return meetingDate.plusDays(6).atTime(settingService.getInt("briefing_score_deadline_hour", 14), 0);
     }
@@ -191,7 +207,7 @@ public class BriefingService {
                 taskDepRepo.save(td);
             });
             // Эхний cycle + хоосон биелэлтүүд (бүртгэгчийн тохируулсан хугацаатай)
-            createCycle(saved.getId(), 1, currentMeetingTuesday(), depIds,
+            createCycle(saved.getId(), 1, taskMeetingDate(), depIds,
                     dto.getSubmitDeadline(), dto.getScoreDeadline());
             notificationService.notifyBriefing(saved.getDescription(), new HashSet<>(depIds));
         } else {
@@ -250,8 +266,8 @@ public class BriefingService {
     }
 
     /**
-     * @param submitDeadline бүртгэгчийн тохируулсан утга; NULL бол автомат (Мягмар+3, 16:00)
-     * @param scoreDeadline  бүртгэгчийн тохируулсан утга; NULL бол автомат (Мягмар+6, 14:00)
+     * @param submitDeadline бүртгэгчийн тохируулсан утга; NULL бол автомат (хурал+3 өдөр, 16:00)
+     * @param scoreDeadline  бүртгэгчийн тохируулсан утга; NULL бол автомат (хурал+6 өдөр, 14:00)
      */
     private BriefingCycle createCycle(Integer taskId, int cycleNo, LocalDate meetingDate, List<Integer> depIds,
                                       LocalDateTime submitDeadline, LocalDateTime scoreDeadline) {
@@ -289,7 +305,7 @@ public class BriefingService {
 
     // ── Шуурхай зөвлөгөөн (§3.1) ─────────────────────────────────────────────────
 
-    /** Тухайн Мягмарын хурлыг олж эсвэл (байхгүй бол) автоматаар үүсгэнэ */
+    /** Тухайн өдрийн хурлыг олж эсвэл (байхгүй бол) автоматаар үүсгэнэ */
     private BriefingMeeting getOrCreateMeeting(LocalDate meetingDate) {
         return meetingRepo.findByMeetingDate(meetingDate).orElseGet(() -> {
             BriefingMeeting m = new BriefingMeeting();
@@ -302,11 +318,13 @@ public class BriefingService {
         });
     }
 
-    /** Анхдагч хуралдааны дугаар — ISO долоо хоногоор (ж: 2026-24). Нарийн бичиг засна. */
+    /** Анхдагч хуралдааны дугаар — ISO долоо хоногоор (ж: 2026-24); тухайн 7 хоногт өөр хурал байвал 2026-24-2. Нарийн бичиг засна. */
     private String defaultMeetingNo(LocalDate d) {
         int week = d.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR);
         int year = d.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR);
-        return year + "-" + week;
+        LocalDate monday = d.with(ChronoField.DAY_OF_WEEK, 1);
+        int others = meetingRepo.findByActiveFlagAndMeetingDateBetweenOrderByMeetingDateAsc(1, monday, monday.plusDays(6)).size();
+        return others == 0 ? year + "-" + week : year + "-" + week + "-" + (others + 1);
     }
 
     /** Хурлуудын жагсаалт (нарийн бичиг) */
@@ -314,12 +332,21 @@ public class BriefingService {
         return meetingRepo.findByActiveFlagOrderByMeetingDateDesc(1);
     }
 
-    /** Тухайн долоо хоногийн хурал (байхгүй бол үүсгэлгүйгээр null) */
+    /**
+     * Хуудсанд харуулах хурал (үүсгэхгүй):
+     * өнөөдрийн хурал → ирэх 7 хоногийн хамгийн ойрын хурал (мэдээ урьдчилан оруулна) →
+     * сүүлийн 7 хоногийн хамгийн сүүлийн хурал. Аль нь ч байхгүй бол null.
+     */
     public BriefingMeeting currentMeeting() {
-        return meetingRepo.findByMeetingDate(currentMeetingTuesday()).orElse(null);
+        LocalDate today = LocalDate.now(UB);
+        List<BriefingMeeting> near = nearMeetings(today);
+        return near.stream().filter(m -> m.getMeetingDate().equals(today)).findFirst()
+                .or(() -> near.stream().filter(m -> m.getMeetingDate().isAfter(today)).findFirst())
+                .or(() -> near.stream().filter(m -> m.getMeetingDate().isBefore(today)).reduce((a, b) -> b))
+                .orElse(null);
     }
 
-    /** Хурал бүртгэх/засах (зөвхөн нарийн бичиг). meetingDate байхгүй бол энэ долоо хоногийн Мягмар. */
+    /** Хурал бүртгэх/засах (зөвхөн нарийн бичиг). Дурын өдөр; meetingDate байхгүй бол өнөөдөр. Нэг өдөрт нэг хурал. */
     @Transactional
     public BriefingMeeting saveMeeting(Integer id, LocalDate meetingDate, String meetingNo, String summary) {
         access.requireSecretary(UserContext.getUserId());
@@ -328,7 +355,7 @@ public class BriefingService {
             m = meetingRepo.findById(id)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Хурал олдсонгүй"));
         } else {
-            LocalDate date = meetingDate != null ? meetingDate : currentMeetingTuesday();
+            LocalDate date = meetingDate != null ? meetingDate : LocalDate.now(UB);
             m = meetingRepo.findByMeetingDate(date).orElseGet(() -> {
                 BriefingMeeting nm = new BriefingMeeting();
                 nm.setMeetingDate(date);

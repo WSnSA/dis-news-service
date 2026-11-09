@@ -30,7 +30,7 @@ public class BriefingCycle {
     @Column(name = "cycle_no")
     private Integer cycleNo;
 
-    /** Тухайн 7 хоногийн 2 дахь өдөр (Мягмар) — хурал болсон огноо */
+    /** Хурал болсон огноо */
     @Column(name = "meeting_date")
     private LocalDate meetingDate;
 
