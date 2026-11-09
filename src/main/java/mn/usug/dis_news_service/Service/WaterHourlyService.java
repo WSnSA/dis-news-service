@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -214,6 +215,68 @@ public class WaterHourlyService {
                 .poolDetails(rs.getString("pool_details"))
                 .build()
         );
+    }
+
+    /**
+     * Ээлжийн (07:00–06:59) мэдээний бүрдэл: станц × цаг бүрт анхны бүртгэлийн цаг, бүртгэсэн ажилтан.
+     * Мэдээгүй станц hour = NULL нэг мөрөөр гарна. leaf_menu нь дээрх SQL-тэй ижил.
+     */
+    private static final String COVERAGE_SQL = """
+        WITH leaf_menu AS (
+          SELECT
+            m.id,
+            m.parent_id,
+            m.name,
+            CASE
+              WHEN m.parent_id = 3  THEN 'Эх үүсвэр'
+              WHEN m.parent_id = 12 THEN 'Дамжуулах'
+              WHEN m.parent_id = 24 THEN 'ЖС'
+              WHEN m.parent_id = 27 THEN 'Усан сан'
+              ELSE 'Бусад'
+            END AS group_name,
+            CASE
+              WHEN m.parent_id = 3  THEN 1
+              WHEN m.parent_id = 12 THEN 2
+              WHEN m.parent_id = 24 THEN 3
+              WHEN m.parent_id = 27 THEN 4
+              ELSE 9
+            END AS group_ord
+          FROM dis_news.menu m
+          WHERE m.parent_id IN (3,12,24,27)
+            AND (m.active_flag IS NULL OR m.active_flag = 1)
+        ),
+        shift_rows AS (
+          SELECT
+            h.menu_id,
+            h.`hour`,
+            h.created_date,
+            h.created_by,
+            ROW_NUMBER() OVER (PARTITION BY h.menu_id, h.`hour` ORDER BY h.id) AS rn
+          FROM dis_news.hourly_ws_station h
+          WHERE (h.`date` >= :d0 AND h.`date` < :d1 AND h.`hour` >= 7)
+             OR (h.`date` >= :d1 AND h.`date` < :d2 AND h.`hour` <= 6)
+        )
+        SELECT
+          lm.id         AS menuId,
+          lm.name       AS stationName,
+          lm.group_name AS groupName,
+          lm.group_ord  AS groupOrd,
+          s.`hour`      AS hour,
+          DATE_FORMAT(s.created_date, '%Y-%m-%d %H:%i') AS createdAt,
+          NULLIF(TRIM(CONCAT(COALESCE(u.last_name,''), ' ', COALESCE(u.first_name,''))), '') AS createdByName
+        FROM leaf_menu lm
+        LEFT JOIN shift_rows s ON s.menu_id = lm.id AND s.rn = 1
+        LEFT JOIN dis_news.users u ON u.id = s.created_by
+        ORDER BY lm.group_ord, lm.id, s.`hour`
+        """;
+
+    /** @param shiftDate ээлж эхэлсэн өдөр (07:00) */
+    public List<Map<String, Object>> getCoverage(LocalDate shiftDate) {
+        var params = new MapSqlParameterSource()
+                .addValue("d0", Timestamp.valueOf(shiftDate.atStartOfDay()))
+                .addValue("d1", Timestamp.valueOf(shiftDate.plusDays(1).atStartOfDay()))
+                .addValue("d2", Timestamp.valueOf(shiftDate.plusDays(2).atStartOfDay()));
+        return jdbc.queryForList(COVERAGE_SQL, params);
     }
 
     private static Double toDouble(Object v) {

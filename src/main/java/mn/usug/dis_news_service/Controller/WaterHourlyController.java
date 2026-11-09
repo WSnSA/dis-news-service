@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/ws")
@@ -23,5 +24,13 @@ public class WaterHourlyController {
             @RequestParam int hour
     ) {
         return service.getWaterHourly(date, hour);
+    }
+
+    // Ээлжийн мэдээний бүрдэл (станц × цаг). жишээ: /api/ws/water-hourly/coverage?date=2026-11-09
+    @GetMapping("/water-hourly/coverage")
+    public List<Map<String, Object>> getCoverage(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        return service.getCoverage(date);
     }
 }
