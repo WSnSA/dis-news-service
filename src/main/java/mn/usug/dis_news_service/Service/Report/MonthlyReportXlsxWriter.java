@@ -115,11 +115,11 @@ public class MonthlyReportXlsxWriter {
         h2.getCell(6).setCellValue(s.ytdActualLabel());
         h2.getCell(7).setCellValue("Төлөвлөгөө /м3/");
         h2.getCell(8).setCellValue(s.ytdDiffLabel());
-        merge(sh, row, row + 1, 0, 0, st);
-        merge(sh, row, row + 1, 1, 1, st);
-        merge(sh, row, row + 1, 2, 2, st);
-        merge(sh, row, row, 3, 5, st);
-        merge(sh, row, row, 6, 8, st);
+        merge(sh, row, row + 1, 0, 0, st.header);
+        merge(sh, row, row + 1, 1, 1, st.header);
+        merge(sh, row, row + 1, 2, 2, st.header);
+        merge(sh, row, row, 3, 5, st.header);
+        merge(sh, row, row, 6, 8, st.header);
         return row + 2;
     }
 
