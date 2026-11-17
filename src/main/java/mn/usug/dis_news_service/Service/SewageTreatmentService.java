@@ -174,6 +174,11 @@ public class SewageTreatmentService {
         );
     }
 
+    /** Сарын мэдээнд (MonthlyReportService): нэг бүртгэлийн data_json-оос хүлээн авсан бохир усны дүн */
+    public double facilityReceivedWaste(String json) {
+        return aggregate(json).receivedWaste;
+    }
+
     /** data_json-г задлаад нэг станцын дүнг гаргана */
     private FacilityAgg aggregate(String json) {
         FacilityAgg a = new FacilityAgg();

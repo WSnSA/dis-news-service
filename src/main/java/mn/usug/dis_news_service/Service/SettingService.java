@@ -21,7 +21,11 @@ public class SettingService {
     private final DisSettingRepository repo;
 
     public List<DisSetting> getAll() {
-        return repo.findAllByOrderBySortOrderAscIdAsc();
+        // "Сарын мэдээ"-ний гарын үсгийн мөрүүд (monthly_report_*) нь цаг биш текст тул
+        // "Цагийн тохиргоо" хуудсанд харагдахгүй — тэдгээрийг Сарын мэдээ хуудаснаас засна.
+        return repo.findAllByOrderBySortOrderAscIdAsc().stream()
+                .filter(s -> s.getSettingKey() == null || !s.getSettingKey().startsWith("monthly_report_"))
+                .toList();
     }
 
     /** Тохиргоог бүхэл тоо (цаг г.м)-оор авна; байхгүй/буруу бол def. */

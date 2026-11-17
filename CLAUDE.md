@@ -30,6 +30,7 @@ Spring Boot 3.5.6 · Java 21 · Lombok · JPA · Spring Security (JWT) · WebSoc
 | VehicleRepairPhotoController | `/repair/photo` | GET /{repairId}, POST, DELETE /{id} |
 | RepairReportController | `/repair/report` | GET /daily, /weekly, /period, /preview (Word .docx) |
 | DriverController | `/ref/driver` | GET /getAll?includeInactive=, GET /search?q=, GET /history?from=&to=, POST /save, PUT /update/{id}, DELETE /delete/{id} (**soft delete**) |
+| MonthlyReportController | `/report/monthly` | GET ?year=&month= (JSON), GET /xlsx (Excel — `MonthlyReportXlsxWriter`), GET/PUT /plan, GET/PUT /signers. Мөрүүд `monthly_report_row` (станц ↔ menu_ids, metric), төлөвлөгөө `monthly_report_plan`, гарын үсэг `dis_setting` `monthly_report_sign_1..6`. Migration: `db_migration_monthly_water_report.sql` |
 | ServertimeController | `/server-time` | GET (returns current server time) |
 | NotificationController | `/notifications` | GET, PUT /read-all |
 
