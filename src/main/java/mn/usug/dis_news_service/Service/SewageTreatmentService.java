@@ -74,7 +74,8 @@ public class SewageTreatmentService {
                         r.get("receivedWater")   == null ? 0d : ((Number) r.get("receivedWater")).doubleValue(),
                         r.get("substanceSpent")  == null ? 0d : ((Number) r.get("substanceSpent")).doubleValue(),
                         r.get("treatedWater")    == null ? 0d : ((Number) r.get("treatedWater")).doubleValue(),
-                        r.get("solidWaste")      == null ? 0d : ((Number) r.get("solidWaste")).doubleValue()
+                        r.get("solidWaste")      == null ? 0d : ((Number) r.get("solidWaste")).doubleValue(),
+                        (String) r.get("stationPath")
                 ))
                 .toList();
 
@@ -149,7 +150,8 @@ public class SewageTreatmentService {
                         parent != null ? parent.getName() : null,
                         m.getName(),
                         "0", "0", "0",
-                        0d, 0d, 0d, 0d, 0d, 0d
+                        0d, 0d, 0d, 0d, 0d, 0d,
+                        m.getPath()
                 ), e.getValue()));
             }
         }
@@ -170,7 +172,13 @@ public class SewageTreatmentService {
                 nz(r.solidWaste()) + a.solidWaste,
                 nz(r.compressedAir()) + a.compressedAir,
                 nz(r.biogas()) + a.biogas,
-                nz(r.dewateredSludge()) + a.dewateredSludge
+                nz(r.dewateredSludge()) + a.dewateredSludge,
+                // Хувь (%) нэмэгдэхгүй — бүртгэлтэй утгыг авна
+                a.sludgeMoisture > 0 ? a.sludgeMoisture : nz(r.sludgeMoisture()),
+                nz(r.electricity()) + a.electricity,
+                nz(r.pacSpent()) + a.pacSpent,
+                nz(r.pamSpent()) + a.pamSpent,
+                r.stationPath()
         );
     }
 
@@ -214,6 +222,11 @@ public class SewageTreatmentService {
                 a.compressedAir += dbl(values.get("compressedAir"));
                 a.biogas += dbl(values.get("biogas"));
                 a.dewateredSludge += dbl(values.get("dewateredSludge"));
+                double moist = dbl(values.get("sludgeMoisture"));
+                if (moist > 0) a.sludgeMoisture = moist;
+                a.electricity += dbl(values.get("electricity"));
+                a.pacSpent += dbl(values.get("pacSpent"));
+                a.pamSpent += dbl(values.get("pamSpent"));
             }
         }
         return a;
@@ -244,6 +257,7 @@ public class SewageTreatmentService {
         final List<String> pending = new ArrayList<>();
         final List<String> repair = new ArrayList<>();
         double receivedWaste, solidWaste, compressedAir, biogas, dewateredSludge;
+        double sludgeMoisture, electricity, pacSpent, pamSpent;
     }
 
     public List<Menu> getStations() {

@@ -79,6 +79,7 @@ public interface SewageTreatmentRepository extends JpaRepository<SewageTreatment
           m.id   AS stationId,
           p.name AS groupName,
           m.name AS stationName,
+          m.path AS stationPath,
           (SELECT working_count   FROM dis_news.sewage_treatment
            WHERE station_id = m.id AND active_flag = 1
              AND ((DATE(created_date) = :d AND HOUR(created_date) >= 7)
